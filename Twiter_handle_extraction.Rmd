@@ -1,0 +1,151 @@
+---
+title: "Twitter_handle_extraction"
+author: "Ana Macanovic"
+date: "2023-12-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+This script processes the output of our python scrip that pings Google Search API
+and outputs the first result.
+
+```{r warning = F, message = F}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "stringr", "strex",
+                      "stringdist")
+groundhog.library(packages_to_load, date = "2023-12-01")
+```
+
+Loading the output of the python script from our results folder:
+```{r warning = F, message = F}
+# getting all the csv files that were processed in batches
+csv_names <- list.files(path = "~/Postdoc/Projects/dutch_media_profs_python/output-data/",
+                        pattern = "*.csv",
+                        full.names = TRUE)
+
+results_prof_google_search <- lapply(csv_names, read_csv) %>% 
+  bind_rows() %>%
+  arrange(`...1`)
+```
+
+It seems that the ```htmltitle``` field includes good hints as to whether
+we found a handle of the person in question. Let us exploit that, searching for 
+```<b>`` in that field, an @, and a "/X":
+```{r}
+# define the strings we want
+search_values <- c("<b>", "</b>", "@", "\\) \\/ X")
+# check if all of them there, if so, paste the title, if not, set to NA
+results_prof_google_search$handle_text <- ifelse(str_detect_all(results_prof_google_search$htmlTitle, search_values) == TRUE,
+                                                 results_prof_google_search$htmlTitle,
+                                                 NA)
+```
+
+Preview this:
+```{r}
+knitr::kable(results_prof_google_search[1:10,c(4, 13, 16)], "html")
+```
+
+
+<br> 
+Now, we should somehow:
+1. Get the handle
+2. Check the handle against the person's actual name
+
+Let's split the strings at (@)
+```{r}
+# get the queries (some were dropped if no results found by google)
+names <- results_prof_google_search$elem
+# get the cleaned up title texts
+handles <- results_prof_google_search$handle_text
+# initialize a vector for storage
+handle_list <- c()
+alt_handle_list <- c()
+name_check_list <- c()
+
+for (i in 1:length(handles)){
+  potential_handle <- handles[i]
+  # first, spit the text
+  split_handle_text <-  unlist(str_split(potential_handle, "\\(@"))
+  
+  # by default, assume no alternative handles (see below)
+  alt_handle <- NA
+  
+  # if not empty
+  if (!any(is.na(split_handle_text))){
+    # get the name related to the handle for checking
+    name_check <- unlist(split_handle_text)[1]
+    # clean from <b>/ </b> if there
+    name_check <- str_remove(name_check, "<b>")
+    name_check <- str_remove(name_check, "</b>")
+    # trim white spaces
+    name_check <- trimws(name_check)
+    
+    # get the handle, cleaning from the closing bracket
+    
+    # but some people might list handles to other social media on their profiles
+    # so, we want the last handle
+    
+    # let's get the alternative handles, if present
+    if (length(split_handle_text) > 2){
+      alt_handle <- unlist(str_remove(unlist(split_handle_text)[2], "\\) / X"))[1]
+      # clean any additional <b>s
+      alt_handle <- str_remove(alt_handle, "<b>")
+      alt_handle <- str_remove(alt_handle, "</b>")
+      alt_handle <- str_remove(alt_handle, "\\)")
+      # add the @
+      alt_handle <- paste0("@", alt_handle)
+    }
+    # but, if there are some others, let us fetch that as well...
+    handle <- unlist(str_remove(unlist(split_handle_text)[length(split_handle_text)], "\\) / X"))[1]
+    # clean any additional <b>s
+    handle <- str_remove(handle, "<b>")
+    handle <- str_remove(handle, "</b>")
+    # add the @
+    handle <- paste0("@", handle)
+  } else{
+    # if no handle in the result, set to NA
+    handle <- NA
+    name_check <- NA
+  }
+  
+  # append whatever the handle is
+  handle_list[i] <- handle
+  alt_handle_list[i] <- alt_handle
+  name_check_list[i] <- name_check
+
+}
+
+handle_dataframe <- cbind.data.frame(name = names,
+                                     twitter_handle = handle_list,
+                                     alt_handle = alt_handle_list,
+                                     name_extracted = name_check_list,
+                                     link = results_prof_google_search$link)
+
+```
+
+
+Check the results:
+```{r}
+knitr::kable(handle_dataframe[1:10,], "html")
+```
+
+Flag suspicious handles:
+```{r}
+# tidy up the extracted names
+handle_dataframe$name_extracted <- tolower(handle_dataframe$name_extracted)
+handle_dataframe$name_extracted <- gsub("[^[:alnum:] ]", "", handle_dataframe$name_extracted)
+
+# get string similarity
+handle_dataframe$string_sim <- stringsim(handle_dataframe$name_extracted, handle_dataframe$name)
+```
+
+
+Write the results out for manual checking:
+```{r}
+write_csv(handle_dataframe, "twitter_handles/handle_extraction_raw.csv")
+```
+

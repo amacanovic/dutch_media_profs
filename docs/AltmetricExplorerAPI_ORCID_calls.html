@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Ana Macanovic" />
+
+<meta name="date" content="2023-12-13" />
+
+<title>AltmetricExplorerAPI_ORCID_calls</title>
+
+<script src="site_libs/header-attrs-2.21/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<script src="site_libs/navigation-1.1/sourceembed.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.4.0/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.0/css/v4-shims.min.css" rel="stylesheet" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+<style type="text/css">
+#rmd-source-code {
+  display: none;
+}
+</style>
+
+
+<link rel="stylesheet" href="tweaks.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html"></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a>
+    <span class="fa fa-home"></span>
+     
+  </a>
+</li>
+<li>
+  <a href="index.html">Code homepage</a>
+</li>
+<li>
+  <a href="Twiter_handle_extraction.html">Twitter handle extraction</a>
+</li>
+<li>
+  <a href="OpenAlex_Altmetric_data_download.html">Open Alex and Altmetric data download</a>
+</li>
+<li>
+  <a href="Prof_gender.html">Professor gender inference</a>
+</li>
+<li>
+  <a href="Lexis_nexis_parser.html">Lexis data parser</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/bhofstra/dutch_media_profs">
+    <span class="fab fa-github"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+<li role="separator" class="divider"></li>
+<li><a id="rmd-download-source" href="#">Download Rmd</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">AltmetricExplorerAPI_ORCID_calls</h1>
+<h4 class="author">Ana Macanovic</h4>
+<h4 class="date">2023-12-13</h4>
+
+</div>
+
+
+<p>This script contains function that call the Altmetric Explorer API to
+obtain information based on an ORCID or a name of a researcher.</p>
+<p>Load the libraries that we need:</p>
+<pre class="r"><code>library(groundhog)
+packages_to_load &lt;- c(&quot;readr&quot;, &quot;dplyr&quot;, 
+                      &quot;stringr&quot;,
+                      &quot;digest&quot;,
+                      &quot;jsonlite&quot;)
+groundhog.library(packages_to_load, date = &quot;2023-12-01&quot;)</code></pre>
+<p>Write a function that will get the filter for the ORCID and call the
+api:</p>
+<pre class="r"><code>altmetric_api_orcid_caller &lt;- function(orcid,
+                                       api_secret,
+                                       api_key,
+                                       endpoint = c(&quot;research_outputs&quot;,
+                                                    &quot;attention&quot;,
+                                                    &quot;demographics&quot;,
+                                                    &quot;mentions&quot;,
+                                                    &quot;mention_sources&quot;,
+                                                    &quot;journals&quot;)){
+  if (! endpoint %in% c(&quot;research_outputs&quot;,
+                        &quot;attention&quot;,
+                        &quot;demographics&quot;,
+                        &quot;mentions&quot;,
+                        &quot;mention_sources&quot;,
+                        &quot;journals&quot;)){
+    stop(&#39;Please select one of the following endpoints: &quot;research_outputs&quot;, &quot;attention&quot;,
+    &quot;demographics&quot;, &quot;mentions&quot;,  &quot;mention_sources&quot;, &quot;journals&quot;&#39;)
+  }
+  
+  filter_pt1 &lt;- paste0(&#39;orcid|&#39;, orcid)
+  filter_pt2 &lt;- paste(filter_pt1, &quot;scope|all&quot;, sep = &quot;|&quot;)
+  #filters = &#39;orcid|0000-0003-0800-5271|scope|all&#39;
+  digest &lt;- hmac(api_secret, filter_pt2,
+                 algo = c(&quot;sha1&quot;),
+                 serialize = FALSE)
+  
+  
+  # build up the url by inserting an ORCID
+  if (endpoint == &quot;research_outputs&quot;){
+    url_pt1a &lt;- paste0(&quot;https://www.altmetric.com/explorer/api/research_outputs?digest=&quot;, digest)
+    url_pt1b &lt;- paste0(url_pt1a, &quot;&amp;filter%5Borcid%5D=&quot;)
+    url_pt1 &lt;- paste0(url_pt1b, orcid)
+  } else{
+    # for other endpoints, specify the end point
+    url_pt1a &lt;- &quot;https://www.altmetric.com/explorer/api/research_outputs/&quot;
+    url_pt1b &lt;- paste0(paste0(url_pt1a, endpoint), &quot;?digest=&quot;)
+    url_pt1c &lt;- paste0(url_pt1b, digest)
+    url_pt1d &lt;- paste0(url_pt1c, &quot;&amp;filter%5Borcid%5D=&quot;)
+    url_pt1 &lt;- paste0(url_pt1d, orcid)
+  }
+  # first, get the first page with a 100 results
+  url_pt2 &lt;- paste0(paste0(&quot;&amp;filter%5Bscope%5D=all&amp;key=&quot;, api_key), &quot;&amp;page%5Bnumber%5D=1&quot;)
+  
+  
+  url_build &lt;- paste0(url_pt1, url_pt2)
+  
+  # fetch the output
+  output &lt;- fromJSON(txt=url_build)
+  
+  # fetch the dataframe we need
+  dataframe_output &lt;- output$data
+  
+  # get the total number of results
+  results_total &lt;- output$meta$response$`total-results`
+  # since we get results by a 100, get the number of calls we need (minus the one we made)
+  calls_remaining &lt;- ceiling(results_total/25)-1
+  
+  # if more calls remaining, call the api again, getting the correponding pages:
+  for (call in seq_len(calls_remaining)){
+    # build the url for each next page
+    page &lt;- call + 1
+    url_pages &lt;- paste0(paste0(&quot;&amp;filter%5Bscope%5D=all&amp;key=&quot;, api_key), &quot;&amp;page%5Bnumber%5D=&quot;)
+    url_pages &lt;- paste0(url_pages, page)
+    url_build &lt;- paste0(url_pt1, url_pages)
+    page_output &lt;- fromJSON(txt=url_build)
+    dataframe_page_output &lt;- page_output$data
+    
+    dataframe_output &lt;- dataframe_output %&gt;%
+      dplyr::bind_rows(dataframe_page_output)
+  }
+  return(dataframe_output)
+}</code></pre>
+<p>And then the one that calls the name:</p>
+<pre class="r"><code>altmetric_api_name_caller &lt;- function(name,
+                                       api_secret,
+                                       api_key,
+                                       endpoint = c(&quot;research_outputs&quot;,
+                                                    &quot;attention&quot;,
+                                                    &quot;demographics&quot;,
+                                                    &quot;mentions&quot;,
+                                                    &quot;mention_sources&quot;,
+                                                    &quot;journals&quot;)){
+  if (! endpoint %in% c(&quot;research_outputs&quot;,
+                        &quot;attention&quot;,
+                        &quot;demographics&quot;,
+                        &quot;mentions&quot;,
+                        &quot;mention_sources&quot;,
+                        &quot;journals&quot;)){
+    stop(&#39;Please select one of the following endpoints: &quot;research_outputs&quot;, &quot;attention&quot;,
+    &quot;demographics&quot;, &quot;mentions&quot;,  &quot;mention_sources&quot;, &quot;journals&quot;&#39;)
+  }
+  
+  filter_pt1 &lt;- paste0(&#39;q|&#39;, name)
+  digest &lt;- hmac(api_secret, filter_pt1,
+                 algo = c(&quot;sha1&quot;),
+                 serialize = FALSE)
+  
+  # build up the url by inserting an ORCID
+  if (endpoint == &quot;research_outputs&quot;){
+    url_pt1a &lt;- paste0(&quot;https://www.altmetric.com/explorer/api/research_outputs?digest=&quot;, digest)
+    url_pt1b &lt;- paste0(url_pt1a, &quot;&amp;filter%5Bq%5D=&quot;)
+    url_pt1 &lt;- paste0(url_pt1b, str_replace(name, &quot; &quot;, &quot;+&quot;))
+  } else{
+    # for other endpoints, specify the end point
+    url_pt1a &lt;- &quot;https://www.altmetric.com/explorer/api/research_outputs/&quot;
+    url_pt1b &lt;- paste0(paste0(url_pt1a, endpoint), &quot;?digest=&quot;)
+    url_pt1c &lt;- paste0(url_pt1b, digest)
+    url_pt1d &lt;- paste0(url_pt1c, &quot;&amp;filter%5Bq%5D=&quot;)
+    url_pt1 &lt;- paste0(url_pt1d, str_replace(name, &quot; &quot;, &quot;+&quot;))
+  }
+  # first, get the first page with a 100 results
+  url_pt2 &lt;- paste0(paste0(&quot;&amp;key=&quot;, api_key), &quot;&amp;page%5Bnumber%5D=1&quot;)
+  
+  
+  url_build &lt;- paste0(url_pt1, url_pt2)
+  
+  # fetch the output
+  output &lt;- fromJSON(txt=url_build)
+  
+  # fetch the dataframe we need
+  dataframe_output &lt;- output$data
+  
+  # get the total number of results
+  results_total &lt;- output$meta$response$`total-results`
+  # since we get results by a 100, get the number of calls we need (minus the one we made)
+  calls_remaining &lt;- ceiling(results_total/25)-1
+  
+  # if more calls remaining, call the api again, getting the correponding pages:
+  for (call in seq_len(calls_remaining)){
+    # build the url for each next page
+    page &lt;- call + 1
+    url_pages &lt;- paste0(paste0(&quot;&amp;key=&quot;, api_key), &quot;&amp;page%5Bnumber%5D=&quot;)
+    url_pages &lt;- paste0(url_pages, page)
+    url_build &lt;- paste0(url_pt1, url_pages)
+    page_output &lt;- fromJSON(txt=url_build)
+    dataframe_page_output &lt;- page_output$data
+    
+    dataframe_output &lt;- dataframe_output %&gt;%
+      dplyr::bind_rows(dataframe_page_output)
+  }
+  return(dataframe_output)
+}</code></pre>
+<p>Test (get the key and secret key from <a
+href="https://www.altmetric.com/explorer/settings"
+class="uri">https://www.altmetric.com/explorer/settings</a> and assign
+them as the objects below):</p>
+<pre class="r"><code>input_api_secret &lt;- &#39;&#39;
+input_api_key &lt;- &#39;&#39;
+orcid_test &lt;- &#39;0000-0002-9052-956X&#39; 
+name_test &lt;- &quot;bas hofstra&quot;
+
+test_output &lt;- altmetric_api_orcid_caller(orcid = orcid_test,
+                                          api_secret = input_api_secret,
+                                          api_key = input_api_key,
+                                          endpoint = &quot;research_outputs&quot;)
+
+test_attention &lt;- altmetric_api_orcid_caller(orcid = orcid_test,
+                                             api_secret = input_api_secret,
+                                             api_key = input_api_key,
+                                             endpoint = &quot;attention&quot;)
+
+test_name_output &lt;- altmetric_api_name_caller(name = name_test,
+                                            api_secret = input_api_secret,
+                                            api_key = input_api_key,
+                                            endpoint = &quot;research_outputs&quot;)</code></pre>
+
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIkFsdG1ldHJpY0V4cGxvcmVyQVBJX09SQ0lEX2NhbGxzIg0KYXV0aG9yOiAiQW5hIE1hY2Fub3ZpYyINCmRhdGU6ICIyMDIzLTEyLTEzIg0KLS0tDQoNClRoaXMgc2NyaXB0IGNvbnRhaW5zIGZ1bmN0aW9uIHRoYXQgY2FsbCB0aGUgQWx0bWV0cmljIEV4cGxvcmVyIEFQSSB0byBvYnRhaW4gDQppbmZvcm1hdGlvbiBiYXNlZCBvbiBhbiBPUkNJRCBvciBhIG5hbWUgb2YgYSByZXNlYXJjaGVyLg0KDQpgYGB7ciBpbmNsdWRlID0gRn0NCmtuaXRyOjpvcHRzX2NodW5rJHNldChlY2hvID0gVFJVRSkNCmtuaXRyOjpvcHRzX2NodW5rJHNldChldmFsID0gRkFMU0UpDQprbml0cjo6b3B0c19jaHVuayRzZXQod2FybmluZyA9IEZBTFNFKQ0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KG1lc3NhZ2UgPSBGQUxTRSkNCmBgYA0KDQpMb2FkIHRoZSBsaWJyYXJpZXMgdGhhdCB3ZSBuZWVkOg0KYGBge3Igd2FybmluZyA9IEYsIG1lc3NhZ2UgPSBGfQ0KbGlicmFyeShncm91bmRob2cpDQpwYWNrYWdlc190b19sb2FkIDwtIGMoInJlYWRyIiwgImRwbHlyIiwgDQogICAgICAgICAgICAgICAgICAgICAgInN0cmluZ3IiLA0KICAgICAgICAgICAgICAgICAgICAgICJkaWdlc3QiLA0KICAgICAgICAgICAgICAgICAgICAgICJqc29ubGl0ZSIpDQpncm91bmRob2cubGlicmFyeShwYWNrYWdlc190b19sb2FkLCBkYXRlID0gIjIwMjMtMTItMDEiKQ0KYGBgDQoNCg0KV3JpdGUgYSBmdW5jdGlvbiB0aGF0IHdpbGwgZ2V0IHRoZSBmaWx0ZXIgZm9yIHRoZSBPUkNJRCBhbmQgY2FsbCB0aGUgYXBpOg0KYGBge3J9DQphbHRtZXRyaWNfYXBpX29yY2lkX2NhbGxlciA8LSBmdW5jdGlvbihvcmNpZCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFwaV9zZWNyZXQsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBhcGlfa2V5LA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZW5kcG9pbnQgPSBjKCJyZXNlYXJjaF9vdXRwdXRzIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiYXR0ZW50aW9uIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiZGVtb2dyYXBoaWNzIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAibWVudGlvbnMiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJtZW50aW9uX3NvdXJjZXMiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJqb3VybmFscyIpKXsNCiAgaWYgKCEgZW5kcG9pbnQgJWluJSBjKCJyZXNlYXJjaF9vdXRwdXRzIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICJhdHRlbnRpb24iLA0KICAgICAgICAgICAgICAgICAgICAgICAgImRlbW9ncmFwaGljcyIsDQogICAgICAgICAgICAgICAgICAgICAgICAibWVudGlvbnMiLA0KICAgICAgICAgICAgICAgICAgICAgICAgIm1lbnRpb25fc291cmNlcyIsDQogICAgICAgICAgICAgICAgICAgICAgICAiam91cm5hbHMiKSl7DQogICAgc3RvcCgnUGxlYXNlIHNlbGVjdCBvbmUgb2YgdGhlIGZvbGxvd2luZyBlbmRwb2ludHM6ICJyZXNlYXJjaF9vdXRwdXRzIiwgImF0dGVudGlvbiIsDQogICAgImRlbW9ncmFwaGljcyIsICJtZW50aW9ucyIsICAibWVudGlvbl9zb3VyY2VzIiwgImpvdXJuYWxzIicpDQogIH0NCiAgDQogIGZpbHRlcl9wdDEgPC0gcGFzdGUwKCdvcmNpZHwnLCBvcmNpZCkNCiAgZmlsdGVyX3B0MiA8LSBwYXN0ZShmaWx0ZXJfcHQxLCAic2NvcGV8YWxsIiwgc2VwID0gInwiKQ0KICAjZmlsdGVycyA9ICdvcmNpZHwwMDAwLTAwMDMtMDgwMC01MjcxfHNjb3BlfGFsbCcNCiAgZGlnZXN0IDwtIGhtYWMoYXBpX3NlY3JldCwgZmlsdGVyX3B0MiwNCiAgICAgICAgICAgICAgICAgYWxnbyA9IGMoInNoYTEiKSwNCiAgICAgICAgICAgICAgICAgc2VyaWFsaXplID0gRkFMU0UpDQogIA0KICANCiAgIyBidWlsZCB1cCB0aGUgdXJsIGJ5IGluc2VydGluZyBhbiBPUkNJRA0KICBpZiAoZW5kcG9pbnQgPT0gInJlc2VhcmNoX291dHB1dHMiKXsNCiAgICB1cmxfcHQxYSA8LSBwYXN0ZTAoImh0dHBzOi8vd3d3LmFsdG1ldHJpYy5jb20vZXhwbG9yZXIvYXBpL3Jlc2VhcmNoX291dHB1dHM/ZGlnZXN0PSIsIGRpZ2VzdCkNCiAgICB1cmxfcHQxYiA8LSBwYXN0ZTAodXJsX3B0MWEsICImZmlsdGVyJTVCb3JjaWQlNUQ9IikNCiAgICB1cmxfcHQxIDwtIHBhc3RlMCh1cmxfcHQxYiwgb3JjaWQpDQogIH0gZWxzZXsNCiAgICAjIGZvciBvdGhlciBlbmRwb2ludHMsIHNwZWNpZnkgdGhlIGVuZCBwb2ludA0KICAgIHVybF9wdDFhIDwtICJodHRwczovL3d3dy5hbHRtZXRyaWMuY29tL2V4cGxvcmVyL2FwaS9yZXNlYXJjaF9vdXRwdXRzLyINCiAgICB1cmxfcHQxYiA8LSBwYXN0ZTAocGFzdGUwKHVybF9wdDFhLCBlbmRwb2ludCksICI/ZGlnZXN0PSIpDQogICAgdXJsX3B0MWMgPC0gcGFzdGUwKHVybF9wdDFiLCBkaWdlc3QpDQogICAgdXJsX3B0MWQgPC0gcGFzdGUwKHVybF9wdDFjLCAiJmZpbHRlciU1Qm9yY2lkJTVEPSIpDQogICAgdXJsX3B0MSA8LSBwYXN0ZTAodXJsX3B0MWQsIG9yY2lkKQ0KICB9DQogICMgZmlyc3QsIGdldCB0aGUgZmlyc3QgcGFnZSB3aXRoIGEgMTAwIHJlc3VsdHMNCiAgdXJsX3B0MiA8LSBwYXN0ZTAocGFzdGUwKCImZmlsdGVyJTVCc2NvcGUlNUQ9YWxsJmtleT0iLCBhcGlfa2V5KSwgIiZwYWdlJTVCbnVtYmVyJTVEPTEiKQ0KICANCiAgDQogIHVybF9idWlsZCA8LSBwYXN0ZTAodXJsX3B0MSwgdXJsX3B0MikNCiAgDQogICMgZmV0Y2ggdGhlIG91dHB1dA0KICBvdXRwdXQgPC0gZnJvbUpTT04odHh0PXVybF9idWlsZCkNCiAgDQogICMgZmV0Y2ggdGhlIGRhdGFmcmFtZSB3ZSBuZWVkDQogIGRhdGFmcmFtZV9vdXRwdXQgPC0gb3V0cHV0JGRhdGENCiAgDQogICMgZ2V0IHRoZSB0b3RhbCBudW1iZXIgb2YgcmVzdWx0cw0KICByZXN1bHRzX3RvdGFsIDwtIG91dHB1dCRtZXRhJHJlc3BvbnNlJGB0b3RhbC1yZXN1bHRzYA0KICAjIHNpbmNlIHdlIGdldCByZXN1bHRzIGJ5IGEgMTAwLCBnZXQgdGhlIG51bWJlciBvZiBjYWxscyB3ZSBuZWVkIChtaW51cyB0aGUgb25lIHdlIG1hZGUpDQogIGNhbGxzX3JlbWFpbmluZyA8LSBjZWlsaW5nKHJlc3VsdHNfdG90YWwvMjUpLTENCiAgDQogICMgaWYgbW9yZSBjYWxscyByZW1haW5pbmcsIGNhbGwgdGhlIGFwaSBhZ2FpbiwgZ2V0dGluZyB0aGUgY29ycmVwb25kaW5nIHBhZ2VzOg0KICBmb3IgKGNhbGwgaW4gc2VxX2xlbihjYWxsc19yZW1haW5pbmcpKXsNCiAgICAjIGJ1aWxkIHRoZSB1cmwgZm9yIGVhY2ggbmV4dCBwYWdlDQogICAgcGFnZSA8LSBjYWxsICsgMQ0KICAgIHVybF9wYWdlcyA8LSBwYXN0ZTAocGFzdGUwKCImZmlsdGVyJTVCc2NvcGUlNUQ9YWxsJmtleT0iLCBhcGlfa2V5KSwgIiZwYWdlJTVCbnVtYmVyJTVEPSIpDQogICAgdXJsX3BhZ2VzIDwtIHBhc3RlMCh1cmxfcGFnZXMsIHBhZ2UpDQogICAgdXJsX2J1aWxkIDwtIHBhc3RlMCh1cmxfcHQxLCB1cmxfcGFnZXMpDQogICAgcGFnZV9vdXRwdXQgPC0gZnJvbUpTT04odHh0PXVybF9idWlsZCkNCiAgICBkYXRhZnJhbWVfcGFnZV9vdXRwdXQgPC0gcGFnZV9vdXRwdXQkZGF0YQ0KICAgIA0KICAgIGRhdGFmcmFtZV9vdXRwdXQgPC0gZGF0YWZyYW1lX291dHB1dCAlPiUNCiAgICAgIGRwbHlyOjpiaW5kX3Jvd3MoZGF0YWZyYW1lX3BhZ2Vfb3V0cHV0KQ0KICB9DQogIHJldHVybihkYXRhZnJhbWVfb3V0cHV0KQ0KfQ0KYGBgDQoNCkFuZCB0aGVuIHRoZSBvbmUgdGhhdCBjYWxscyB0aGUgbmFtZToNCmBgYHtyfQ0KYWx0bWV0cmljX2FwaV9uYW1lX2NhbGxlciA8LSBmdW5jdGlvbihuYW1lLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYXBpX3NlY3JldCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFwaV9rZXksDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBlbmRwb2ludCA9IGMoInJlc2VhcmNoX291dHB1dHMiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJhdHRlbnRpb24iLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJkZW1vZ3JhcGhpY3MiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJtZW50aW9ucyIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIm1lbnRpb25fc291cmNlcyIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgImpvdXJuYWxzIikpew0KICBpZiAoISBlbmRwb2ludCAlaW4lIGMoInJlc2VhcmNoX291dHB1dHMiLA0KICAgICAgICAgICAgICAgICAgICAgICAgImF0dGVudGlvbiIsDQogICAgICAgICAgICAgICAgICAgICAgICAiZGVtb2dyYXBoaWNzIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICJtZW50aW9ucyIsDQogICAgICAgICAgICAgICAgICAgICAgICAibWVudGlvbl9zb3VyY2VzIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICJqb3VybmFscyIpKXsNCiAgICBzdG9wKCdQbGVhc2Ugc2VsZWN0IG9uZSBvZiB0aGUgZm9sbG93aW5nIGVuZHBvaW50czogInJlc2VhcmNoX291dHB1dHMiLCAiYXR0ZW50aW9uIiwNCiAgICAiZGVtb2dyYXBoaWNzIiwgIm1lbnRpb25zIiwgICJtZW50aW9uX3NvdXJjZXMiLCAiam91cm5hbHMiJykNCiAgfQ0KICANCiAgZmlsdGVyX3B0MSA8LSBwYXN0ZTAoJ3F8JywgbmFtZSkNCiAgZGlnZXN0IDwtIGhtYWMoYXBpX3NlY3JldCwgZmlsdGVyX3B0MSwNCiAgICAgICAgICAgICAgICAgYWxnbyA9IGMoInNoYTEiKSwNCiAgICAgICAgICAgICAgICAgc2VyaWFsaXplID0gRkFMU0UpDQogIA0KICAjIGJ1aWxkIHVwIHRoZSB1cmwgYnkgaW5zZXJ0aW5nIGFuIE9SQ0lEDQogIGlmIChlbmRwb2ludCA9PSAicmVzZWFyY2hfb3V0cHV0cyIpew0KICAgIHVybF9wdDFhIDwtIHBhc3RlMCgiaHR0cHM6Ly93d3cuYWx0bWV0cmljLmNvbS9leHBsb3Jlci9hcGkvcmVzZWFyY2hfb3V0cHV0cz9kaWdlc3Q9IiwgZGlnZXN0KQ0KICAgIHVybF9wdDFiIDwtIHBhc3RlMCh1cmxfcHQxYSwgIiZmaWx0ZXIlNUJxJTVEPSIpDQogICAgdXJsX3B0MSA8LSBwYXN0ZTAodXJsX3B0MWIsIHN0cl9yZXBsYWNlKG5hbWUsICIgIiwgIisiKSkNCiAgfSBlbHNlew0KICAgICMgZm9yIG90aGVyIGVuZHBvaW50cywgc3BlY2lmeSB0aGUgZW5kIHBvaW50DQogICAgdXJsX3B0MWEgPC0gImh0dHBzOi8vd3d3LmFsdG1ldHJpYy5jb20vZXhwbG9yZXIvYXBpL3Jlc2VhcmNoX291dHB1dHMvIg0KICAgIHVybF9wdDFiIDwtIHBhc3RlMChwYXN0ZTAodXJsX3B0MWEsIGVuZHBvaW50KSwgIj9kaWdlc3Q9IikNCiAgICB1cmxfcHQxYyA8LSBwYXN0ZTAodXJsX3B0MWIsIGRpZ2VzdCkNCiAgICB1cmxfcHQxZCA8LSBwYXN0ZTAodXJsX3B0MWMsICImZmlsdGVyJTVCcSU1RD0iKQ0KICAgIHVybF9wdDEgPC0gcGFzdGUwKHVybF9wdDFkLCBzdHJfcmVwbGFjZShuYW1lLCAiICIsICIrIikpDQogIH0NCiAgIyBmaXJzdCwgZ2V0IHRoZSBmaXJzdCBwYWdlIHdpdGggYSAxMDAgcmVzdWx0cw0KICB1cmxfcHQyIDwtIHBhc3RlMChwYXN0ZTAoIiZrZXk9IiwgYXBpX2tleSksICImcGFnZSU1Qm51bWJlciU1RD0xIikNCiAgDQogIA0KICB1cmxfYnVpbGQgPC0gcGFzdGUwKHVybF9wdDEsIHVybF9wdDIpDQogIA0KICAjIGZldGNoIHRoZSBvdXRwdXQNCiAgb3V0cHV0IDwtIGZyb21KU09OKHR4dD11cmxfYnVpbGQpDQogIA0KICAjIGZldGNoIHRoZSBkYXRhZnJhbWUgd2UgbmVlZA0KICBkYXRhZnJhbWVfb3V0cHV0IDwtIG91dHB1dCRkYXRhDQogIA0KICAjIGdldCB0aGUgdG90YWwgbnVtYmVyIG9mIHJlc3VsdHMNCiAgcmVzdWx0c190b3RhbCA8LSBvdXRwdXQkbWV0YSRyZXNwb25zZSRgdG90YWwtcmVzdWx0c2ANCiAgIyBzaW5jZSB3ZSBnZXQgcmVzdWx0cyBieSBhIDEwMCwgZ2V0IHRoZSBudW1iZXIgb2YgY2FsbHMgd2UgbmVlZCAobWludXMgdGhlIG9uZSB3ZSBtYWRlKQ0KICBjYWxsc19yZW1haW5pbmcgPC0gY2VpbGluZyhyZXN1bHRzX3RvdGFsLzI1KS0xDQogIA0KICAjIGlmIG1vcmUgY2FsbHMgcmVtYWluaW5nLCBjYWxsIHRoZSBhcGkgYWdhaW4sIGdldHRpbmcgdGhlIGNvcnJlcG9uZGluZyBwYWdlczoNCiAgZm9yIChjYWxsIGluIHNlcV9sZW4oY2FsbHNfcmVtYWluaW5nKSl7DQogICAgIyBidWlsZCB0aGUgdXJsIGZvciBlYWNoIG5leHQgcGFnZQ0KICAgIHBhZ2UgPC0gY2FsbCArIDENCiAgICB1cmxfcGFnZXMgPC0gcGFzdGUwKHBhc3RlMCgiJmtleT0iLCBhcGlfa2V5KSwgIiZwYWdlJTVCbnVtYmVyJTVEPSIpDQogICAgdXJsX3BhZ2VzIDwtIHBhc3RlMCh1cmxfcGFnZXMsIHBhZ2UpDQogICAgdXJsX2J1aWxkIDwtIHBhc3RlMCh1cmxfcHQxLCB1cmxfcGFnZXMpDQogICAgcGFnZV9vdXRwdXQgPC0gZnJvbUpTT04odHh0PXVybF9idWlsZCkNCiAgICBkYXRhZnJhbWVfcGFnZV9vdXRwdXQgPC0gcGFnZV9vdXRwdXQkZGF0YQ0KICAgIA0KICAgIGRhdGFmcmFtZV9vdXRwdXQgPC0gZGF0YWZyYW1lX291dHB1dCAlPiUNCiAgICAgIGRwbHlyOjpiaW5kX3Jvd3MoZGF0YWZyYW1lX3BhZ2Vfb3V0cHV0KQ0KICB9DQogIHJldHVybihkYXRhZnJhbWVfb3V0cHV0KQ0KfQ0KYGBgDQoNCg0KVGVzdCAoZ2V0IHRoZSBrZXkgYW5kIHNlY3JldCBrZXkgZnJvbSBodHRwczovL3d3dy5hbHRtZXRyaWMuY29tL2V4cGxvcmVyL3NldHRpbmdzIGFuZCBhc3NpZ24gdGhlbSBhcyB0aGUgb2JqZWN0cyBiZWxvdyk6DQpgYGB7cn0NCmlucHV0X2FwaV9zZWNyZXQgPC0gJycNCmlucHV0X2FwaV9rZXkgPC0gJycNCm9yY2lkX3Rlc3QgPC0gJzAwMDAtMDAwMi05MDUyLTk1NlgnIA0KbmFtZV90ZXN0IDwtICJiYXMgaG9mc3RyYSINCg0KdGVzdF9vdXRwdXQgPC0gYWx0bWV0cmljX2FwaV9vcmNpZF9jYWxsZXIob3JjaWQgPSBvcmNpZF90ZXN0LA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYXBpX3NlY3JldCA9IGlucHV0X2FwaV9zZWNyZXQsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBhcGlfa2V5ID0gaW5wdXRfYXBpX2tleSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGVuZHBvaW50ID0gInJlc2VhcmNoX291dHB1dHMiKQ0KDQp0ZXN0X2F0dGVudGlvbiA8LSBhbHRtZXRyaWNfYXBpX29yY2lkX2NhbGxlcihvcmNpZCA9IG9yY2lkX3Rlc3QsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBhcGlfc2VjcmV0ID0gaW5wdXRfYXBpX3NlY3JldCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFwaV9rZXkgPSBpbnB1dF9hcGlfa2V5LA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZW5kcG9pbnQgPSAiYXR0ZW50aW9uIikNCg0KdGVzdF9uYW1lX291dHB1dCA8LSBhbHRtZXRyaWNfYXBpX25hbWVfY2FsbGVyKG5hbWUgPSBuYW1lX3Rlc3QsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFwaV9zZWNyZXQgPSBpbnB1dF9hcGlfc2VjcmV0LA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBhcGlfa2V5ID0gaW5wdXRfYXBpX2tleSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZW5kcG9pbnQgPSAicmVzZWFyY2hfb3V0cHV0cyIpDQpgYGANCg0K</div>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeSourceEmbed("AltmetricExplorerAPI_ORCID_calls.Rmd");
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

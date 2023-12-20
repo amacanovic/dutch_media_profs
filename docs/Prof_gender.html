@@ -9,10 +9,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="Your Name" />
+<meta name="author" content="Ana Macanovic" />
 
+<meta name="date" content="2023-12-19" />
 
-<title>Journal 1</title>
+<title>Prof_gender</title>
 
 <script src="site_libs/header-attrs-2.21/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
@@ -38,10 +39,6 @@
 <script src="site_libs/navigation-1.1/sourceembed.js"></script>
 <link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
-<script src="site_libs/clipboard-1.7.1/clipboard.min.js"></script>
-<link href="site_libs/primer-tooltips-1.4.0/build.css" rel="stylesheet" />
-<link href="site_libs/klippy-0.0.0.9500/css/klippy.min.css" rel="stylesheet" />
-<script src="site_libs/klippy-0.0.0.9500/js/klippy.min.js"></script>
 <link href="site_libs/font-awesome-6.4.0/css/all.min.css" rel="stylesheet" />
 <link href="site_libs/font-awesome-6.4.0/css/v4-shims.min.css" rel="stylesheet" />
 
@@ -337,27 +334,30 @@ div.tocify {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
-  <a href="index.html">
+  <a>
     <span class="fa fa-home"></span>
      
   </a>
 </li>
-<li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-    My journal
-     
-    <span class="caret"></span>
-  </a>
-  <ul class="dropdown-menu" role="menu">
-    <li>
-      <a href="lab1.html">Page 1</a>
-    </li>
-  </ul>
+<li>
+  <a href="index.html">Code homepage</a>
+</li>
+<li>
+  <a href="Twiter_handle_extraction.html">Twitter handle extraction</a>
+</li>
+<li>
+  <a href="OpenAlex_Altmetric_data_download.html">Open Alex and Altmetric data download</a>
+</li>
+<li>
+  <a href="Prof_gender.html">Professor gender inference</a>
+</li>
+<li>
+  <a href="Lexis_nexis_parser.html">Lexis data parser</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li>
-  <a href="https://github.com/robfranken/LabJournal">
+  <a href="https://github.com/bhofstra/dutch_media_profs">
     <span class="fab fa-github"></span>
      
   </a>
@@ -381,26 +381,61 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">Journal 1</h1>
-<h4 class="author">Your Name</h4>
+<h1 class="title toc-ignore">Prof_gender</h1>
+<h4 class="author">Ana Macanovic</h4>
+<h4 class="date">2023-12-19</h4>
 
 </div>
 
 
-<script>
-  addClassKlippyTo("pre.r, pre.markdown");
-  addKlippy('right', 'top', 'auto', '1', 'Copy code', 'Copied!');
-</script>
-<p>Last compiled on juni, 2023</p>
-<p><br></p>
-<hr />
-<p>This is just an example page of your <span style="color: red;">lab
-journal</span>.</p>
-<hr />
-<pre class="r test"><code>print(&quot;Hello Lab Journal&quot;)</code></pre>
-<pre class="test2"><code>#&gt; [1] &quot;Hello Lab Journal&quot;</code></pre>
+<p>This script checks assigns professor names as male or female. Because
+there are no self-reports of gender in the Narcis database, we infer a
+professor’s gender from the first name filed in the database using
+Genderize.io API.</p>
+<p>Load the libraries that we need:</p>
+<pre class="r"><code>library(groundhog)
+packages_to_load &lt;- c(&quot;readr&quot;, &quot;dplyr&quot;, 
+                      &quot;stringr&quot;,
+                      &quot;digest&quot;,
+                      &quot;jsonlite&quot;)
+groundhog.library(packages_to_load, date = &quot;2023-12-01&quot;)</code></pre>
+<div id="tidy-up-professor-data-from-narcis" class="section level1"
+number="1">
+<h1><span class="header-section-number">1</span> Tidy up professor data
+from NARCIS</h1>
+<p>Load the professor profiles:</p>
+<pre class="r"><code>load(&quot;raw_data/media_profs_profiles.rda&quot;)
+profs &lt;- read_csv(&quot;raw_data/dutch_profs_urls.csv&quot;)
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIkpvdXJuYWwgMSINCiNiaWJsaW9ncmFwaHk6IHJlZmVyZW5jZXMuYmliDQphdXRob3I6ICJZb3VyIE5hbWUiDQotLS0NCg0KDQoNCmBgYHtyLCBnbG9iYWxzZXR0aW5ncywgZWNobz1GQUxTRSwgd2FybmluZz1GQUxTRSwgcmVzdWx0cz0naGlkZSd9DQpsaWJyYXJ5KGtuaXRyKQ0KDQprbml0cjo6b3B0c19jaHVuayRzZXQoZWNobyA9IFRSVUUpDQpvcHRzX2NodW5rJHNldCh0aWR5Lm9wdHM9bGlzdCh3aWR0aC5jdXRvZmY9MTAwKSx0aWR5PVRSVUUsIHdhcm5pbmcgPSBGQUxTRSwgbWVzc2FnZSA9IEZBTFNFLGNvbW1lbnQgPSAiIz4iLCBjYWNoZT1UUlVFLCBjbGFzcy5zb3VyY2U9YygidGVzdCIpLCBjbGFzcy5vdXRwdXQ9YygidGVzdDIiKSkNCm9wdGlvbnMod2lkdGggPSAxMDApDQpyZ2w6OnNldHVwS25pdHIoKQ0KDQoNCg0KY29sb3JpemUgPC0gZnVuY3Rpb24oeCwgY29sb3IpIHtzcHJpbnRmKCI8c3BhbiBzdHlsZT0nY29sb3I6ICVzOyc+JXM8L3NwYW4+IiwgY29sb3IsIHgpIH0NCg0KYGBgDQoNCmBgYHtyIGtsaXBweSwgZWNobz1GQUxTRSwgaW5jbHVkZT1UUlVFfQ0Ka2xpcHB5OjprbGlwcHkocG9zaXRpb24gPSBjKCd0b3AnLCAncmlnaHQnKSkNCiNrbGlwcHk6OmtsaXBweShjb2xvciA9ICdkYXJrcmVkJykNCiNrbGlwcHk6OmtsaXBweSh0b29sdGlwX21lc3NhZ2UgPSAnQ2xpY2sgdG8gY29weScsIHRvb2x0aXBfc3VjY2VzcyA9ICdEb25lJykNCmBgYA0KDQpMYXN0IGNvbXBpbGVkIG9uIGByIGZvcm1hdChTeXMudGltZSgpLCAnJUIsICVZJylgDQoNCjxicj4NCg0KLS0tLQ0KICANClRoaXMgaXMganVzdCBhbiBleGFtcGxlIHBhZ2Ugb2YgeW91ciBgciBjb2xvcml6ZSgibGFiIGpvdXJuYWwiLCAicmVkIilgLg0KICANCg0KLS0tLQ0KDQoNCmBgYHtyfQ0KcHJpbnQoIkhlbGxvIExhYiBKb3VybmFsIikNCmBgYA0KDQoNCg0K</div>
+# merge the profs with their ORCIDs
+colnames(profs)[c(1,7)] &lt;- c(&quot;id&quot;, &quot;profile_id&quot;)
+
+profs_full &lt;- merge(profs,
+                    metadf[, c(1:4, 361)],
+                    by = &quot;profile_id&quot;)</code></pre>
+</div>
+<div id="inference-on-the-gender" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Inference on the
+gender:</h1>
+<pre class="r"><code>prof_name_gender &lt;- data.frame(matrix(NA, nrow = 0, ncol = 4))
+
+for (name in profs_full$first[501:901]){
+  # call the api using the name
+  name_call &lt;- paste0(&quot;https://api.genderize.io?name=&quot;, name)
+  output &lt;- fromJSON(txt=name_call)
+  # if no gender predicted
+  if(is.null(output[[&quot;gender&quot;]])){
+    output[[&quot;gender&quot;]] &lt;- NA
+  }
+  output &lt;- data.frame(output)
+  prof_name_gender &lt;- rbind(prof_name_gender,
+                            output)
+}
+# we have to do this over a few days
+saveRDS(prof_name_gender, &quot;processed_data/prof_name_gender_501_894.RDS&quot;)</code></pre>
+</div>
+
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIlByb2ZfZ2VuZGVyIg0KYXV0aG9yOiAiQW5hIE1hY2Fub3ZpYyINCmRhdGU6ICIyMDIzLTEyLTE5Ig0KLS0tDQoNClRoaXMgc2NyaXB0IGNoZWNrcyBhc3NpZ25zIHByb2Zlc3NvciBuYW1lcyBhcyBtYWxlIG9yIGZlbWFsZS4gDQpCZWNhdXNlIHRoZXJlIGFyZSBubyBzZWxmLXJlcG9ydHMgb2YgZ2VuZGVyIGluIHRoZSBOYXJjaXMgZGF0YWJhc2UsIA0Kd2UgaW5mZXIgYSBwcm9mZXNzb3IncyBnZW5kZXIgZnJvbSB0aGUgZmlyc3QgbmFtZSBmaWxlZCBpbiB0aGUgZGF0YWJhc2UgdXNpbmcNCkdlbmRlcml6ZS5pbyBBUEkuDQoNCmBgYHtyIGluY2x1ZGUgPSBGfQ0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KGVjaG8gPSBUUlVFKQ0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KGV2YWwgPSBGQUxTRSkNCmtuaXRyOjpvcHRzX2NodW5rJHNldCh3YXJuaW5nID0gRkFMU0UpDQprbml0cjo6b3B0c19jaHVuayRzZXQobWVzc2FnZSA9IEZBTFNFKQ0KYGBgDQoNCkxvYWQgdGhlIGxpYnJhcmllcyB0aGF0IHdlIG5lZWQ6DQpgYGB7ciB3YXJuaW5nID0gRiwgbWVzc2FnZSA9IEZ9DQpsaWJyYXJ5KGdyb3VuZGhvZykNCnBhY2thZ2VzX3RvX2xvYWQgPC0gYygicmVhZHIiLCAiZHBseXIiLCANCiAgICAgICAgICAgICAgICAgICAgICAic3RyaW5nciIsDQogICAgICAgICAgICAgICAgICAgICAgImRpZ2VzdCIsDQogICAgICAgICAgICAgICAgICAgICAgImpzb25saXRlIikNCmdyb3VuZGhvZy5saWJyYXJ5KHBhY2thZ2VzX3RvX2xvYWQsIGRhdGUgPSAiMjAyMy0xMi0wMSIpDQpgYGANCg0KIyBUaWR5IHVwIHByb2Zlc3NvciBkYXRhIGZyb20gTkFSQ0lTDQoNCkxvYWQgdGhlIHByb2Zlc3NvciBwcm9maWxlczoNCmBgYHtyIG1lc3NhZ2UgPSBGLCB3YXJuaW5nID0gRn0NCmxvYWQoInJhd19kYXRhL21lZGlhX3Byb2ZzX3Byb2ZpbGVzLnJkYSIpDQpwcm9mcyA8LSByZWFkX2NzdigicmF3X2RhdGEvZHV0Y2hfcHJvZnNfdXJscy5jc3YiKQ0KDQojIG1lcmdlIHRoZSBwcm9mcyB3aXRoIHRoZWlyIE9SQ0lEcw0KY29sbmFtZXMocHJvZnMpW2MoMSw3KV0gPC0gYygiaWQiLCAicHJvZmlsZV9pZCIpDQoNCnByb2ZzX2Z1bGwgPC0gbWVyZ2UocHJvZnMsDQogICAgICAgICAgICAgICAgICAgIG1ldGFkZlssIGMoMTo0LCAzNjEpXSwNCiAgICAgICAgICAgICAgICAgICAgYnkgPSAicHJvZmlsZV9pZCIpDQpgYGANCg0KIyBJbmZlcmVuY2Ugb24gdGhlIGdlbmRlcjoNCmBgYHtyIHdhcm5pbmcgPSBGLCBtZXNzYWdlID0gRn0NCnByb2ZfbmFtZV9nZW5kZXIgPC0gZGF0YS5mcmFtZShtYXRyaXgoTkEsIG5yb3cgPSAwLCBuY29sID0gNCkpDQoNCmZvciAobmFtZSBpbiBwcm9mc19mdWxsJGZpcnN0WzUwMTo5MDFdKXsNCiAgIyBjYWxsIHRoZSBhcGkgdXNpbmcgdGhlIG5hbWUNCiAgbmFtZV9jYWxsIDwtIHBhc3RlMCgiaHR0cHM6Ly9hcGkuZ2VuZGVyaXplLmlvP25hbWU9IiwgbmFtZSkNCiAgb3V0cHV0IDwtIGZyb21KU09OKHR4dD1uYW1lX2NhbGwpDQogICMgaWYgbm8gZ2VuZGVyIHByZWRpY3RlZA0KICBpZihpcy5udWxsKG91dHB1dFtbImdlbmRlciJdXSkpew0KICAgIG91dHB1dFtbImdlbmRlciJdXSA8LSBOQQ0KICB9DQogIG91dHB1dCA8LSBkYXRhLmZyYW1lKG91dHB1dCkNCiAgcHJvZl9uYW1lX2dlbmRlciA8LSByYmluZChwcm9mX25hbWVfZ2VuZGVyLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgIG91dHB1dCkNCn0NCiMgd2UgaGF2ZSB0byBkbyB0aGlzIG92ZXIgYSBmZXcgZGF5cw0Kc2F2ZVJEUyhwcm9mX25hbWVfZ2VuZGVyLCAicHJvY2Vzc2VkX2RhdGEvcHJvZl9uYW1lX2dlbmRlcl81MDFfODk0LlJEUyIpDQpgYGANCg0K</div>
 
 
 </div>
@@ -438,7 +473,7 @@ $(document).ready(function () {
 <!-- code folding -->
 <script>
 $(document).ready(function () {
-  window.initializeSourceEmbed("lab1.Rmd");
+  window.initializeSourceEmbed("Prof_gender.Rmd");
   window.initializeCodeFolding("show" === "show");
 });
 </script>

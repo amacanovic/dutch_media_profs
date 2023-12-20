@@ -1,10 +1,10 @@
 ---
-title: "Lab journal"
+title: "Dutch media profs scripts"
 output:
   html_document:
     toc: false
     number_sections: false
-author: "by: Your Name"
+author: "by: Ana Macanovic and Bas Hofstra"
 bibliography: references.bib
 
 ---
@@ -23,8 +23,6 @@ opts_chunk$set(tidy.opts=list(width.cutoff=100),tidy=TRUE, warning = FALSE, mess
 options(width = 100)
 rgl::setupKnitr()
 
-
-
 colorize <- function(x, color) {sprintf("<span style='color: %s;'>%s</span>", color, x) }
 
 ```
@@ -36,36 +34,31 @@ klippy::klippy(position = c('top', 'right'))
 ```
 
 
-
-
 ----
 
 :::::::::::::: {.columns}
-::: {.column width="50%"}
+::: {.column width="80%"}
 
-# My Lab Journal
+# Repository Description
 Last compiled on `r format(Sys.time(), '%B, %Y')`  
 
-*Describe lab journal here.*
+This website shows the script for the Dutch Media Profs project.
+
+It is still in progress.
 
 <br>
+
+Before beginning, make sure you install the groundhog package:
+```{r eval = FALSE}
+install.packages("groundhog")
+```
+
 
 ----
 
 
-Everyone can fork this repository. 
-
-Use this example to journal your lab work and assignments. 
-
-
 :::
-::: {.column width="50%"}
-
-
-
-
-
-![](images/sciencedog.jpg)
+::: {.column width="80%"}
 
 
 :::
@@ -73,20 +66,11 @@ Use this example to journal your lab work and assignments.
 
 
 
-## How to use
-
-1. Fork the repository for this website and follow instructions on `README` to get started [here](https://github.com/robfranken/LabJournal).  
-
-2. Journal your work, by editing the .Rmd-files
-
-3. ...
-
-4. Change everything to make it your own!
-
+## Contents
 
 <br>
 
-Use the top menu to navigate through the journal.
+Use the top menu to navigate through the currently finished scripts.
 
 
 ----

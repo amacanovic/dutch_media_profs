@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Ana Macanovic" />
+
+<meta name="date" content="2023-12-06" />
+
+<title>Twitter_handle_extraction</title>
+
+<script src="site_libs/header-attrs-2.21/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<script src="site_libs/navigation-1.1/sourceembed.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.4.0/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.0/css/v4-shims.min.css" rel="stylesheet" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+<style type="text/css">
+#rmd-source-code {
+  display: none;
+}
+</style>
+
+
+<link rel="stylesheet" href="tweaks.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html"></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a>
+    <span class="fa fa-home"></span>
+     
+  </a>
+</li>
+<li>
+  <a href="index.html">Code homepage</a>
+</li>
+<li>
+  <a href="Twiter_handle_extraction.html">Twitter handle extraction</a>
+</li>
+<li>
+  <a href="OpenAlex_Altmetric_data_download.html">Open Alex and Altmetric data download</a>
+</li>
+<li>
+  <a href="Prof_gender.html">Professor gender inference</a>
+</li>
+<li>
+  <a href="Lexis_nexis_parser.html">Lexis data parser</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/bhofstra/dutch_media_profs">
+    <span class="fab fa-github"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+<li role="separator" class="divider"></li>
+<li><a id="rmd-download-source" href="#">Download Rmd</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Twitter_handle_extraction</h1>
+<h4 class="author">Ana Macanovic</h4>
+<h4 class="date">2023-12-06</h4>
+
+</div>
+
+
+<p>This script processes the output of our python scrip that pings
+Google Search API and outputs the first result.</p>
+<pre class="r"><code>library(groundhog)
+packages_to_load &lt;- c(&quot;readr&quot;, &quot;dplyr&quot;, &quot;stringr&quot;, &quot;strex&quot;,
+                      &quot;stringdist&quot;)
+groundhog.library(packages_to_load, date = &quot;2023-12-01&quot;)</code></pre>
+<p>Loading the output of the python script from our results folder:</p>
+<pre class="r"><code># getting all the csv files that were processed in batches
+csv_names &lt;- list.files(path = &quot;~/Postdoc/Projects/dutch_media_profs_python/output-data/&quot;,
+                        pattern = &quot;*.csv&quot;,
+                        full.names = TRUE)
+
+results_prof_google_search &lt;- lapply(csv_names, read_csv) %&gt;% 
+  bind_rows() %&gt;%
+  arrange(`...1`)</code></pre>
+<p>It seems that the <code>htmltitle</code> field includes good hints as
+to whether we found a handle of the person in question. Let us exploit
+that, searching for `<code>&lt;b&gt;</code> in that field, an @, and a
+“/X”:</p>
+<pre class="r"><code># define the strings we want
+search_values &lt;- c(&quot;&lt;b&gt;&quot;, &quot;&lt;/b&gt;&quot;, &quot;@&quot;, &quot;\\) \\/ X&quot;)
+# check if all of them there, if so, paste the title, if not, set to NA
+results_prof_google_search$handle_text &lt;- ifelse(str_detect_all(results_prof_google_search$htmlTitle, search_values) == TRUE,
+                                                 results_prof_google_search$htmlTitle,
+                                                 NA)</code></pre>
+<p>Preview this:</p>
+<pre class="r"><code>knitr::kable(results_prof_google_search[1:10,c(4, 13, 16)], &quot;html&quot;)</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align:left;">
+htmlTitle
+</th>
+<th style="text-align:left;">
+elem
+</th>
+<th style="text-align:left;">
+handle_text
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+ESMO - Eur. Oncology on X: &amp;quot;Press conference #ESMO14:
+&lt;b&gt;Frederic&lt;/b&gt; …
+</td>
+<td style="text-align:left;">
+frédéric amant
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SJWEH on Twitter: &amp;quot;Together with &lt;b&gt;Lex
+Burdorf&lt;/b&gt;, Joost contributed our …
+</td>
+<td style="text-align:left;">
+lex burdorf
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+FACS 2017 (<span class="citation">@facs2017</span>) / X
+</td>
+<td style="text-align:left;">
+farhad arbab
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+&lt;b&gt;Thijs Asselbergs&lt;/b&gt; on X: &amp;quot;Yes we can! #FuturA
+<span class="citation">@BNA_nl</span> Marina Bos …
+</td>
+<td style="text-align:left;">
+thijs asselbergs
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+&lt;b&gt;Johan Graafland&lt;/b&gt; (<span
+class="citation">@johanchepito</span>) / X
+</td>
+<td style="text-align:left;">
+johan graafland
+</td>
+<td style="text-align:left;">
+&lt;b&gt;Johan Graafland&lt;/b&gt; (<span
+class="citation">@johanchepito</span>) / X
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Victim Support Europe on X: &amp;quot;During the final debate of …
+</td>
+<td style="text-align:left;">
+suzan van der aa
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Netherlands Space on X: &amp;quot;RT <span
+class="citation">@Igarss2021</span>: &lt;b&gt;Ilse Aben&lt;/b&gt;,
+senior …
+</td>
+<td style="text-align:left;">
+ilse aben
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Michaël van de Poppe on Twitter: &amp;quot;Aftermath of the #Bitcoin and
+…
+</td>
+<td style="text-align:left;">
+bram kempers
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+IFIC Updates on X: &amp;quot;&lt;b&gt;Mirella Minkman&lt;/b&gt;, as CEO
+of <span class="citation">@VilansOrg</span> and …
+</td>
+<td style="text-align:left;">
+mirella minkman
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+&lt;b&gt;Rien Aerts&lt;/b&gt; (<span class="citation">@aertsrien</span>)
+/ X
+</td>
+<td style="text-align:left;">
+rien aerts
+</td>
+<td style="text-align:left;">
+&lt;b&gt;Rien Aerts&lt;/b&gt; (<span class="citation">@aertsrien</span>)
+/ X
+</td>
+</tr>
+</tbody>
+</table>
+<p><br> Now, we should somehow: 1. Get the handle 2. Check the handle
+against the person’s actual name</p>
+<p>Let’s split the strings at (@)</p>
+<pre class="r"><code># get the queries (some were dropped if no results found by google)
+names &lt;- results_prof_google_search$elem
+# get the cleaned up title texts
+handles &lt;- results_prof_google_search$handle_text
+# initialize a vector for storage
+handle_list &lt;- c()
+alt_handle_list &lt;- c()
+name_check_list &lt;- c()
+
+for (i in 1:length(handles)){
+  potential_handle &lt;- handles[i]
+  # first, spit the text
+  split_handle_text &lt;-  unlist(str_split(potential_handle, &quot;\\(@&quot;))
+  
+  # by default, assume no alternative handles (see below)
+  alt_handle &lt;- NA
+  
+  # if not empty
+  if (!any(is.na(split_handle_text))){
+    # get the name related to the handle for checking
+    name_check &lt;- unlist(split_handle_text)[1]
+    # clean from &lt;b&gt;/ &lt;/b&gt; if there
+    name_check &lt;- str_remove(name_check, &quot;&lt;b&gt;&quot;)
+    name_check &lt;- str_remove(name_check, &quot;&lt;/b&gt;&quot;)
+    # trim white spaces
+    name_check &lt;- trimws(name_check)
+    
+    # get the handle, cleaning from the closing bracket
+    
+    # but some people might list handles to other social media on their profiles
+    # so, we want the last handle
+    
+    # let&#39;s get the alternative handles, if present
+    if (length(split_handle_text) &gt; 2){
+      alt_handle &lt;- unlist(str_remove(unlist(split_handle_text)[2], &quot;\\) / X&quot;))[1]
+      # clean any additional &lt;b&gt;s
+      alt_handle &lt;- str_remove(alt_handle, &quot;&lt;b&gt;&quot;)
+      alt_handle &lt;- str_remove(alt_handle, &quot;&lt;/b&gt;&quot;)
+      alt_handle &lt;- str_remove(alt_handle, &quot;\\)&quot;)
+      # add the @
+      alt_handle &lt;- paste0(&quot;@&quot;, alt_handle)
+    }
+    # but, if there are some others, let us fetch that as well...
+    handle &lt;- unlist(str_remove(unlist(split_handle_text)[length(split_handle_text)], &quot;\\) / X&quot;))[1]
+    # clean any additional &lt;b&gt;s
+    handle &lt;- str_remove(handle, &quot;&lt;b&gt;&quot;)
+    handle &lt;- str_remove(handle, &quot;&lt;/b&gt;&quot;)
+    # add the @
+    handle &lt;- paste0(&quot;@&quot;, handle)
+  } else{
+    # if no handle in the result, set to NA
+    handle &lt;- NA
+    name_check &lt;- NA
+  }
+  
+  # append whatever the handle is
+  handle_list[i] &lt;- handle
+  alt_handle_list[i] &lt;- alt_handle
+  name_check_list[i] &lt;- name_check
+
+}
+
+handle_dataframe &lt;- cbind.data.frame(name = names,
+                                     twitter_handle = handle_list,
+                                     alt_handle = alt_handle_list,
+                                     name_extracted = name_check_list,
+                                     link = results_prof_google_search$link)</code></pre>
+<p>Check the results:</p>
+<pre class="r"><code>knitr::kable(handle_dataframe[1:10,], &quot;html&quot;)</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align:left;">
+name
+</th>
+<th style="text-align:left;">
+twitter_handle
+</th>
+<th style="text-align:left;">
+alt_handle
+</th>
+<th style="text-align:left;">
+name_extracted
+</th>
+<th style="text-align:left;">
+link
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+frédéric amant
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+<a href="https://twitter.com/myESMO/status/515748655782178816"
+class="uri">https://twitter.com/myESMO/status/515748655782178816</a>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+lex burdorf
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+<a href="http://twitter.com/SJWEH/statuses/1230419713819316224"
+class="uri">http://twitter.com/SJWEH/statuses/1230419713819316224</a>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+farhad arbab
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+<a href="https://twitter.com/facs2017"
+class="uri">https://twitter.com/facs2017</a>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+thijs asselbergs
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+<a href="https://twitter.com/thijsasselbergs/status/1056594685647613953"
+class="uri">https://twitter.com/thijsasselbergs/status/1056594685647613953</a>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+johan graafland
+</td>
+<td style="text-align:left;">
+<span class="citation">@johanchepito</span>
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Johan Graafland
+</td>
+<td style="text-align:left;">
+<a href="https://twitter.com/johanchepito"
+class="uri">https://twitter.com/johanchepito</a>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+suzan van der aa
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+<a href="https://twitter.com/VictimSupportEU/status/1465649572890525703"
+class="uri">https://twitter.com/VictimSupportEU/status/1465649572890525703</a>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ilse aben
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+<a href="https://twitter.com/NL_Space/status/1358697616142401536"
+class="uri">https://twitter.com/NL_Space/status/1358697616142401536</a>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+bram kempers
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+<a href="https://twitter.com/cryptomichnl/status/1395672212837998597"
+class="uri">https://twitter.com/cryptomichnl/status/1395672212837998597</a>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+mirella minkman
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+<a href="https://twitter.com/IFICInfo/status/1331981875712233473"
+class="uri">https://twitter.com/IFICInfo/status/1331981875712233473</a>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+rien aerts
+</td>
+<td style="text-align:left;">
+<span class="citation">@aertsrien</span>
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Rien Aerts
+</td>
+<td style="text-align:left;">
+<a href="https://twitter.com/aertsrien"
+class="uri">https://twitter.com/aertsrien</a>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Flag suspicious handles:</p>
+<pre class="r"><code># tidy up the extracted names
+handle_dataframe$name_extracted &lt;- tolower(handle_dataframe$name_extracted)
+handle_dataframe$name_extracted &lt;- gsub(&quot;[^[:alnum:] ]&quot;, &quot;&quot;, handle_dataframe$name_extracted)
+
+# get string similarity
+handle_dataframe$string_sim &lt;- stringsim(handle_dataframe$name_extracted, handle_dataframe$name)</code></pre>
+<p>Write the results out for manual checking:</p>
+<pre class="r"><code>write_csv(handle_dataframe, &quot;twitter_handles/handle_extraction_raw.csv&quot;)</code></pre>
+
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIlR3aXR0ZXJfaGFuZGxlX2V4dHJhY3Rpb24iDQphdXRob3I6ICJBbmEgTWFjYW5vdmljIg0KZGF0ZTogIjIwMjMtMTItMDYiDQotLS0NCg0KYGBge3Igc2V0dXAsIGluY2x1ZGU9RkFMU0V9DQprbml0cjo6b3B0c19jaHVuayRzZXQoZWNobyA9IFRSVUUpDQprbml0cjo6b3B0c19jaHVuayRzZXQod2FybmluZyA9IEZBTFNFKQ0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KG1lc3NhZ2UgPSBGQUxTRSkNCmBgYA0KDQpUaGlzIHNjcmlwdCBwcm9jZXNzZXMgdGhlIG91dHB1dCBvZiBvdXIgcHl0aG9uIHNjcmlwIHRoYXQgcGluZ3MgR29vZ2xlIFNlYXJjaCBBUEkNCmFuZCBvdXRwdXRzIHRoZSBmaXJzdCByZXN1bHQuDQoNCmBgYHtyIHdhcm5pbmcgPSBGLCBtZXNzYWdlID0gRn0NCmxpYnJhcnkoZ3JvdW5kaG9nKQ0KcGFja2FnZXNfdG9fbG9hZCA8LSBjKCJyZWFkciIsICJkcGx5ciIsICJzdHJpbmdyIiwgInN0cmV4IiwNCiAgICAgICAgICAgICAgICAgICAgICAic3RyaW5nZGlzdCIpDQpncm91bmRob2cubGlicmFyeShwYWNrYWdlc190b19sb2FkLCBkYXRlID0gIjIwMjMtMTItMDEiKQ0KYGBgDQoNCkxvYWRpbmcgdGhlIG91dHB1dCBvZiB0aGUgcHl0aG9uIHNjcmlwdCBmcm9tIG91ciByZXN1bHRzIGZvbGRlcjoNCmBgYHtyIHdhcm5pbmcgPSBGLCBtZXNzYWdlID0gRn0NCiMgZ2V0dGluZyBhbGwgdGhlIGNzdiBmaWxlcyB0aGF0IHdlcmUgcHJvY2Vzc2VkIGluIGJhdGNoZXMNCmNzdl9uYW1lcyA8LSBsaXN0LmZpbGVzKHBhdGggPSAifi9Qb3N0ZG9jL1Byb2plY3RzL2R1dGNoX21lZGlhX3Byb2ZzX3B5dGhvbi9vdXRwdXQtZGF0YS8iLA0KICAgICAgICAgICAgICAgICAgICAgICAgcGF0dGVybiA9ICIqLmNzdiIsDQogICAgICAgICAgICAgICAgICAgICAgICBmdWxsLm5hbWVzID0gVFJVRSkNCg0KcmVzdWx0c19wcm9mX2dvb2dsZV9zZWFyY2ggPC0gbGFwcGx5KGNzdl9uYW1lcywgcmVhZF9jc3YpICU+JSANCiAgYmluZF9yb3dzKCkgJT4lDQogIGFycmFuZ2UoYC4uLjFgKQ0KYGBgDQoNCkl0IHNlZW1zIHRoYXQgdGhlIGBgYGh0bWx0aXRsZWBgYCBmaWVsZCBpbmNsdWRlcyBnb29kIGhpbnRzIGFzIHRvIHdoZXRoZXINCndlIGZvdW5kIGEgaGFuZGxlIG9mIHRoZSBwZXJzb24gaW4gcXVlc3Rpb24uIExldCB1cyBleHBsb2l0IHRoYXQsIHNlYXJjaGluZyBmb3IgDQpgYGA8Yj5gYCBpbiB0aGF0IGZpZWxkLCBhbiBALCBhbmQgYSAiL1giOg0KYGBge3J9DQojIGRlZmluZSB0aGUgc3RyaW5ncyB3ZSB3YW50DQpzZWFyY2hfdmFsdWVzIDwtIGMoIjxiPiIsICI8L2I+IiwgIkAiLCAiXFwpIFxcLyBYIikNCiMgY2hlY2sgaWYgYWxsIG9mIHRoZW0gdGhlcmUsIGlmIHNvLCBwYXN0ZSB0aGUgdGl0bGUsIGlmIG5vdCwgc2V0IHRvIE5BDQpyZXN1bHRzX3Byb2ZfZ29vZ2xlX3NlYXJjaCRoYW5kbGVfdGV4dCA8LSBpZmVsc2Uoc3RyX2RldGVjdF9hbGwocmVzdWx0c19wcm9mX2dvb2dsZV9zZWFyY2gkaHRtbFRpdGxlLCBzZWFyY2hfdmFsdWVzKSA9PSBUUlVFLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJlc3VsdHNfcHJvZl9nb29nbGVfc2VhcmNoJGh0bWxUaXRsZSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBOQSkNCmBgYA0KDQpQcmV2aWV3IHRoaXM6DQpgYGB7cn0NCmtuaXRyOjprYWJsZShyZXN1bHRzX3Byb2ZfZ29vZ2xlX3NlYXJjaFsxOjEwLGMoNCwgMTMsIDE2KV0sICJodG1sIikNCmBgYA0KDQoNCjxicj4gDQpOb3csIHdlIHNob3VsZCBzb21laG93Og0KMS4gR2V0IHRoZSBoYW5kbGUNCjIuIENoZWNrIHRoZSBoYW5kbGUgYWdhaW5zdCB0aGUgcGVyc29uJ3MgYWN0dWFsIG5hbWUNCg0KTGV0J3Mgc3BsaXQgdGhlIHN0cmluZ3MgYXQgKEApDQpgYGB7cn0NCiMgZ2V0IHRoZSBxdWVyaWVzIChzb21lIHdlcmUgZHJvcHBlZCBpZiBubyByZXN1bHRzIGZvdW5kIGJ5IGdvb2dsZSkNCm5hbWVzIDwtIHJlc3VsdHNfcHJvZl9nb29nbGVfc2VhcmNoJGVsZW0NCiMgZ2V0IHRoZSBjbGVhbmVkIHVwIHRpdGxlIHRleHRzDQpoYW5kbGVzIDwtIHJlc3VsdHNfcHJvZl9nb29nbGVfc2VhcmNoJGhhbmRsZV90ZXh0DQojIGluaXRpYWxpemUgYSB2ZWN0b3IgZm9yIHN0b3JhZ2UNCmhhbmRsZV9saXN0IDwtIGMoKQ0KYWx0X2hhbmRsZV9saXN0IDwtIGMoKQ0KbmFtZV9jaGVja19saXN0IDwtIGMoKQ0KDQpmb3IgKGkgaW4gMTpsZW5ndGgoaGFuZGxlcykpew0KICBwb3RlbnRpYWxfaGFuZGxlIDwtIGhhbmRsZXNbaV0NCiAgIyBmaXJzdCwgc3BpdCB0aGUgdGV4dA0KICBzcGxpdF9oYW5kbGVfdGV4dCA8LSAgdW5saXN0KHN0cl9zcGxpdChwb3RlbnRpYWxfaGFuZGxlLCAiXFwoQCIpKQ0KICANCiAgIyBieSBkZWZhdWx0LCBhc3N1bWUgbm8gYWx0ZXJuYXRpdmUgaGFuZGxlcyAoc2VlIGJlbG93KQ0KICBhbHRfaGFuZGxlIDwtIE5BDQogIA0KICAjIGlmIG5vdCBlbXB0eQ0KICBpZiAoIWFueShpcy5uYShzcGxpdF9oYW5kbGVfdGV4dCkpKXsNCiAgICAjIGdldCB0aGUgbmFtZSByZWxhdGVkIHRvIHRoZSBoYW5kbGUgZm9yIGNoZWNraW5nDQogICAgbmFtZV9jaGVjayA8LSB1bmxpc3Qoc3BsaXRfaGFuZGxlX3RleHQpWzFdDQogICAgIyBjbGVhbiBmcm9tIDxiPi8gPC9iPiBpZiB0aGVyZQ0KICAgIG5hbWVfY2hlY2sgPC0gc3RyX3JlbW92ZShuYW1lX2NoZWNrLCAiPGI+IikNCiAgICBuYW1lX2NoZWNrIDwtIHN0cl9yZW1vdmUobmFtZV9jaGVjaywgIjwvYj4iKQ0KICAgICMgdHJpbSB3aGl0ZSBzcGFjZXMNCiAgICBuYW1lX2NoZWNrIDwtIHRyaW13cyhuYW1lX2NoZWNrKQ0KICAgIA0KICAgICMgZ2V0IHRoZSBoYW5kbGUsIGNsZWFuaW5nIGZyb20gdGhlIGNsb3NpbmcgYnJhY2tldA0KICAgIA0KICAgICMgYnV0IHNvbWUgcGVvcGxlIG1pZ2h0IGxpc3QgaGFuZGxlcyB0byBvdGhlciBzb2NpYWwgbWVkaWEgb24gdGhlaXIgcHJvZmlsZXMNCiAgICAjIHNvLCB3ZSB3YW50IHRoZSBsYXN0IGhhbmRsZQ0KICAgIA0KICAgICMgbGV0J3MgZ2V0IHRoZSBhbHRlcm5hdGl2ZSBoYW5kbGVzLCBpZiBwcmVzZW50DQogICAgaWYgKGxlbmd0aChzcGxpdF9oYW5kbGVfdGV4dCkgPiAyKXsNCiAgICAgIGFsdF9oYW5kbGUgPC0gdW5saXN0KHN0cl9yZW1vdmUodW5saXN0KHNwbGl0X2hhbmRsZV90ZXh0KVsyXSwgIlxcKSAvIFgiKSlbMV0NCiAgICAgICMgY2xlYW4gYW55IGFkZGl0aW9uYWwgPGI+cw0KICAgICAgYWx0X2hhbmRsZSA8LSBzdHJfcmVtb3ZlKGFsdF9oYW5kbGUsICI8Yj4iKQ0KICAgICAgYWx0X2hhbmRsZSA8LSBzdHJfcmVtb3ZlKGFsdF9oYW5kbGUsICI8L2I+IikNCiAgICAgIGFsdF9oYW5kbGUgPC0gc3RyX3JlbW92ZShhbHRfaGFuZGxlLCAiXFwpIikNCiAgICAgICMgYWRkIHRoZSBADQogICAgICBhbHRfaGFuZGxlIDwtIHBhc3RlMCgiQCIsIGFsdF9oYW5kbGUpDQogICAgfQ0KICAgICMgYnV0LCBpZiB0aGVyZSBhcmUgc29tZSBvdGhlcnMsIGxldCB1cyBmZXRjaCB0aGF0IGFzIHdlbGwuLi4NCiAgICBoYW5kbGUgPC0gdW5saXN0KHN0cl9yZW1vdmUodW5saXN0KHNwbGl0X2hhbmRsZV90ZXh0KVtsZW5ndGgoc3BsaXRfaGFuZGxlX3RleHQpXSwgIlxcKSAvIFgiKSlbMV0NCiAgICAjIGNsZWFuIGFueSBhZGRpdGlvbmFsIDxiPnMNCiAgICBoYW5kbGUgPC0gc3RyX3JlbW92ZShoYW5kbGUsICI8Yj4iKQ0KICAgIGhhbmRsZSA8LSBzdHJfcmVtb3ZlKGhhbmRsZSwgIjwvYj4iKQ0KICAgICMgYWRkIHRoZSBADQogICAgaGFuZGxlIDwtIHBhc3RlMCgiQCIsIGhhbmRsZSkNCiAgfSBlbHNlew0KICAgICMgaWYgbm8gaGFuZGxlIGluIHRoZSByZXN1bHQsIHNldCB0byBOQQ0KICAgIGhhbmRsZSA8LSBOQQ0KICAgIG5hbWVfY2hlY2sgPC0gTkENCiAgfQ0KICANCiAgIyBhcHBlbmQgd2hhdGV2ZXIgdGhlIGhhbmRsZSBpcw0KICBoYW5kbGVfbGlzdFtpXSA8LSBoYW5kbGUNCiAgYWx0X2hhbmRsZV9saXN0W2ldIDwtIGFsdF9oYW5kbGUNCiAgbmFtZV9jaGVja19saXN0W2ldIDwtIG5hbWVfY2hlY2sNCg0KfQ0KDQpoYW5kbGVfZGF0YWZyYW1lIDwtIGNiaW5kLmRhdGEuZnJhbWUobmFtZSA9IG5hbWVzLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHR3aXR0ZXJfaGFuZGxlID0gaGFuZGxlX2xpc3QsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWx0X2hhbmRsZSA9IGFsdF9oYW5kbGVfbGlzdCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBuYW1lX2V4dHJhY3RlZCA9IG5hbWVfY2hlY2tfbGlzdCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBsaW5rID0gcmVzdWx0c19wcm9mX2dvb2dsZV9zZWFyY2gkbGluaykNCg0KYGBgDQoNCg0KQ2hlY2sgdGhlIHJlc3VsdHM6DQpgYGB7cn0NCmtuaXRyOjprYWJsZShoYW5kbGVfZGF0YWZyYW1lWzE6MTAsXSwgImh0bWwiKQ0KYGBgDQoNCkZsYWcgc3VzcGljaW91cyBoYW5kbGVzOg0KYGBge3J9DQojIHRpZHkgdXAgdGhlIGV4dHJhY3RlZCBuYW1lcw0KaGFuZGxlX2RhdGFmcmFtZSRuYW1lX2V4dHJhY3RlZCA8LSB0b2xvd2VyKGhhbmRsZV9kYXRhZnJhbWUkbmFtZV9leHRyYWN0ZWQpDQpoYW5kbGVfZGF0YWZyYW1lJG5hbWVfZXh0cmFjdGVkIDwtIGdzdWIoIlteWzphbG51bTpdIF0iLCAiIiwgaGFuZGxlX2RhdGFmcmFtZSRuYW1lX2V4dHJhY3RlZCkNCg0KIyBnZXQgc3RyaW5nIHNpbWlsYXJpdHkNCmhhbmRsZV9kYXRhZnJhbWUkc3RyaW5nX3NpbSA8LSBzdHJpbmdzaW0oaGFuZGxlX2RhdGFmcmFtZSRuYW1lX2V4dHJhY3RlZCwgaGFuZGxlX2RhdGFmcmFtZSRuYW1lKQ0KYGBgDQoNCg0KV3JpdGUgdGhlIHJlc3VsdHMgb3V0IGZvciBtYW51YWwgY2hlY2tpbmc6DQpgYGB7cn0NCndyaXRlX2NzdihoYW5kbGVfZGF0YWZyYW1lLCAidHdpdHRlcl9oYW5kbGVzL2hhbmRsZV9leHRyYWN0aW9uX3Jhdy5jc3YiKQ0KYGBgDQoNCg==</div>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeSourceEmbed("Twiter_handle_extraction.Rmd");
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

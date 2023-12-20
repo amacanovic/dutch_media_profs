@@ -1,0 +1,32 @@
+---
+title: "Nexis_data_handling"
+author: "Ana Macanovic"
+date: "2023-12-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+
+Load the R package by J. Grubber that conveniently tidies up the LexisNexis data:
+```{r}
+# remotes::install_github("JBGruber/LexisNexisTools")
+library("LexisNexisTools")
+```
+
+Set the folder, and load the files:
+```{r}
+LNToutput <- lnt_read(x = "news_data")
+```
+
+This helps load the meta data, full articles, and individual paragraphs:
+```{r}
+meta_df <- LNToutput@meta
+articles_df <- LNToutput@articles
+paragraphs_df <- LNToutput@paragraphs
+```
+

@@ -1,11 +1,11 @@
-#do not forget to also change your _site.yml file to make sure we exclude same stuff there. 
-
 # History files
 .Rhistory
 .Rapp.history
 
 # Session Data files
 .RData
+.rda
+.rds
 
 # User-specific files
 .Ruserdata
@@ -22,6 +22,10 @@
 # RStudio files
 .Rproj.user/
 
+# produced vignettes
+vignettes/*.html
+vignettes/*.pdf
+
 # OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
 .httr-oauth
 
@@ -33,13 +37,33 @@
 *.utf8.md
 *.knit.md
 
+*_cache
+
 # R Environment Variables
 .Renviron
 
-# datafiles
+# pkgdown site
+#docs/ we willen wel dat de docs folder synched ivm de website
+
+# translation temp files
+po/*~
+
+# data files DONT FORGET TO PUT IN EXCLUDE OF _site.yml
+/rawdata/
+/processed_data/
+/twitter_handles/
+/news_data/
+/narcis_screenshots/
+/raw_data/
 /data/
-/secret/
 
-# Personal folder
-/local/
+#/docs/ 
 
+
+name_data/temp_name_webpages/origin_df.rda
+
+
+# XML files from scraped web pages
+name_data/global/lname/temp
+name_data/global/fname/temp
+name_data/province/temp

@@ -1,0 +1,63 @@
+---
+title: "Prof_gender"
+author: "Ana Macanovic"
+date: "2023-12-19"
+---
+
+This script checks assigns professor names as male or female. 
+Because there are no self-reports of gender in the Narcis database, 
+we infer a professor's gender from the first name filed in the database using
+Genderize.io API.
+
+```{r include = F}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+Load the libraries that we need:
+```{r warning = F, message = F}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", 
+                      "stringr",
+                      "digest",
+                      "jsonlite")
+groundhog.library(packages_to_load, date = "2023-12-01")
+```
+
+# Tidy up professor data from NARCIS
+
+Load the professor profiles:
+```{r message = F, warning = F}
+load("raw_data/media_profs_profiles.rda")
+profs <- read_csv("raw_data/dutch_profs_urls.csv")
+
+# merge the profs with their ORCIDs
+colnames(profs)[c(1,7)] <- c("id", "profile_id")
+
+profs_full <- merge(profs,
+                    metadf[, c(1:4, 361)],
+                    by = "profile_id")
+```
+
+# Inference on the gender:
+```{r warning = F, message = F}
+prof_name_gender <- data.frame(matrix(NA, nrow = 0, ncol = 4))
+
+for (name in profs_full$first[501:901]){
+  # call the api using the name
+  name_call <- paste0("https://api.genderize.io?name=", name)
+  output <- fromJSON(txt=name_call)
+  # if no gender predicted
+  if(is.null(output[["gender"]])){
+    output[["gender"]] <- NA
+  }
+  output <- data.frame(output)
+  prof_name_gender <- rbind(prof_name_gender,
+                            output)
+}
+# we have to do this over a few days
+saveRDS(prof_name_gender, "processed_data/prof_name_gender_501_894.RDS")
+```
+

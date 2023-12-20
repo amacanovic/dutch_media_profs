@@ -9,10 +9,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="by: Ana Macanovic and Bas Hofstra" />
+<meta name="author" content="Ana Macanovic" />
 
+<meta name="date" content="2023-12-06" />
 
-<title>Dutch media profs scripts</title>
+<title>Bluesky_data_download</title>
 
 <script src="site_libs/header-attrs-2.21/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
@@ -30,15 +31,14 @@
        h6 {font-size: 12px;}
        code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
        pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
 <script src="site_libs/navigation-1.1/codefolding.js"></script>
 <script src="site_libs/navigation-1.1/sourceembed.js"></script>
 <link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
-<script src="site_libs/clipboard-1.7.1/clipboard.min.js"></script>
-<link href="site_libs/primer-tooltips-1.4.0/build.css" rel="stylesheet" />
-<link href="site_libs/klippy-0.0.0.9500/css/klippy.min.css" rel="stylesheet" />
-<script src="site_libs/klippy-0.0.0.9500/js/klippy.min.js"></script>
 <link href="site_libs/font-awesome-6.4.0/css/all.min.css" rel="stylesheet" />
 <link href="site_libs/font-awesome-6.4.0/css/v4-shims.min.css" rel="stylesheet" />
 
@@ -237,6 +237,69 @@ $(document).ready(function () {
 
 
 
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
 
 </head>
 
@@ -244,6 +307,16 @@ $(document).ready(function () {
 
 
 <div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
 
 
 
@@ -308,44 +381,67 @@ $(document).ready(function () {
 
 
 
-<h1 class="title toc-ignore">Dutch media profs scripts</h1>
-<h4 class="author">by: Ana Macanovic and Bas Hofstra</h4>
+<h1 class="title toc-ignore">Bluesky_data_download</h1>
+<h4 class="author">Ana Macanovic</h4>
+<h4 class="date">2023-12-06</h4>
 
 </div>
 
 
-<script>
-  addClassKlippyTo("pre.r, pre.markdown");
-  addKlippy('right', 'top', 'auto', '1', 'Copy code', 'Copied!');
-</script>
-<hr />
-<div class="columns">
-<div class="column" style="width:80%;">
-<div id="repository-description" class="section level1">
-<h1>Repository Description</h1>
-<p>Last compiled on December, 2023</p>
-<p>This website shows the script for the Dutch Media Profs project.</p>
-<p>It is still in progress.</p>
-<p><br></p>
-<p>Before beginning, make sure you install the groundhog package:</p>
-<pre class="r test"><code>install.packages(&quot;groundhog&quot;)</code></pre>
-<hr />
+<p>This script downloads information from BlueSky based on the handles
+we offer.</p>
+<div id="this-will-all-be-updated-once-we-get-a-list-of-handles"
+class="section level1" number="1">
+<h1><span class="header-section-number">1</span> This will all be
+updated once we get a list of handles…</h1>
+<p>Get all the user info:</p>
+<pre class="r"><code>user_info &lt;- get_user_info(actor = &quot;anamacanovic.bsky.social&quot;) %&gt;%
+  dplyr::glimpse()</code></pre>
+<pre><code>## Rows: 1
+## Columns: 12
+## $ did               &lt;chr&gt; &quot;did:plc:6uehlptl2bcbb5qgmb26p2sk&quot;
+## $ handle            &lt;chr&gt; &quot;anamacanovic.bsky.social&quot;
+## $ displayName       &lt;chr&gt; &quot;Ana Macanovic&quot;
+## $ description       &lt;chr&gt; &quot;PhD Candidate in Sociology @UniUtrecht/ICS | explor…
+## $ avatar            &lt;chr&gt; &quot;https://cdn.bsky.app/img/avatar/plain/did:plc:6uehl…
+## $ followsCount      &lt;int&gt; 123
+## $ followersCount    &lt;int&gt; 153
+## $ postsCount        &lt;int&gt; 14
+## $ indexedAt         &lt;chr&gt; &quot;2023-09-11T07:42:52.595Z&quot;
+## $ viewer_muted      &lt;lgl&gt; FALSE
+## $ viewer_blockedBy  &lt;lgl&gt; FALSE
+## $ viewer_followedBy &lt;chr&gt; &quot;at://did:plc:6uehlptl2bcbb5qgmb26p2sk/app.bsky.grap…</code></pre>
+<p>Get all the skeets:</p>
+<pre class="r"><code>user_skeets &lt;- get_skeets_authored_by(actor = &quot;anamacanovic.bsky.social&quot;, limit = 150) %&gt;%
+  dplyr::glimpse()</code></pre>
+<pre><code>## 
+⠙ Got 19 skeets, but there is more.. [231ms]
+
+                                             
+
+ℹ Parsing 19 results.
+
+✔ Got 19 results. All done!</code></pre>
+<pre><code>## Rows: 19
+## Columns: 11
+## $ uri          &lt;chr&gt; &quot;at://did:plc:6uehlptl2bcbb5qgmb26p2sk/app.bsky.feed.post…
+## $ cid          &lt;chr&gt; &quot;bafyreiavbqtpigrauwl6y75kdh6bx7vddvmyhdwshhzc5tynd6iuvnk…
+## $ author       &lt;list&gt; [&quot;did:plc:6uehlptl2bcbb5qgmb26p2sk&quot;, &quot;anamacanovic.bsky.…
+## $ text         &lt;chr&gt; &quot;I wrote this paper as an entry level intoduction to vari…
+## $ record       &lt;list&gt; [&quot;I wrote this paper as an entry level intoduction to va…
+## $ reply_count  &lt;int&gt; 0, 0, 1, 0, 15, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 10
+## $ repost_count &lt;int&gt; 2, 13, 29, 44, 141, 0, 0, 3, 3, 0, 1, 1, 0, 0, 1, 0, 0, 0…
+## $ like_count   &lt;int&gt; 5, 11, 61, 31, 286, 1, 1, 10, 7, 0, 2, 0, 0, 2, 6, 1, 6, …
+## $ indexed_at   &lt;dttm&gt; 2023-11-07 16:32:11, 2023-10-19 12:50:11, 2023-10-11 13:2…
+## $ reply        &lt;list&gt; [[&quot;app.bsky.feed.defs#postView&quot;, &quot;at://did:plc:6gmtdexnr…
+## $ is_reskeet   &lt;lgl&gt; FALSE, TRUE, TRUE, TRUE, TRUE, FALSE, FALSE, TRUE, FALSE…</code></pre>
 </div>
-</div><div class="column" style="width:80%;">
+
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIkJsdWVza3lfZGF0YV9kb3dubG9hZCINCmF1dGhvcjogIkFuYSBNYWNhbm92aWMiDQpkYXRlOiAiMjAyMy0xMi0wNiINCi0tLQ0KDQoNClRoaXMgc2NyaXB0IGRvd25sb2FkcyBpbmZvcm1hdGlvbiBmcm9tIEJsdWVTa3kgYmFzZWQgb24gdGhlIGhhbmRsZXMgd2Ugb2ZmZXIuDQpgYGB7ciBzZXR1cCwgaW5jbHVkZT1GQUxTRX0NCiNpbnN0YWxsLnBhY2thZ2VzKCJwYWsiKQ0KI3Bhazo6cGFrKCJKQkdydWJlci9hdHIiKQ0KbGlicmFyeShhdHIpDQoNCmxpYnJhcnkoZ3JvdW5kaG9nKQ0KcGFja2FnZXNfdG9fbG9hZCA8LSBjKCJyZWFkciIsICJkcGx5ciIsICJzdHJpbmdyIiwgInN0cmV4IikNCmdyb3VuZGhvZy5saWJyYXJ5KHBhY2thZ2VzX3RvX2xvYWQsIGRhdGUgPSAiMjAyMy0xMi0wMSIpDQpgYGANCg0KIyBUaGlzIHdpbGwgYWxsIGJlIHVwZGF0ZWQgb25jZSB3ZSBnZXQgYSBsaXN0IG9mIGhhbmRsZXMuLi4NCg0KR2V0IGFsbCB0aGUgdXNlciBpbmZvOg0KYGBge3J9DQp1c2VyX2luZm8gPC0gZ2V0X3VzZXJfaW5mbyhhY3RvciA9ICJhbmFtYWNhbm92aWMuYnNreS5zb2NpYWwiKSAlPiUNCiAgZHBseXI6OmdsaW1wc2UoKQ0KYGBgDQoNCkdldCBhbGwgdGhlIHNrZWV0czoNCmBgYHtyfQ0KdXNlcl9za2VldHMgPC0gZ2V0X3NrZWV0c19hdXRob3JlZF9ieShhY3RvciA9ICJhbmFtYWNhbm92aWMuYnNreS5zb2NpYWwiLCBsaW1pdCA9IDE1MCkgJT4lDQogIGRwbHlyOjpnbGltcHNlKCkNCmBgYA0KDQo=</div>
+
 
 </div>
 </div>
-<div id="contents" class="section level2">
-<h2>Contents</h2>
-<p><br></p>
-<p>Use the top menu to navigate through the currently finished
-scripts.</p>
-<hr />
-</div>
-
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIkR1dGNoIG1lZGlhIHByb2ZzIHNjcmlwdHMiDQpvdXRwdXQ6DQogIGh0bWxfZG9jdW1lbnQ6DQogICAgdG9jOiBmYWxzZQ0KICAgIG51bWJlcl9zZWN0aW9uczogZmFsc2UNCmF1dGhvcjogImJ5OiBBbmEgTWFjYW5vdmljIGFuZCBCYXMgSG9mc3RyYSINCmJpYmxpb2dyYXBoeTogcmVmZXJlbmNlcy5iaWINCg0KLS0tDQoNCg0KYGBge3IsIGluc3RhbGwgcmVtb3RlbHksIGdsb2JhbHNldHRpbmdzLCBlY2hvPUZBTFNFLCB3YXJuaW5nPUZBTFNFLCByZXN1bHRzPSdoaWRlJ30NCiMgaW5zdGFsbC5wYWNrYWdlcygicmVtb3RlcyIpDQojcmVtb3Rlczo6aW5zdGFsbF9naXRodWIoInJsZXN1ci9rbGlwcHkiKQ0KYGBgIA0KDQpgYGB7ciwgZ2xvYmFsc2V0dGluZ3MsIGVjaG89RkFMU0UsIHdhcm5pbmc9RkFMU0UsIHJlc3VsdHM9J2hpZGUnfQ0KbGlicmFyeShrbml0cikNCg0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KGVjaG8gPSBUUlVFKQ0Kb3B0c19jaHVuayRzZXQodGlkeS5vcHRzPWxpc3Qod2lkdGguY3V0b2ZmPTEwMCksdGlkeT1UUlVFLCB3YXJuaW5nID0gRkFMU0UsIG1lc3NhZ2UgPSBGQUxTRSxjb21tZW50ID0gIiM+IiwgY2FjaGU9VFJVRSwgY2xhc3Muc291cmNlPWMoInRlc3QiKSwgY2xhc3Mub3V0cHV0PWMoInRlc3QyIikpDQpvcHRpb25zKHdpZHRoID0gMTAwKQ0KcmdsOjpzZXR1cEtuaXRyKCkNCg0KY29sb3JpemUgPC0gZnVuY3Rpb24oeCwgY29sb3IpIHtzcHJpbnRmKCI8c3BhbiBzdHlsZT0nY29sb3I6ICVzOyc+JXM8L3NwYW4+IiwgY29sb3IsIHgpIH0NCg0KYGBgDQoNCmBgYHtyIGtsaXBweSwgZWNobz1GQUxTRSwgaW5jbHVkZT1UUlVFfQ0Ka2xpcHB5OjprbGlwcHkocG9zaXRpb24gPSBjKCd0b3AnLCAncmlnaHQnKSkNCiNrbGlwcHk6OmtsaXBweShjb2xvciA9ICdkYXJrcmVkJykNCiNrbGlwcHk6OmtsaXBweSh0b29sdGlwX21lc3NhZ2UgPSAnQ2xpY2sgdG8gY29weScsIHRvb2x0aXBfc3VjY2VzcyA9ICdEb25lJykNCmBgYA0KDQoNCi0tLS0NCg0KOjo6Ojo6Ojo6Ojo6Ojogey5jb2x1bW5zfQ0KOjo6IHsuY29sdW1uIHdpZHRoPSI4MCUifQ0KDQojIFJlcG9zaXRvcnkgRGVzY3JpcHRpb24NCkxhc3QgY29tcGlsZWQgb24gYHIgZm9ybWF0KFN5cy50aW1lKCksICclQiwgJVknKWAgIA0KDQpUaGlzIHdlYnNpdGUgc2hvd3MgdGhlIHNjcmlwdCBmb3IgdGhlIER1dGNoIE1lZGlhIFByb2ZzIHByb2plY3QuDQoNCkl0IGlzIHN0aWxsIGluIHByb2dyZXNzLg0KDQo8YnI+DQoNCkJlZm9yZSBiZWdpbm5pbmcsIG1ha2Ugc3VyZSB5b3UgaW5zdGFsbCB0aGUgZ3JvdW5kaG9nIHBhY2thZ2U6DQpgYGB7ciBldmFsID0gRkFMU0V9DQppbnN0YWxsLnBhY2thZ2VzKCJncm91bmRob2ciKQ0KYGBgDQoNCg0KLS0tLQ0KDQoNCjo6Og0KOjo6IHsuY29sdW1uIHdpZHRoPSI4MCUifQ0KDQoNCjo6Og0KOjo6Ojo6Ojo6Ojo6OjoNCg0KDQoNCiMjIENvbnRlbnRzDQoNCjxicj4NCg0KVXNlIHRoZSB0b3AgbWVudSB0byBuYXZpZ2F0ZSB0aHJvdWdoIHRoZSBjdXJyZW50bHkgZmluaXNoZWQgc2NyaXB0cy4NCg0KDQotLS0tDQoNCg0KDQoNCg0KDQo=</div>
-
-
 
 </div>
 
@@ -379,11 +475,40 @@ $(document).ready(function () {
 <!-- code folding -->
 <script>
 $(document).ready(function () {
-  window.initializeSourceEmbed("index.Rmd");
+  window.initializeSourceEmbed("Bluesky_data_download.Rmd");
   window.initializeCodeFolding("show" === "show");
 });
 </script>
 
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
 
 <!-- dynamically load mathjax for compatibility with self-contained -->
 <script>

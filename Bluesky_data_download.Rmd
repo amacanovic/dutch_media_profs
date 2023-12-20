@@ -1,0 +1,32 @@
+---
+title: "Bluesky_data_download"
+author: "Ana Macanovic"
+date: "2023-12-06"
+---
+
+
+This script downloads information from BlueSky based on the handles we offer.
+```{r setup, include=FALSE}
+#install.packages("pak")
+#pak::pak("JBGruber/atr")
+library(atr)
+
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "stringr", "strex")
+groundhog.library(packages_to_load, date = "2023-12-01")
+```
+
+# This will all be updated once we get a list of handles...
+
+Get all the user info:
+```{r}
+user_info <- get_user_info(actor = "anamacanovic.bsky.social") %>%
+  dplyr::glimpse()
+```
+
+Get all the skeets:
+```{r}
+user_skeets <- get_skeets_authored_by(actor = "anamacanovic.bsky.social", limit = 150) %>%
+  dplyr::glimpse()
+```
+
