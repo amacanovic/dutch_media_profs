@@ -23,6 +23,8 @@ navbar:
       href: OpenAlex_Altmetric_data_download.html
     - text: "Professor gender inference"
       href: Prof_gender.html
+    - text: "Grant parsing"
+      href: Grant_parsing.html
     - text: "Lexis data parser"
       href: Lexis_nexis_parser.html
       # here, other .Rmds can be added

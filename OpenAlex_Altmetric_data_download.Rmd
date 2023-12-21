@@ -14,6 +14,12 @@ knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 ```
 
+This flowchart represents our workflow:
+
+![Data extraction workflow](images/OpenAlex_Altmetric_diagram.png)
+
+
+
 Load the packages:
 ```{r message=  F, warning = F}
 library(groundhog)
@@ -342,12 +348,16 @@ professor_info_retriever <- function(narcis_id,
       
       prof_oaid_info <- rbind(prof_oaid_info,
                               author_info)
-    }
+      }
+      
+    # make sure the empty oa_id did not make it in here...
+     prof_oaid_info <- filter(prof_oaid_info, au_id != "https://openalex.org/A9999999999")
     
     # get all oa ids of the author
     oa_ids <- as.character(unique(prof_oaid_info$au_id))
     }
     
+
     # if ID found:
     if (length(oa_ids)>0){
       # get all papers from OA using these ids:
@@ -611,10 +621,6 @@ for(i in 1:(length(batches)-1)){
     
     # append to the batch data
     batch_prof_outcomes[[narcis_id]] <- outcome
-    if (is.na(outcome)){
-    # if empty outcome, append to the error list
-    batch_errors[[narcis_id]] <- outcome
-    }
     # print some info out
     print(paste("done with", which(narcis_id == prof_batch), "out of", length(prof_batch)))
   }
@@ -622,9 +628,6 @@ for(i in 1:(length(batches)-1)){
   # save the batch RDS
   save_string <- paste0("processed_data/open_alex_prof_data/", paste("prof_data_batch", i, sep = "_"), ".RDS")
   saveRDS(batch_prof_outcomes, save_string)
-  # and the error RDS
-  save_string <- paste0("processed_data/open_alex_prof_data/", paste("prof_data_errors", i, sep = "_"), ".RDS")
-  saveRDS(batch_errors, save_string)
 }
 ```
 

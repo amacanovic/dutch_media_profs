@@ -11,13 +11,13 @@ Genderize.io API.
 
 ```{r include = F}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(eval = FALSE)
+#knitr::opts_chunk$set(eval = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 ```
 
 Load the libraries that we need:
-```{r warning = F, message = F}
+```{r warning = F, message = F, eval = T}
 library(groundhog)
 packages_to_load <- c("readr", "dplyr", 
                       "stringr",
@@ -29,7 +29,7 @@ groundhog.library(packages_to_load, date = "2023-12-01")
 # Tidy up professor data from NARCIS
 
 Load the professor profiles:
-```{r message = F, warning = F}
+```{r message = F, warning = F, eval = F}
 load("raw_data/media_profs_profiles.rda")
 profs <- read_csv("raw_data/dutch_profs_urls.csv")
 
@@ -41,23 +41,94 @@ profs_full <- merge(profs,
                     by = "profile_id")
 ```
 
-# Inference on the gender:
-```{r warning = F, message = F}
-prof_name_gender <- data.frame(matrix(NA, nrow = 0, ncol = 4))
-
-for (name in profs_full$first[501:901]){
+# Define a function for gender inference
+```{r eval = F}
+genderize_io_function <- function(name,
+                                  api_key = "",
+                                  country_id = ""){
   # call the api using the name
   name_call <- paste0("https://api.genderize.io?name=", name)
+  
+  # if country ID provided
+  if (country_id != ""){
+    name_call <- paste0(name_call, "&country_id=", toupper(country_id))
+  }
+  # if API key provided
+  if (api_key !=""){
+    name_call <- paste0(name_call, "&apikey=", api_key, "")
+  }
   output <- fromJSON(txt=name_call)
   # if no gender predicted
   if(is.null(output[["gender"]])){
     output[["gender"]] <- NA
   }
   output <- data.frame(output)
+  return(output)
+}
+```
+
+
+# Inferring gender
+```{r warning = F, message = F, eval = F}
+# fill in own api key
+genderize_api_key <- ''
+
+# list of names
+names <- unique(profs_full$first)
+
+prof_name_gender <- data.frame(matrix(NA, nrow = 0, ncol = 4))
+
+for (i in 1:length(names)){
+  name <- names[i]
+  output <- genderize_io_function(name,
+                      api_key = genderize_api_key,
+                      country_id = "NL")
+  
   prof_name_gender <- rbind(prof_name_gender,
                             output)
+  print(paste("done with", i, "out of", length(names)))
 }
-# we have to do this over a few days
-saveRDS(prof_name_gender, "processed_data/prof_name_gender_501_894.RDS")
 ```
+
+Bind to prof data:
+```{r eval = F}
+# tidy up the colnames
+colnames(prof_name_gender)[2] <- "first"
+
+# merge the prof data with gender inference
+profs_full_gender <- merge(profs_full,
+                           prof_name_gender,
+                           by = "first", 
+                           all.x = TRUE)
+
+# reorder the columns back
+colnames_rearrange <- c(colnames(profs_full), colnames(prof_name_gender)[-2])
+profs_full_gender <- profs_full_gender[colnames_rearrange]
+
+# write this out
+#saveRDS(profs_full_gender, "processed_data/profs_full_gender.RDS")
+#write_csv(profs_full_gender, "processed_data/profs_full_gender.csv")
+```
+
+# Plots 
+
+```{r eval = TRUE}
+profs_full_gender <- readRDS("processed_data/profs_full_gender.RDS")
+```
+
+
+Plot the proportions:
+```{r eval = TRUE}
+ggplot(profs_full_gender) + 
+  geom_bar(mapping = aes(x = gender, y = after_stat(prop), group = 1), stat = "count")
+```
+
+
+Plot the counts:
+```{r eval = TRUE}
+ggplot(profs_full_gender, aes(format(gender))) +
+    geom_bar(stat = "count") +
+    labs(x = "Number")
+```
+
 

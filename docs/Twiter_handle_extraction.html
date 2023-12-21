@@ -352,6 +352,9 @@ div.tocify {
   <a href="Prof_gender.html">Professor gender inference</a>
 </li>
 <li>
+  <a href="Grant_parsing.html">Grant parsing</a>
+</li>
+<li>
   <a href="Lexis_nexis_parser.html">Lexis data parser</a>
 </li>
       </ul>
@@ -418,137 +421,135 @@ results_prof_google_search$handle_text &lt;- ifelse(str_detect_all(results_prof_
 <table>
 <thead>
 <tr>
+<th style="text-align:right;">
+year
+</th>
 <th style="text-align:left;">
-htmlTitle
+formattedUrl
 </th>
 <th style="text-align:left;">
 elem
-</th>
-<th style="text-align:left;">
-handle_text
 </th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td style="text-align:right;">
+2008
+</td>
 <td style="text-align:left;">
-ESMO - Eur. Oncology on X: &amp;quot;Press conference #ESMO14:
-&lt;b&gt;Frederic&lt;/b&gt; …
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:left;">
+<a href="https://twitter.com/myESMO/status/515748655782178816"
+class="uri">https://twitter.com/myESMO/status/515748655782178816</a>
 </td>
 <td style="text-align:left;">
 frédéric amant
 </td>
-<td style="text-align:left;">
-NA
-</td>
 </tr>
 <tr>
+<td style="text-align:right;">
+NA
+</td>
 <td style="text-align:left;">
-SJWEH on Twitter: &amp;quot;Together with &lt;b&gt;Lex
-Burdorf&lt;/b&gt;, Joost contributed our …
+<a href="http://twitter.com/SJWEH/statuses/1230419713819316224"
+class="uri">http://twitter.com/SJWEH/statuses/1230419713819316224</a>
 </td>
 <td style="text-align:left;">
 lex burdorf
 </td>
-<td style="text-align:left;">
-NA
-</td>
 </tr>
 <tr>
+<td style="text-align:right;">
+NA
+</td>
 <td style="text-align:left;">
-FACS 2017 (<span class="citation">@facs2017</span>) / X
+<a href="https://twitter.com/facs2017"
+class="uri">https://twitter.com/facs2017</a>
 </td>
 <td style="text-align:left;">
 farhad arbab
 </td>
-<td style="text-align:left;">
-NA
-</td>
 </tr>
 <tr>
+<td style="text-align:right;">
+NA
+</td>
 <td style="text-align:left;">
-&lt;b&gt;Thijs Asselbergs&lt;/b&gt; on X: &amp;quot;Yes we can! #FuturA
-<span class="citation">@BNA_nl</span> Marina Bos …
+<a href="https://twitter.com/thijsasselbergs/status/1056594685647613953"
+class="uri">https://twitter.com/thijsasselbergs/status/1056594685647613953</a>
 </td>
 <td style="text-align:left;">
 thijs asselbergs
 </td>
-<td style="text-align:left;">
-NA
-</td>
 </tr>
 <tr>
+<td style="text-align:right;">
+NA
+</td>
 <td style="text-align:left;">
-&lt;b&gt;Johan Graafland&lt;/b&gt; (<span
-class="citation">@johanchepito</span>) / X
+<a href="https://twitter.com/johanchepito"
+class="uri">https://twitter.com/johanchepito</a>
 </td>
 <td style="text-align:left;">
 johan graafland
 </td>
-<td style="text-align:left;">
-&lt;b&gt;Johan Graafland&lt;/b&gt; (<span
-class="citation">@johanchepito</span>) / X
-</td>
 </tr>
 <tr>
+<td style="text-align:right;">
+NA
+</td>
 <td style="text-align:left;">
-Victim Support Europe on X: &amp;quot;During the final debate of …
+<a href="https://twitter.com/VictimSupportEU/status/1465649572890525703"
+class="uri">https://twitter.com/VictimSupportEU/status/1465649572890525703</a>
 </td>
 <td style="text-align:left;">
 suzan van der aa
 </td>
-<td style="text-align:left;">
-NA
-</td>
 </tr>
 <tr>
+<td style="text-align:right;">
+NA
+</td>
 <td style="text-align:left;">
-Netherlands Space on X: &amp;quot;RT <span
-class="citation">@Igarss2021</span>: &lt;b&gt;Ilse Aben&lt;/b&gt;,
-senior …
+<a href="https://twitter.com/NL_Space/status/1358697616142401536"
+class="uri">https://twitter.com/NL_Space/status/1358697616142401536</a>
 </td>
 <td style="text-align:left;">
 ilse aben
 </td>
-<td style="text-align:left;">
-NA
-</td>
 </tr>
 <tr>
+<td style="text-align:right;">
+NA
+</td>
 <td style="text-align:left;">
-Michaël van de Poppe on Twitter: &amp;quot;Aftermath of the #Bitcoin and
-…
+<a href="https://twitter.com/cryptomichnl/status/1395672212837998597"
+class="uri">https://twitter.com/cryptomichnl/status/1395672212837998597</a>
 </td>
 <td style="text-align:left;">
 bram kempers
 </td>
-<td style="text-align:left;">
-NA
-</td>
 </tr>
 <tr>
+<td style="text-align:right;">
+NA
+</td>
 <td style="text-align:left;">
-IFIC Updates on X: &amp;quot;&lt;b&gt;Mirella Minkman&lt;/b&gt;, as CEO
-of <span class="citation">@VilansOrg</span> and …
+<a href="https://twitter.com/IFICInfo/status/1331981875712233473"
+class="uri">https://twitter.com/IFICInfo/status/1331981875712233473</a>
 </td>
 <td style="text-align:left;">
 mirella minkman
-</td>
-<td style="text-align:left;">
-NA
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-&lt;b&gt;Rien Aerts&lt;/b&gt; (<span class="citation">@aertsrien</span>)
-/ X
-</td>
-<td style="text-align:left;">
-rien aerts
-</td>
-<td style="text-align:left;">
-&lt;b&gt;Rien Aerts&lt;/b&gt; (<span class="citation">@aertsrien</span>)
-/ X
 </td>
 </tr>
 </tbody>
@@ -646,6 +647,23 @@ link
 </tr>
 </thead>
 <tbody>
+<tr>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
 <tr>
 <td style="text-align:left;">
 frédéric amant
@@ -806,24 +824,6 @@ NA
 <td style="text-align:left;">
 <a href="https://twitter.com/IFICInfo/status/1331981875712233473"
 class="uri">https://twitter.com/IFICInfo/status/1331981875712233473</a>
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-rien aerts
-</td>
-<td style="text-align:left;">
-<span class="citation">@aertsrien</span>
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-Rien Aerts
-</td>
-<td style="text-align:left;">
-<a href="https://twitter.com/aertsrien"
-class="uri">https://twitter.com/aertsrien</a>
 </td>
 </tr>
 </tbody>
