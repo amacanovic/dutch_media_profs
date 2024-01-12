@@ -23,7 +23,7 @@ groundhog.library(packages_to_load, date = "2023-12-01")
 Loading the output of the python script from our results folder:
 ```{r warning = F, message = F}
 # getting all the csv files that were processed in batches
-csv_names <- list.files(path = "~/Postdoc/Projects/dutch_media_profs_python/output-data/",
+csv_names <- list.files(path = "~/Postdoc/Projects/dutch_media_profs_python/output-data/twitter",
                         pattern = "*.csv",
                         full.names = TRUE)
 

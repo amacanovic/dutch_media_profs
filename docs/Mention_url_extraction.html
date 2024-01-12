@@ -11,9 +11,9 @@
 
 <meta name="author" content="Ana Macanovic" />
 
-<meta name="date" content="2023-12-06" />
+<meta name="date" content="2023-12-22" />
 
-<title>Nexis_data_handling</title>
+<title>Extraction of URL mentions</title>
 
 <script src="site_libs/header-attrs-2.25/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
@@ -384,21 +384,21 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">Nexis_data_handling</h1>
+<h1 class="title toc-ignore">Extraction of URL mentions</h1>
 <h4 class="author">Ana Macanovic</h4>
-<h4 class="date">2023-12-06</h4>
+<h4 class="date">2023-12-22</h4>
 
 </div>
 
 
+<p>Getting the news data mention URLs based on professors’ papers. We
+will then use the URLs to retrieve, wherever available, the full text of
+the article.</p>
 <p>Load the packages:</p>
 <pre class="r"><code>library(groundhog)
-packages_to_load &lt;- c(&quot;readr&quot;, &quot;dplyr&quot;, &quot;stringr&quot;, &quot;tidyr&quot;)
+packages_to_load &lt;- c(&quot;readr&quot;, &quot;dplyr&quot;, 
+                      &quot;stringr&quot;)
 groundhog.library(packages_to_load, date = &quot;2023-12-01&quot;)</code></pre>
-<p>Load the R package by J. Grubber that conveniently tidies up the
-LexisNexis data:</p>
-<pre class="r"><code># remotes::install_github(&quot;JBGruber/LexisNexisTools&quot;)
-library(&quot;LexisNexisTools&quot;)</code></pre>
 <div id="tidy-up-professor-data-from-narcis" class="section level1"
 number="1">
 <h1><span class="header-section-number">1</span> Tidy up professor data
@@ -414,19 +414,113 @@ profs_full &lt;- merge(profs,
                     metadf[, c(1:4, 361)],
                     by = &quot;profile_id&quot;)</code></pre>
 </div>
-<div id="reading-in-the-data" class="section level1" number="2">
-<h1><span class="header-section-number">2</span> Reading in the
-data</h1>
-<p>Set the folder, and load the files:</p>
-<pre class="r"><code>LNToutput &lt;- lnt_read(x = &quot;news_data&quot;)</code></pre>
-<p>This helps load the meta data, full articles, and individual
-paragraphs:</p>
-<pre class="r"><code>meta_df &lt;- LNToutput@meta
-articles_df &lt;- LNToutput@articles
-paragraphs_df &lt;- LNToutput@paragraphs</code></pre>
+<div id="extract-urls" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Extract URLs</h1>
+<p>Extra the URLs from news mentions of each professor:</p>
+<pre class="r"><code># query in batches
+narcis_ids &lt;- profs_full$profile_id
+# batch size
+prof_batch_size &lt;- 500
+# vector of indices to loop through
+batches &lt;- seq(from=1, to=length(narcis_ids), by=prof_batch_size)
+# to be able to subset, also add the final index+1
+batches &lt;- c(batches, length(narcis_ids)+1)
+
+# dataframe to store urls we want to scrape
+url_data &lt;- data.frame(matrix(NA, nrow = 0, ncol = 5))
+
+
+# loop through the batches
+for(i in 1:(length(batches)-1)){
+  # read in the first batch
+  prof_batch &lt;- readRDS(paste0(&quot;processed_data/open_alex_prof_data/&quot;, paste(&quot;prof_data_batch&quot;, i, sep = &quot;_&quot;), &quot;.RDS&quot;))
+  # loop through profs in the list
+  for (j in 1:length(prof_batch)){
+    prof &lt;- prof_batch[[j]]
+    # if some data in the prof list
+    if (length(prof)&gt;1){
+      # get the news articles
+      oa_pubs &lt;- prof[[&#39;oa_pubs&#39;]]
+      # get the prof_id
+      prof_id &lt;- names(prof_batch[j])
+      
+      # if not empty
+      if (!is.null(ncol(oa_pubs))){
+        # if &#39;news&#39; in the colnames
+        if (&#39;news&#39; %in% colnames(oa_pubs)){
+          # get the news column and the doi
+          news_mentions &lt;- oa_pubs[, c(&#39;doi&#39;, &#39;news&#39;)]
+          # loop through the news
+          url_list &lt;- c()
+          title_list &lt;- c()
+          resource_list &lt;- c()
+          for (row in 1:nrow(news_mentions)){
+            mentions &lt;- news_mentions$news[row][[1]]
+            # if any mentions of this doi, add the urls to our list
+            if (!is.null(ncol(mentions))){
+              # get the mention data
+              url_list &lt;- mentions$url
+              title_list &lt;- mentions$title
+              resource_list &lt;- as.character(mentions$author$name)
+              # make a dataframe
+              mention_info &lt;- cbind.data.frame(url_list, title_list, resource_list)
+              # append the doi and author id
+              mention_info$doi &lt;- as.character(news_mentions$doi[row])
+              mention_info$profile_id &lt;- prof_id
+              # append to the dataframe
+              url_data &lt;- rbind(url_data,
+                                mention_info)
+            }
+          }
+        }
+      }
+    }
+  }
+  print(paste(&quot;done with batch&quot;, i))
+}</code></pre>
+<p>Identify broken ct.moreover links (see more <a
+href="https://help.altmetric.com/support/solutions/articles/6000241413-unclickable-links-on-a-detail-page">here</a>):</p>
+<pre class="r"><code>url_data$broken_link &lt;- str_detect(url_data$url_list, &quot;ct.moreover&quot;)
+
+url_data$broken_link &lt;- ifelse(is.na(url_data$broken_link), TRUE, url_data$broken_link )</code></pre>
+<p>Adding a unique URL identifier:</p>
+<pre class="r"><code>url_data &lt;- url_data %&gt;% 
+  group_by(profile_id) %&gt;% 
+  mutate(url_id = row_number())
+
+url_data$url_id &lt;- paste0(str_remove(url_data$profile_id, &quot;https://www.narcis.nl/person/RecordID/&quot;),
+                          &quot;_url_&quot;,
+                          url_data$url_id)</code></pre>
+<p>How many URLs, unique titles, and outlets?</p>
+<pre class="r"><code>nrow(url_data)</code></pre>
+<pre><code>## [1] 587749</code></pre>
+<pre class="r"><code>length(unique(url_data$title_list))</code></pre>
+<pre><code>## [1] 221834</code></pre>
+<pre class="r"><code>length(unique(url_data$resource_list))</code></pre>
+<pre><code>## [1] 5174</code></pre>
+<p>How many broken links? Unfortunately, around 38%. This leaves us with
+359 693 links we can try to retrieve.</p>
+<pre class="r"><code>table(url_data$broken_link)</code></pre>
+<pre><code>## 
+##  FALSE   TRUE 
+## 359693 228056</code></pre>
+<pre class="r"><code>prop.table(table(url_data$broken_link))</code></pre>
+<pre><code>## 
+##    FALSE     TRUE 
+## 0.611984 0.388016</code></pre>
+<p>How many papers and researchers?</p>
+<pre class="r"><code>length(unique(url_data$doi))</code></pre>
+<pre><code>## [1] 45576</code></pre>
+<pre class="r"><code>length(unique(url_data$profile_id))</code></pre>
+<pre><code>## [1] 4809</code></pre>
+<p>Write the data out:</p>
+<pre class="r"><code>saveRDS(url_data, &quot;processed_data/mention_urls.RDS&quot;)
+write_csv(url_data, &quot;processed_data/mention_urls.csv&quot;)</code></pre>
+<p>After this, we run the python script to collect the unpaywalled
+non-broken links.</p>
 </div>
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIk5leGlzX2RhdGFfaGFuZGxpbmciDQphdXRob3I6ICJBbmEgTWFjYW5vdmljIg0KZGF0ZTogIjIwMjMtMTItMDYiDQotLS0NCg0KYGBge3Igc2V0dXAsIGluY2x1ZGU9RkFMU0V9DQprbml0cjo6b3B0c19jaHVuayRzZXQoZWNobyA9IFRSVUUpDQprbml0cjo6b3B0c19jaHVuayRzZXQoZXZhbCA9IEZBTFNFKQ0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KHdhcm5pbmcgPSBGQUxTRSkNCmtuaXRyOjpvcHRzX2NodW5rJHNldChtZXNzYWdlID0gRkFMU0UpDQpgYGANCg0KTG9hZCB0aGUgcGFja2FnZXM6DQpgYGB7ciBtZXNzYWdlPSAgRiwgd2FybmluZyA9IEZ9DQpsaWJyYXJ5KGdyb3VuZGhvZykNCnBhY2thZ2VzX3RvX2xvYWQgPC0gYygicmVhZHIiLCAiZHBseXIiLCAic3RyaW5nciIsICJ0aWR5ciIpDQpncm91bmRob2cubGlicmFyeShwYWNrYWdlc190b19sb2FkLCBkYXRlID0gIjIwMjMtMTItMDEiKQ0KYGBgDQoNCkxvYWQgdGhlIFIgcGFja2FnZSBieSBKLiBHcnViYmVyIHRoYXQgY29udmVuaWVudGx5IHRpZGllcyB1cCB0aGUgTGV4aXNOZXhpcyBkYXRhOg0KYGBge3J9DQojIHJlbW90ZXM6Omluc3RhbGxfZ2l0aHViKCJKQkdydWJlci9MZXhpc05leGlzVG9vbHMiKQ0KbGlicmFyeSgiTGV4aXNOZXhpc1Rvb2xzIikNCmBgYA0KDQojIFRpZHkgdXAgcHJvZmVzc29yIGRhdGEgZnJvbSBOQVJDSVMNCg0KTG9hZCB0aGUgcHJvZmVzc29yIHByb2ZpbGVzOg0KYGBge3IgbWVzc2FnZSA9IEYsIHdhcm5pbmcgPSBGfQ0KbG9hZCgicmF3X2RhdGEvbWVkaWFfcHJvZnNfcHJvZmlsZXMucmRhIikNCnByb2ZzIDwtIHJlYWRfY3N2KCJyYXdfZGF0YS9kdXRjaF9wcm9mc191cmxzLmNzdiIpDQoNCiMgbWVyZ2UgdGhlIHByb2ZzIHdpdGggdGhlaXIgT1JDSURzDQpjb2xuYW1lcyhwcm9mcylbYygxLDcpXSA8LSBjKCJpZCIsICJwcm9maWxlX2lkIikNCg0KcHJvZnNfZnVsbCA8LSBtZXJnZShwcm9mcywNCiAgICAgICAgICAgICAgICAgICAgbWV0YWRmWywgYygxOjQsIDM2MSldLA0KICAgICAgICAgICAgICAgICAgICBieSA9ICJwcm9maWxlX2lkIikNCmBgYA0KDQoNCiMgUmVhZGluZyBpbiB0aGUgZGF0YQ0KDQoNClNldCB0aGUgZm9sZGVyLCBhbmQgbG9hZCB0aGUgZmlsZXM6DQpgYGB7cn0NCkxOVG91dHB1dCA8LSBsbnRfcmVhZCh4ID0gIm5ld3NfZGF0YSIpDQpgYGANCg0KVGhpcyBoZWxwcyBsb2FkIHRoZSBtZXRhIGRhdGEsIGZ1bGwgYXJ0aWNsZXMsIGFuZCBpbmRpdmlkdWFsIHBhcmFncmFwaHM6DQpgYGB7cn0NCm1ldGFfZGYgPC0gTE5Ub3V0cHV0QG1ldGENCmFydGljbGVzX2RmIDwtIExOVG91dHB1dEBhcnRpY2xlcw0KcGFyYWdyYXBoc19kZiA8LSBMTlRvdXRwdXRAcGFyYWdyYXBocw0KYGBgDQoNCg==</div>
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIkV4dHJhY3Rpb24gb2YgVVJMIG1lbnRpb25zIg0KYXV0aG9yOiAiQW5hIE1hY2Fub3ZpYyINCmRhdGU6ICIyMDIzLTEyLTIyIg0KLS0tDQoNCkdldHRpbmcgdGhlIG5ld3MgZGF0YSBtZW50aW9uIFVSTHMgYmFzZWQgb24gcHJvZmVzc29ycycgcGFwZXJzLg0KV2Ugd2lsbCB0aGVuIHVzZSB0aGUgVVJMcyB0byByZXRyaWV2ZSwgd2hlcmV2ZXIgYXZhaWxhYmxlLCB0aGUgZnVsbCB0ZXh0IA0Kb2YgdGhlIGFydGljbGUuIA0KDQpgYGB7ciBpbmNsdWRlPUZBTFNFfQ0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KGVjaG8gPSBUUlVFKQ0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KGV2YWwgPSBGQUxTRSkNCmtuaXRyOjpvcHRzX2NodW5rJHNldCh3YXJuaW5nID0gRkFMU0UpDQprbml0cjo6b3B0c19jaHVuayRzZXQobWVzc2FnZSA9IEZBTFNFKQ0KYGBgDQoNCkxvYWQgdGhlIHBhY2thZ2VzOg0KYGBge3IgbWVzc2FnZT0gIEYsIHdhcm5pbmcgPSBGfQ0KbGlicmFyeShncm91bmRob2cpDQpwYWNrYWdlc190b19sb2FkIDwtIGMoInJlYWRyIiwgImRwbHlyIiwgDQogICAgICAgICAgICAgICAgICAgICAgInN0cmluZ3IiKQ0KZ3JvdW5kaG9nLmxpYnJhcnkocGFja2FnZXNfdG9fbG9hZCwgZGF0ZSA9ICIyMDIzLTEyLTAxIikNCg0KYGBgDQoNCiMgVGlkeSB1cCBwcm9mZXNzb3IgZGF0YSBmcm9tIE5BUkNJUw0KDQpMb2FkIHRoZSBwcm9mZXNzb3IgcHJvZmlsZXM6DQpgYGB7ciBtZXNzYWdlID0gRiwgd2FybmluZyA9IEZ9DQpsb2FkKCJyYXdfZGF0YS9tZWRpYV9wcm9mc19wcm9maWxlcy5yZGEiKQ0KcHJvZnMgPC0gcmVhZF9jc3YoInJhd19kYXRhL2R1dGNoX3Byb2ZzX3VybHMuY3N2IikNCg0KIyBtZXJnZSB0aGUgcHJvZnMgd2l0aCB0aGVpciBPUkNJRHMNCmNvbG5hbWVzKHByb2ZzKVtjKDEsNyldIDwtIGMoImlkIiwgInByb2ZpbGVfaWQiKQ0KDQpwcm9mc19mdWxsIDwtIG1lcmdlKHByb2ZzLA0KICAgICAgICAgICAgICAgICAgICBtZXRhZGZbLCBjKDE6NCwgMzYxKV0sDQogICAgICAgICAgICAgICAgICAgIGJ5ID0gInByb2ZpbGVfaWQiKQ0KYGBgDQoNCg0KIyBFeHRyYWN0IFVSTHMNCg0KRXh0cmEgdGhlIFVSTHMgZnJvbSBuZXdzIG1lbnRpb25zIG9mIGVhY2ggcHJvZmVzc29yOg0KYGBge3J9DQojIHF1ZXJ5IGluIGJhdGNoZXMNCm5hcmNpc19pZHMgPC0gcHJvZnNfZnVsbCRwcm9maWxlX2lkDQojIGJhdGNoIHNpemUNCnByb2ZfYmF0Y2hfc2l6ZSA8LSA1MDANCiMgdmVjdG9yIG9mIGluZGljZXMgdG8gbG9vcCB0aHJvdWdoDQpiYXRjaGVzIDwtIHNlcShmcm9tPTEsIHRvPWxlbmd0aChuYXJjaXNfaWRzKSwgYnk9cHJvZl9iYXRjaF9zaXplKQ0KIyB0byBiZSBhYmxlIHRvIHN1YnNldCwgYWxzbyBhZGQgdGhlIGZpbmFsIGluZGV4KzENCmJhdGNoZXMgPC0gYyhiYXRjaGVzLCBsZW5ndGgobmFyY2lzX2lkcykrMSkNCg0KIyBkYXRhZnJhbWUgdG8gc3RvcmUgdXJscyB3ZSB3YW50IHRvIHNjcmFwZQ0KdXJsX2RhdGEgPC0gZGF0YS5mcmFtZShtYXRyaXgoTkEsIG5yb3cgPSAwLCBuY29sID0gNSkpDQoNCg0KIyBsb29wIHRocm91Z2ggdGhlIGJhdGNoZXMNCmZvcihpIGluIDE6KGxlbmd0aChiYXRjaGVzKS0xKSl7DQogICMgcmVhZCBpbiB0aGUgZmlyc3QgYmF0Y2gNCiAgcHJvZl9iYXRjaCA8LSByZWFkUkRTKHBhc3RlMCgicHJvY2Vzc2VkX2RhdGEvb3Blbl9hbGV4X3Byb2ZfZGF0YS8iLCBwYXN0ZSgicHJvZl9kYXRhX2JhdGNoIiwgaSwgc2VwID0gIl8iKSwgIi5SRFMiKSkNCiAgIyBsb29wIHRocm91Z2ggcHJvZnMgaW4gdGhlIGxpc3QNCiAgZm9yIChqIGluIDE6bGVuZ3RoKHByb2ZfYmF0Y2gpKXsNCiAgICBwcm9mIDwtIHByb2ZfYmF0Y2hbW2pdXQ0KICAgICMgaWYgc29tZSBkYXRhIGluIHRoZSBwcm9mIGxpc3QNCiAgICBpZiAobGVuZ3RoKHByb2YpPjEpew0KICAgICAgIyBnZXQgdGhlIG5ld3MgYXJ0aWNsZXMNCiAgICAgIG9hX3B1YnMgPC0gcHJvZltbJ29hX3B1YnMnXV0NCiAgICAgICMgZ2V0IHRoZSBwcm9mX2lkDQogICAgICBwcm9mX2lkIDwtIG5hbWVzKHByb2ZfYmF0Y2hbal0pDQogICAgICANCiAgICAgICMgaWYgbm90IGVtcHR5DQogICAgICBpZiAoIWlzLm51bGwobmNvbChvYV9wdWJzKSkpew0KICAgICAgICAjIGlmICduZXdzJyBpbiB0aGUgY29sbmFtZXMNCiAgICAgICAgaWYgKCduZXdzJyAlaW4lIGNvbG5hbWVzKG9hX3B1YnMpKXsNCiAgICAgICAgICAjIGdldCB0aGUgbmV3cyBjb2x1bW4gYW5kIHRoZSBkb2kNCiAgICAgICAgICBuZXdzX21lbnRpb25zIDwtIG9hX3B1YnNbLCBjKCdkb2knLCAnbmV3cycpXQ0KICAgICAgICAgICMgbG9vcCB0aHJvdWdoIHRoZSBuZXdzDQogICAgICAgICAgdXJsX2xpc3QgPC0gYygpDQogICAgICAgICAgdGl0bGVfbGlzdCA8LSBjKCkNCiAgICAgICAgICByZXNvdXJjZV9saXN0IDwtIGMoKQ0KICAgICAgICAgIGZvciAocm93IGluIDE6bnJvdyhuZXdzX21lbnRpb25zKSl7DQogICAgICAgICAgICBtZW50aW9ucyA8LSBuZXdzX21lbnRpb25zJG5ld3Nbcm93XVtbMV1dDQogICAgICAgICAgICAjIGlmIGFueSBtZW50aW9ucyBvZiB0aGlzIGRvaSwgYWRkIHRoZSB1cmxzIHRvIG91ciBsaXN0DQogICAgICAgICAgICBpZiAoIWlzLm51bGwobmNvbChtZW50aW9ucykpKXsNCiAgICAgICAgICAgICAgIyBnZXQgdGhlIG1lbnRpb24gZGF0YQ0KICAgICAgICAgICAgICB1cmxfbGlzdCA8LSBtZW50aW9ucyR1cmwNCiAgICAgICAgICAgICAgdGl0bGVfbGlzdCA8LSBtZW50aW9ucyR0aXRsZQ0KICAgICAgICAgICAgICByZXNvdXJjZV9saXN0IDwtIGFzLmNoYXJhY3RlcihtZW50aW9ucyRhdXRob3IkbmFtZSkNCiAgICAgICAgICAgICAgIyBtYWtlIGEgZGF0YWZyYW1lDQogICAgICAgICAgICAgIG1lbnRpb25faW5mbyA8LSBjYmluZC5kYXRhLmZyYW1lKHVybF9saXN0LCB0aXRsZV9saXN0LCByZXNvdXJjZV9saXN0KQ0KICAgICAgICAgICAgICAjIGFwcGVuZCB0aGUgZG9pIGFuZCBhdXRob3IgaWQNCiAgICAgICAgICAgICAgbWVudGlvbl9pbmZvJGRvaSA8LSBhcy5jaGFyYWN0ZXIobmV3c19tZW50aW9ucyRkb2lbcm93XSkNCiAgICAgICAgICAgICAgbWVudGlvbl9pbmZvJHByb2ZpbGVfaWQgPC0gcHJvZl9pZA0KICAgICAgICAgICAgICAjIGFwcGVuZCB0byB0aGUgZGF0YWZyYW1lDQogICAgICAgICAgICAgIHVybF9kYXRhIDwtIHJiaW5kKHVybF9kYXRhLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBtZW50aW9uX2luZm8pDQogICAgICAgICAgICB9DQogICAgICAgICAgfQ0KICAgICAgICB9DQogICAgICB9DQogICAgfQ0KICB9DQogIHByaW50KHBhc3RlKCJkb25lIHdpdGggYmF0Y2giLCBpKSkNCn0NCmBgYA0KDQoNCklkZW50aWZ5IGJyb2tlbiBjdC5tb3Jlb3ZlciBsaW5rcyAoc2VlIG1vcmUgW2hlcmVdKGh0dHBzOi8vaGVscC5hbHRtZXRyaWMuY29tL3N1cHBvcnQvc29sdXRpb25zL2FydGljbGVzLzYwMDAyNDE0MTMtdW5jbGlja2FibGUtbGlua3Mtb24tYS1kZXRhaWwtcGFnZSkpOg0KYGBge3J9DQp1cmxfZGF0YSRicm9rZW5fbGluayA8LSBzdHJfZGV0ZWN0KHVybF9kYXRhJHVybF9saXN0LCAiY3QubW9yZW92ZXIiKQ0KDQp1cmxfZGF0YSRicm9rZW5fbGluayA8LSBpZmVsc2UoaXMubmEodXJsX2RhdGEkYnJva2VuX2xpbmspLCBUUlVFLCB1cmxfZGF0YSRicm9rZW5fbGluayApDQpgYGANCg0KQWRkaW5nIGEgdW5pcXVlIFVSTCBpZGVudGlmaWVyOg0KYGBge3J9DQp1cmxfZGF0YSA8LSB1cmxfZGF0YSAlPiUgDQogIGdyb3VwX2J5KHByb2ZpbGVfaWQpICU+JSANCiAgbXV0YXRlKHVybF9pZCA9IHJvd19udW1iZXIoKSkNCg0KdXJsX2RhdGEkdXJsX2lkIDwtIHBhc3RlMChzdHJfcmVtb3ZlKHVybF9kYXRhJHByb2ZpbGVfaWQsICJodHRwczovL3d3dy5uYXJjaXMubmwvcGVyc29uL1JlY29yZElELyIpLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAiX3VybF8iLA0KICAgICAgICAgICAgICAgICAgICAgICAgICB1cmxfZGF0YSR1cmxfaWQpDQpgYGANCg0KYGBge3IgZWNobyA9IEYsIHJlc3VsdHM9J2hpZGUnLCBldmFsID0gVH0NCnVybF9kYXRhIDwtIHJlYWRSRFMoInByb2Nlc3NlZF9kYXRhL21lbnRpb25fdXJscy5SRFMiKQ0KYGBgDQoNCg0KSG93IG1hbnkgVVJMcywgdW5pcXVlIHRpdGxlcywgYW5kIG91dGxldHM/DQpgYGB7ciBldmFsID0gVH0NCm5yb3codXJsX2RhdGEpDQpsZW5ndGgodW5pcXVlKHVybF9kYXRhJHRpdGxlX2xpc3QpKQ0KbGVuZ3RoKHVuaXF1ZSh1cmxfZGF0YSRyZXNvdXJjZV9saXN0KSkNCmBgYA0KSG93IG1hbnkgYnJva2VuIGxpbmtzPyBVbmZvcnR1bmF0ZWx5LCBhcm91bmQgMzglLiBUaGlzIGxlYXZlcyB1cyB3aXRoIDM1OSA2OTMgbGlua3Mgd2UgY2FuDQp0cnkgdG8gcmV0cmlldmUuIA0KYGBge3IgZXZhbCA9IFR9DQp0YWJsZSh1cmxfZGF0YSRicm9rZW5fbGluaykNCnByb3AudGFibGUodGFibGUodXJsX2RhdGEkYnJva2VuX2xpbmspKQ0KYGBgDQpIb3cgbWFueSBwYXBlcnMgYW5kIHJlc2VhcmNoZXJzPw0KYGBge3IgZXZhbCA9IFR9DQpsZW5ndGgodW5pcXVlKHVybF9kYXRhJGRvaSkpDQpsZW5ndGgodW5pcXVlKHVybF9kYXRhJHByb2ZpbGVfaWQpKQ0KYGBgDQoNCldyaXRlIHRoZSBkYXRhIG91dDoNCmBgYHtyfQ0Kc2F2ZVJEUyh1cmxfZGF0YSwgInByb2Nlc3NlZF9kYXRhL21lbnRpb25fdXJscy5SRFMiKQ0Kd3JpdGVfY3N2KHVybF9kYXRhLCAicHJvY2Vzc2VkX2RhdGEvbWVudGlvbl91cmxzLmNzdiIpDQpgYGANCg0KQWZ0ZXIgdGhpcywgd2UgcnVuIHRoZSBweXRob24gc2NyaXB0IHRvIGNvbGxlY3QgdGhlIHVucGF5d2FsbGVkIG5vbi1icm9rZW4gbGlua3MuDQo=</div>
 
 
 </div>
@@ -464,7 +558,7 @@ $(document).ready(function () {
 <!-- code folding -->
 <script>
 $(document).ready(function () {
-  window.initializeSourceEmbed("Lexis_nexis_parser.Rmd");
+  window.initializeSourceEmbed("Mention_url_extraction.Rmd");
   window.initializeCodeFolding("show" === "show");
 });
 </script>

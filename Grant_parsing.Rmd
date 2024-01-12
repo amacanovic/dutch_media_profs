@@ -209,9 +209,7 @@ professor_grant_awards_final <- filter(professor_grant_awards_final,
 professor_grant_awards_final <- professor_grant_awards_final[, -c(ncol(professor_grant_awards_final))]
 ```
 
-Write this out:
 ```{r}
-saveRDS(professor_grant_awards_final, "processed_data/nwo_grants.RDS")
 # drop any redundant objects from memory
 rm(professor_grant_awards)
 rm(professor_grant_awards_clean)
@@ -236,7 +234,7 @@ Match by first and last names:
 ```{r}
 professor_grant_match <- professor_grant_awards_final
 
-professor_grant_match$both_match <- ifelse((tolower(professor_grant_match$last) %in% profs_full$last) & (tolower(professor_grant_match$first) %in% profs_full$first),
+professor_grant_match$both_match <- ifelse(((tolower(professor_grant_match$last) %in% profs_full$last) & (tolower(professor_grant_match$first) %in% profs_full$first)),
                                            TRUE,
                                            FALSE)
 ```
@@ -247,11 +245,39 @@ professor_grant_awards_narcis <- filter(professor_grant_match,
                                         both_match == TRUE)
 ```
 
+Get the exact matching:
+```{r}
+professor_grant_awards_narcis$first_last <- tolower(paste(professor_grant_awards_narcis$first, 
+                                                  professor_grant_awards_narcis$last))
+
+profs_full$first_last <- tolower(paste(profs_full$first, profs_full$last))
+
+professor_grant_awards_narcis_match <- merge(professor_grant_awards_narcis,
+                                             profs_full[, c("profile_id", "first_last")],
+                                             by = "first_last")
+```
+
+Select the relevant columns:
+```{r}
+professor_grant_awards_narcis_final <- professor_grant_awards_narcis_match[, c("grant",
+                                                                               "year",
+                                                                               "profile_id")]
+```
+
+Write this out:
+```{r}
+saveRDS(professor_grant_awards_narcis_final, "processed_data/nwo_grants.RDS")
+```
+
 # Plots 
 
 And add histograms of tupes of awards and years:
 ```{r}
-ggplot(professor_grant_awards_narcis, aes(x = year)) +
+professor_grant_awards_narcis_final$grant <- factor(professor_grant_awards_narcis_final$grant, levels = c("veni", 
+                                                                      "vidi", 
+                                                                      "vici"))
+
+ggplot(professor_grant_awards_narcis_final, aes(x = year)) +
 geom_histogram(bins = 10) +
 facet_wrap(~ grant)
 ```

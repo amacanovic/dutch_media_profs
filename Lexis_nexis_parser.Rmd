@@ -11,12 +11,37 @@ knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 ```
 
+Load the packages:
+```{r message=  F, warning = F}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "stringr", "tidyr")
+groundhog.library(packages_to_load, date = "2023-12-01")
+```
 
 Load the R package by J. Grubber that conveniently tidies up the LexisNexis data:
 ```{r}
 # remotes::install_github("JBGruber/LexisNexisTools")
 library("LexisNexisTools")
 ```
+
+# Tidy up professor data from NARCIS
+
+Load the professor profiles:
+```{r message = F, warning = F}
+load("raw_data/media_profs_profiles.rda")
+profs <- read_csv("raw_data/dutch_profs_urls.csv")
+
+# merge the profs with their ORCIDs
+colnames(profs)[c(1,7)] <- c("id", "profile_id")
+
+profs_full <- merge(profs,
+                    metadf[, c(1:4, 361)],
+                    by = "profile_id")
+```
+
+
+# Reading in the data
+
 
 Set the folder, and load the files:
 ```{r}

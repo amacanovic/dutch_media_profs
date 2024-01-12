@@ -1,31 +1,24 @@
 ---
 title: "OpenAlex_Altmetric_data_download"
 author: "Ana Macanovic"
-date: "2023-12-06"
+date: "2024-01-06"
 ---
-
 
 This script uses OpenAlex database to download data on the professors in our sample
 
-```{r setup, include=FALSE}
+```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(eval = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 ```
 
-This flowchart represents our workflow:
-
-![Data extraction workflow](images/OpenAlex_Altmetric_diagram.png)
-
-
-
 Load the packages:
-```{r message=  F, warning = F}
+```{r message=  F, warning = F, eval = T}
 library(groundhog)
 packages_to_load <- c("readr", "dplyr", "openalexR",
                       "ggplot2", "stringr", "tidyr",
-                      "jsonlite")
+                      "jsonlite", "xml2")
 groundhog.library(packages_to_load, date = "2023-12-01")
 
 # we've also added our email to the "polite pool" of OpenAlex by
@@ -106,14 +99,994 @@ prof_pubs_full <- rbind(prof_pubs_full_fix,
 rm(pubs_metadf)
 rm(metadf)
 rm(pub_to_profile_id)
-rm(narcis_ids)
 gc()
 ```
 
 
-# Define the data querying function
+# Define the data querying functions
 
-First, define a helper function that will query the Altmetric API using pub DOIs:
+## Seek professor identifiers in OpenAlex
+
+Define the function that helps us seek identifiers from:
+1. Professor's Narcis publication list (based on DOI)
+2. Professor's ORCID as in Narcis
+3. Professor's name + NL as the country of their last known institution
+
+This diagram describes how we do it:
+![Figure 1](images/professor_identifier_retriever_diagram.png)
+
+```{r}
+professor_identifier_retriever <- function(narcis_id,
+                                           pub_data,
+                                           prof_data){
+  
+  # set all the identifiers to NA
+  oa_ids_pubs <- NA
+  oa_ids_names <- NA
+  oa_ids_orcid <- NA
+  prof_orcid <- NA
+  prof_name <- NA
+  prof_name_w_initials <- NA
+  prof_name_w_initials_space <- NA
+  prof_initials_wo_first_name <- NA
+  prof_initials_wo_first_name_space <- NA
+  prof_name_first_initials <- NA
+  prof_name_first_initials_space <- NA
+  prof_alternative_full_name <- NA
+  
+  # get the professor's narcis id anad get their publications based on this
+  prof_pubs <- filter(pub_data, profile_id == narcis_id)
+  
+  # get their name
+  prof_name_details <- filter(prof_data, profile_id == narcis_id)
+  prof_orcid <- prof_name_details$ORCID
+  prof_name <- paste(prof_name_details$first, 
+                     prof_name_details$last)
+  
+  # get the name, initials, etc combinations
+  # convert the special characters
+  prof_name_details[, 4:11] <- iconv(prof_name_details[, 4:11], to='ASCII//TRANSLIT')
+  
+  # get first/last name
+  prof_name <- paste(
+    prof_name_details$first, 
+    prof_name_details$last)
+  prof_name <- paste0("^",
+                      prof_name,
+                      "$")
+  # get their initials, drop their name in the brackets
+  prof_initials <- str_squish(str_split_i(prof_name_details$initialen, "\\(", 1))
+  # but some profs might have a roepnaam which is not the name they use
+  # to sign their papers (the brackets will contain the roepnaam, but the
+  # initials will be containing the actual first name)
+  # get an additional option w/o the first name at all
+  prof_initials_wo_first_name <- paste(str_split(prof_initials, "\\.")[[1]], collapse = ".")
+  # and space them out
+  prof_initials_wo_first_name_space <- paste(str_split(prof_initials, "\\.")[[1]], collapse = ". ")
+  
+  # get the initials
+  prof_initials <- str_split(prof_initials, "\\.")[[1]][-c(1, length(str_split(prof_initials, "\\.")[[1]]))]
+  prof_initials_no_space <- paste0(paste(prof_initials, collapse = "."), ".")
+  prof_initials_space <- paste0(paste(prof_initials, collapse = ". "), ".")
+  # professor first name, initials, last name
+  prof_name_w_initials <-  tolower(paste(prof_name_details$first, 
+                                         prof_initials_no_space,
+                                         prof_name_details$last))
+  # tidy up
+  prof_name_w_initials <- paste0("^", 
+                                 str_replace(str_replace(prof_name_w_initials, " \\. ", " "), "\\.\\.", " "),
+                                 "$")
+  
+  # professor first name, initials, last name, with spaces between the initials
+  prof_name_w_initials_space <-  tolower(paste(
+    prof_name_details$first, 
+    prof_initials_space,
+    prof_name_details$last))
+  
+  # tidy up
+  prof_name_w_initials_space <- paste0("^", 
+                                       str_replace(str_replace(prof_name_w_initials_space, " \\. ", " "), "\\.\\.", " "),
+                                       "$")
+  
+  # just the first letter of the name + initials
+  # with spacing
+  first_initials_space <- paste(paste0(substring(prof_name_details$first, 1, 1), "."),
+                                prof_initials_space)
+  
+  prof_name_first_initials_space <- tolower(paste(first_initials_space, 
+                                                  prof_name_details$last))
+  # tidy up
+  prof_name_first_initials_space <- paste0("^", 
+                                           str_replace(str_replace(prof_name_first_initials_space, " \\. ", " "), "\\.\\.", "."),
+                                           "$")
+  
+  # w/o spacing
+  first_initials <- str_remove_all(paste(paste0(substring(prof_name_details$first, 1, 1), 
+                                                "."),
+                                         prof_initials_space), " ")
+  
+  prof_name_first_initials <- tolower(paste(first_initials, 
+                                            prof_name_details$last))
+  
+  # tidy up
+  prof_name_first_initials <- paste0("^", 
+                                     str_replace(str_replace(prof_name_first_initials, " \\. ", " "), "\\.\\.", " "),
+                                     "$")
+  
+  # for some professors, we manually find their actual name vs their roepnaam in NARCIS
+  if (narcis_id == "https://www.narcis.nl/person/RecordID/PRS1239190"){
+    prof_alternative_full_name <- tolower("\\bAlbert M. Brouwer\\b")
+  }
+  if (narcis_id == "https://www.narcis.nl/person/RecordID/PRS1238045"){
+    prof_alternative_full_name <- tolower("\\bJean-Bernard Martens\\b")
+  }
+  
+  
+  # get the DOI list without the NAs
+  doi_list <- prof_pubs$DOI[!is.na(prof_pubs$DOI)]
+  prof_alternative_full_name <- NA
+  
+  # try to get the IDs
+  if (all(is.na(oa_ids_pubs))){
+    # if any DOIs in our list:
+    if (length(doi_list)>0){
+      
+      # call OpenAlex to get their works based on the DOIs
+      # do it in batches (currently 25)
+      batch_size <- 25
+      batches <- ceiling(length(doi_list)/batch_size)
+      prof_works_oa <- data.frame(matrix(NA, ncol = 16, nrow = 0))
+      begin_batch <- 1
+      end_batch <- batch_size
+      # initialize an empty data frame
+      prof_works_oa_batch <- data.frame(matrix(NA, ncol = 16, nrow = 0))
+      # loop through the batches
+      for(i in 1:batches){
+        # get the first batch
+        # try, if error, just stop
+        try(
+          prof_works_oa_batch <- oa_fetch(
+            entity = "works",
+            doi = doi_list[begin_batch:end_batch]), 
+          silent = TRUE
+        )
+        # when binding, some columns might not be there
+        # so to address that, check the columns
+        # if the new batch has less (but only after the first batch was processed, thus i > 1)
+        if (i > 1 & length(which(!colnames(prof_works_oa) %in% colnames(prof_works_oa_batch))) > 0){
+          # add the missing columns filled with NAs
+          prof_works_oa_batch[colnames(prof_works_oa)[which(! colnames(prof_works_oa) %in% colnames(prof_works_oa_batch))]] <- NA
+          # rearrange the columns
+          prof_works_oa_batch <- prof_works_oa_batch[colnames(prof_works_oa)]
+        }
+        # if the new batch has more (but only after the first batch was processed, thus i > 1)
+        if (i > 1 & length(which(! colnames(prof_works_oa_batch) %in% colnames(prof_works_oa))) > 0){
+          # add the missing columns filled with NAs
+          prof_works_oa[colnames(prof_works_oa_batch)[which(! colnames(prof_works_oa_batch) %in% colnames(prof_works_oa))]] <- NA
+          # rearrange the columns
+          prof_works_oa <- prof_works_oa[colnames(prof_works_oa_batch)]
+        }
+        
+        # bind to the rest
+        prof_works_oa <- rbind(prof_works_oa,
+                               prof_works_oa_batch)
+        
+        # get the remaining batch size, and go to the end if less than batch size, 
+        # and go for another round if more than batch size
+        if (length(doi_list)-end_batch <= batch_size){
+          end_batch <- end_batch + length(doi_list)-end_batch
+        }else{
+          end_batch <- end_batch + batch_size
+        }
+        # set the beginning to the beginning + batch size
+        begin_batch <- begin_batch + batch_size
+      }
+      
+      # and now loop through the authors of these papers in OpenAlex to get info
+      # on the author ids OpenAlex has on them
+      prof_oaid_info <- data.frame(matrix(NA, nrow = 0, ncol = 13))
+      # loop through the papers we retrieved, get the DOIs and author lists and try to match the
+      # author to those we miss
+      if (nrow(prof_works_oa) > 0 & !all(is.na(prof_works_oa))){
+        for (i in 1:nrow(prof_works_oa)){
+          author_info <- c()
+          info <- prof_works_oa[i, c("id","display_name", "doi")]
+          doi_in_question <- str_remove(info$doi, "https://doi.org/")
+          # if found and one person
+          authors <- prof_works_oa[i, "author"][[1]][[1]]
+          if (class(authors) != "logical"){
+
+            # remove special characters
+            authors$au_display_name <- iconv(authors$au_display_name, to='ASCII//TRANSLIT')
+    
+            # find the author with a matching name
+            authors$match <- grepl(prof_name, tolower(authors$au_display_name))
+            # check with initials as well
+            authors$match <- ifelse(authors$match == FALSE,
+                                    grepl(prof_name_w_initials, tolower(authors$au_display_name)),
+                                    authors$match)
+            # and spaced out initials
+            authors$match <- ifelse(authors$match == FALSE,
+                                    grepl(prof_name_w_initials_space, tolower(authors$au_display_name)),
+                                    authors$match)
+            # and no first name, but only initials and also only spaced out initials
+            authors$match <- ifelse(authors$match == FALSE,
+                                    grepl(prof_name_first_initials, tolower(authors$au_display_name)),
+                                    authors$match)
+            
+            authors$match <- ifelse(authors$match == FALSE,
+                                    grepl(prof_name_first_initials_space, tolower(authors$au_display_name)),
+                                    authors$match)
+            
+            # if nothing still, initials without the first name
+            authors$match <- ifelse(authors$match == FALSE,
+                                    grepl(prof_initials_wo_first_name, tolower(authors$au_display_name)),
+                                    authors$match)
+            
+            authors$match <- ifelse(authors$match == FALSE,
+                                    grepl(prof_initials_wo_first_name_space, tolower(authors$au_display_name)),
+                                    authors$match)   
+            # and their alternative first name we manually correct for
+            authors$match <- ifelse(authors$match == FALSE,
+                                    grepl(prof_alternative_full_name, tolower(authors$au_display_name)),
+                                    authors$match)   
+            
+            # fetch the author, if there is a match
+            author <- filter(authors, match == TRUE)
+            
+            if (nrow(author) == 1){
+              # remove the "match" column
+              author_info <- author[, -12]
+              # bind with the narcis ID for later
+              author_info$profile_id <- narcis_id
+            }
+          }
+          
+          prof_oaid_info <- rbind(prof_oaid_info,
+                                  author_info)
+        }
+        
+        # make sure the empty oa_id did not make it in here, because then we get stuck
+        # in an endless loop (or fetch things we do not want to, burdening the API)
+        if (nrow(prof_oaid_info) > 0){
+          prof_oaid_info <- filter(prof_oaid_info, au_id != "https://openalex.org/A9999999999")
+          # get all oa ids of the author
+          oa_ids_pubs <- as.character(unique(prof_oaid_info$au_id))
+        }
+      }
+    }
+  }
+  
+  # if no ID found:
+  if (all(is.na(oa_ids_orcid))){
+    # if no DOIs in our list, check if there is an ORCID we can use
+    prof_orcid <- prof_name_details$ORCID
+    # if there's an orcid
+    if (!is.na(prof_orcid)){
+      # fetch professor info from ORCIDs
+      prof_info <- oa_fetch(
+        entity = "authors", 
+        orcid = prof_orcid)
+      
+      if (!is.null(prof_info)){
+        # make sure the no name ID is not in here
+        prof_info <- filter(prof_info, 
+                            id != "https://openalex.org/A9999999999")
+        # now retrieve OA IDs from this
+        oa_ids_orcid <- as.character(unique(prof_info$id))
+      }
+    }
+  }
+  
+  # if oa_ids still NA
+  oa_ids_by_name <- as.data.frame(matrix(NA, nrow = 0, ncol = 17))
+  if (all(is.na(oa_ids_names))){
+    # search by name
+    oa_au_result <- oa_fetch("author",
+                             search = paste(prof_name_details$first, 
+                                            prof_name_details$achternaam),
+                             last_known_institution.country_code = "NL")
+    
+    # if no results, try an alternative name if present
+    if(!is.null(nrow(oa_au_result)) & !is.na(prof_alternative_full_name)){
+      oa_au_result <- oa_fetch("author",
+                               search = prof_alternative_full_name,
+                               last_known_institution.country_code = "NL")
+    }
+    # if still no results, try with extensive additional name displays:
+
+# if any results, see which names are an exact match
+    if(!is.null(nrow(oa_au_result))){
+      
+      oa_au_result$display_name <- iconv(oa_au_result$display_name , to='ASCII//TRANSLIT')
+      
+      # find the author with a matching name
+      oa_au_result$match <- grepl(prof_name, tolower(oa_au_result$display_name))
+      # check with initials as well
+      oa_au_result$match <- ifelse(oa_au_result$match == FALSE,
+                                        grepl(prof_name_w_initials, tolower(oa_au_result$display_name)),
+                                        oa_au_result$match)
+      # and spaced out initials
+      oa_au_result$match <- ifelse(oa_au_result$match == FALSE,
+                                        grepl(prof_name_w_initials_space, tolower(oa_au_result$display_name)),
+                                        oa_au_result$match)
+      # and no first name, but only initials and also only spaced out initials
+      oa_au_result$match <- ifelse(oa_au_result$match == FALSE,
+                                        grepl(prof_name_first_initials, tolower(oa_au_result$display_name)),
+                                        oa_au_result$match)
+      
+      oa_au_result$match <- ifelse(oa_au_result$match == FALSE,
+                                        grepl(prof_name_first_initials_space, tolower(oa_au_result$display_name)),
+                                        oa_au_result$match)
+      
+      # if nothing still, initials without the first name
+      oa_au_result$match <- ifelse(oa_au_result$match == FALSE,
+                                        grepl(prof_initials_wo_first_name, tolower(oa_au_result$display_name)),
+                                        oa_au_result$match)
+      
+      oa_au_result$match <- ifelse(oa_au_result$match == FALSE,
+                                        grepl(prof_initials_wo_first_name_space, tolower(oa_au_result$display_name)),
+                                        oa_au_result$match)   
+      # and their alternative first name we manually correct for
+      oa_au_result$match <- ifelse(oa_au_result$match == FALSE,
+                                        grepl(prof_alternative_full_name, tolower(oa_au_result$display_name)),
+                                        oa_au_result$match)   
+      
+      oa_au_result <- filter(oa_au_result, 
+                             ids != "https://openalex.org/A9999999999")
+      # fetch the OA IDs if there is a match
+      prof_oa_ids <- filter(oa_au_result, match == TRUE)
+      id_list <- c()
+      
+      if (nrow(prof_oa_ids)>0){
+        oa_ids_names <- prof_oa_ids$ids
+        # if a list, only retain the OA IDs:
+        if(class(oa_ids_names) == "list"){
+          oa_ids_names <- c()
+          for (j in 1:nrow(prof_oa_ids)){
+            id <- prof_oa_ids$ids[[j]]['openalex']
+            oa_ids_names <- c(oa_ids_names, id)
+          }
+          oa_ids_names <- unname(oa_ids_names)
+        }
+      }
+    }
+  }
+  # if still nothing
+  if (all(is.na(oa_ids_names))){
+     # try to find OA ID matches by looking at alternative OA name spellings as well
+        prof_name_details <- filter(profs_full, profile_id == narcis_id)
+        
+        oa_au_result <- oa_fetch("author",
+                             search = paste(prof_name_details$first, 
+                                            prof_name_details$achternaam))
+        
+        # unlist the results
+        if (!all(is.na(oa_au_result))){
+          display_name_ids <- data.frame(matrix(NA, nrow = 0, ncol = 2))
+          for (j in 1:nrow(oa_au_result)){
+            display_names <- unlist(oa_au_result$display_name_alternatives[j])
+            ids <- unlist(oa_au_result$ids[j])['openalex']
+            row <- cbind.data.frame("display_name" = display_names,
+                                    "oa_id" = ids)
+            rownames(row) <- c()
+            display_name_ids <- rbind(display_name_ids,
+                                      row, row.names = NULL)
+          }
+          
+          display_name_ids$display_name <- iconv(display_name_ids$display_name , to='ASCII//TRANSLIT')
+      
+          # find the author with a matching name
+          display_name_ids$match <- grepl(prof_name, tolower(display_name_ids$display_name))
+          # check with initials as well
+          display_name_ids$match <- ifelse(display_name_ids$match == FALSE,
+                                       grepl(prof_name_w_initials, tolower(display_name_ids$display_name)),
+                                       display_name_ids$match)
+          # and spaced out initials
+          display_name_ids$match <- ifelse(display_name_ids$match == FALSE,
+                                       grepl(prof_name_w_initials_space, tolower(display_name_ids$display_name)),
+                                       display_name_ids$match)
+          # and no first name, but only initials and also only spaced out initials
+          display_name_ids$match <- ifelse(display_name_ids$match == FALSE,
+                                       grepl(prof_name_first_initials, tolower(display_name_ids$display_name)),
+                                       display_name_ids$match)
+          
+          display_name_ids$match <- ifelse(display_name_ids$match == FALSE,
+                                       grepl(prof_name_first_initials_space, tolower(display_name_ids$display_name)),
+                                       display_name_ids$match)
+          
+          # if nothing still, initials without the first name
+          display_name_ids$match <- ifelse(display_name_ids$match == FALSE,
+                                       grepl(prof_initials_wo_first_name, tolower(display_name_ids$display_name)),
+                                       display_name_ids$match)
+          
+          display_name_ids$match <- ifelse(display_name_ids$match == FALSE,
+                                       grepl(prof_initials_wo_first_name_space, tolower(display_name_ids$display_name)),
+                                       display_name_ids$match)   
+          # and their alternative first name we manually correct for
+          display_name_ids$match <- ifelse(display_name_ids$match == FALSE,
+                                       grepl(prof_alternative_full_name, tolower(display_name_ids$display_name)),
+                                       display_name_ids$match) 
+          
+          # get the matches
+          display_name_ids <- filter(display_name_ids,
+                                     match == TRUE)
+          
+          # extract
+          oa_ids_names <- display_name_ids$oa_id
+        }
+        }
+  # bind into a list
+  prof_search_output <- list()
+  prof_search_output['narcis_id'] <- narcis_id
+  prof_search_output['oa_ids_pubs'] <- list(oa_ids_pubs)  
+  prof_search_output['oa_ids_orcid'] <- list(oa_ids_orcid)
+  prof_search_output['oa_ids_names'] <- list(oa_ids_names)
+  return(prof_search_output)
+}
+```
+
+
+Loop through professors and find their identifiers:
+```{r}
+narcis_ids <- profs_full$profile_id
+prof_identifier_list <- list()
+
+for (i in 1:length(narcis_ids)){
+  narcis_id <- narcis_ids[i]
+  
+  prof_ids <- NA
+  
+  try(prof_ids <- professor_identifier_retriever(narcis_id,
+                                                 pub_data = prof_pubs_full,
+                                                 prof_data = profs_full)
+  )
+  
+  prof_identifier_list[[i]] <- prof_ids
+  names(prof_identifier_list)[[i]] <- narcis_id
+  
+  print(paste("done with", i, "out of", length(narcis_ids)))
+  
+}
+```
+
+We fail to find any OA ids for some professors.
+Find their OA IDs manually:
+```{r}
+# manually get the correct search terms for the missing professors:
+missing_ids <- c("https://www.narcis.nl/person/RecordID/PRS1236634",
+                 "https://www.narcis.nl/person/RecordID/PRS1236869",
+                 "https://www.narcis.nl/person/RecordID/PRS1236960",
+                 "https://www.narcis.nl/person/RecordID/PRS1237850",
+                 "https://www.narcis.nl/person/RecordID/PRS1238045",
+                 "https://www.narcis.nl/person/RecordID/PRS1238542",
+                 "https://www.narcis.nl/person/RecordID/PRS1238880",
+                 "https://www.narcis.nl/person/RecordID/PRS1238898",
+                 "https://www.narcis.nl/person/RecordID/PRS1239122",
+                 "https://www.narcis.nl/person/RecordID/PRS1239606",
+                 "https://www.narcis.nl/person/RecordID/PRS1239841",
+                 "https://www.narcis.nl/person/RecordID/PRS1240194",
+                 "https://www.narcis.nl/person/RecordID/PRS1241218",
+                 "https://www.narcis.nl/person/RecordID/PRS1241266",
+                 "https://www.narcis.nl/person/RecordID/PRS1241562",
+                 "https://www.narcis.nl/person/RecordID/PRS1241837",
+                 "https://www.narcis.nl/person/RecordID/PRS1242035",
+                 "https://www.narcis.nl/person/RecordID/PRS1242243",
+                 "https://www.narcis.nl/person/RecordID/PRS1243109",
+                 "https://www.narcis.nl/person/RecordID/PRS1247112",
+                 "https://www.narcis.nl/person/RecordID/PRS1251650",
+                 "https://www.narcis.nl/person/RecordID/PRS1253801",
+                 "https://www.narcis.nl/person/RecordID/PRS1255909",
+                 "https://www.narcis.nl/person/RecordID/PRS1263017",
+                 "https://www.narcis.nl/person/RecordID/PRS1265503",
+                 "https://www.narcis.nl/person/RecordID/PRS1273858",
+                 "https://www.narcis.nl/person/RecordID/PRS1276448",
+                 "https://www.narcis.nl/person/RecordID/PRS1281844",
+                 "https://www.narcis.nl/person/RecordID/PRS1281845",
+                 "https://www.narcis.nl/person/RecordID/PRS1281875",
+                 "https://www.narcis.nl/person/RecordID/PRS1283984",
+                 "https://www.narcis.nl/person/RecordID/PRS1286354",
+                 "https://www.narcis.nl/person/RecordID/PRS1288340",
+                 "https://www.narcis.nl/person/RecordID/PRS1288550",
+                 "https://www.narcis.nl/person/RecordID/PRS1289299",
+                 "https://www.narcis.nl/person/RecordID/PRS1291051",
+                 "https://www.narcis.nl/person/RecordID/PRS1291919",
+                 "https://www.narcis.nl/person/RecordID/PRS1291938",
+                 "https://www.narcis.nl/person/RecordID/PRS1295469",
+                 "https://www.narcis.nl/person/RecordID/PRS1295569",
+                 "https://www.narcis.nl/person/RecordID/PRS1296313",
+                 "https://www.narcis.nl/person/RecordID/PRS1297223",
+                 "https://www.narcis.nl/person/RecordID/PRS1297929",
+                 "https://www.narcis.nl/person/RecordID/PRS1300768",
+                 "https://www.narcis.nl/person/RecordID/PRS1303552",
+                 "https://www.narcis.nl/person/RecordID/PRS1304651",
+                 "https://www.narcis.nl/person/RecordID/PRS1313781",
+                 "https://www.narcis.nl/person/RecordID/PRS1314178",
+                 "https://www.narcis.nl/person/RecordID/PRS1316068",
+                 "https://www.narcis.nl/person/RecordID/PRS1317806",
+                 "https://www.narcis.nl/person/RecordID/PRS1319241",
+                 "https://www.narcis.nl/person/RecordID/PRS1319812",
+                 "https://www.narcis.nl/person/RecordID/PRS1320174",
+                 "https://www.narcis.nl/person/RecordID/PRS1321103",
+                 "https://www.narcis.nl/person/RecordID/PRS1324160",
+                 "https://www.narcis.nl/person/RecordID/PRS1325120",
+                 "https://www.narcis.nl/person/RecordID/PRS1329166",
+                 "https://www.narcis.nl/person/RecordID/PRS1331360",
+                 "https://www.narcis.nl/person/RecordID/PRS1331452",
+                 "https://www.narcis.nl/person/RecordID/PRS1333614",
+                 "https://www.narcis.nl/person/RecordID/PRS1333801",
+                 "https://www.narcis.nl/person/RecordID/PRS1334043",
+                 "https://www.narcis.nl/person/RecordID/PRS1335654",
+                 "https://www.narcis.nl/person/RecordID/PRS1335659",
+                 "https://www.narcis.nl/person/RecordID/PRS1336365",
+                 "https://www.narcis.nl/person/RecordID/PRS1336549",
+                 "https://www.narcis.nl/person/RecordID/PRS1340887",
+                 "https://www.narcis.nl/person/RecordID/PRS1340978",
+                 "https://www.narcis.nl/person/RecordID/PRS1341557",
+                 "https://www.narcis.nl/person/RecordID/PRS1342181",
+                 "https://www.narcis.nl/person/RecordID/PRS1342195",
+                 "https://www.narcis.nl/person/RecordID/PRS1342275",
+                 "https://www.narcis.nl/person/RecordID/PRS1347897",
+                 "https://www.narcis.nl/person/RecordID/PRS1348241",
+                 "https://www.narcis.nl/person/RecordID/PRS1348353",
+                 "https://www.narcis.nl/person/RecordID/PRS1349732",
+                 "https://www.narcis.nl/person/RecordID/PRS1350328",
+                 "https://www.narcis.nl/person/RecordID/PRS1350937",
+                 "https://www.narcis.nl/person/RecordID/PRS1351306",
+                 "https://www.narcis.nl/person/RecordID/PRS1351308",
+                 "https://www.narcis.nl/person/RecordID/PRS1351364",
+                 "https://www.narcis.nl/person/RecordID/PRS1351481")
+
+missing_search_terms <- c("W.H.M. Reehuis",
+                          "Philip H. J. G. van Huizen",
+                          "J.C.E. van Kollenburg",
+                          "A.I.M. van Mierlo",
+                          "Jean-Bernard Martens",
+                          "R.P.J.L. Tjittes",
+                          "J.W. Duyvendak",
+                          "Jean-Pierre Wils",
+                          "W.G. Huijgen",
+                          "Jan A. Bruijn",
+                          "Anne-Marie Korte",
+                          "G.W.J.M. Kampschöer",
+                          NA,
+                          NA,
+                          "m.h. corbey",
+                          "A.M. Lubotsky",
+                          "https://openalex.org/A5041930157",
+                          "E.F. Steennis",
+                          "Venugopal Venkataraman",
+                          "hoefte rosemarijn",
+                          "B.P.M. van Ravels",
+                          "korsten f.w.a.",
+                          "Alberdina Houtman",
+                          "Marco P Nieuwe Weme",
+                          "Jan-Diederik van Wees",
+                          NA,
+                          "C.D.J. Bulten",
+                          "A.M.B. DeWaegenaere",
+                          "Willem‐Jan van den Heuvel",
+                          "E.C.C. Punselie",
+                          NA,
+                          NA,
+                          "G. van Rijssen",
+                          NA,
+                          "M.A. Verbrugh",
+                          "Huibert Diederik van Romburgh",
+                          NA,
+                          "Katarzyna J. Cwiertka",
+                          "J.W. Foppen",
+                          "Peter van Gool",
+                          "H.J.M. Havekes",
+                          NA,
+                          "i.a.m. saloul",
+                          "e.j.j. beulen",
+                          "Olexander Yarovyi",
+                          "R.P. Botha",
+                          "A. M. Baryshev",
+                          "sylvia burg-vermeulen",
+                          "J.S.L.A.W.B. Roes",
+                          "Jan Hein Furnée",
+                          "Annette Freyberg‐Inan",
+                          "Gert Jan van der Sman",
+                          NA,
+                          "C. Goukens-Mertens",
+                          NA,
+                          "G.R.B.E. Römer",
+                          "p.h.l.m. kuypers",
+                          "Genserik Reniers",
+                          "Stephan Wensveen",
+                          "Onno Kranenburg",
+                          "Schwartz-Landsman",
+                          "G.J.C. Rensen",
+                          "K.W.H. Broekhuizen",
+                          "S.H.M.A. Dumoulin",
+                          "S. Jong Kon Chin",
+                          "S.P.J. van Alphen",
+                          "Chun‐Keung Hoi",
+                          "Sergey Nejentsev",
+                          "ludovico alcorta",
+                          "p.a.m.g. de kock",
+                          "haersolte-van hof jacomijn",
+                          "Eugenia Houvenaghel",
+                          "m.a. van willigen",
+                          "arthur ten cate",
+                          "Peter Koudijs",
+                          "Fulvio Reggiori",
+                          NA,
+                          NA,
+                          "Antonis Papapantoleon",
+                          "a.c. boerstra",
+                          "Leonie Heres",
+                          "Thomas P. Moliterno")
+
+length(which(is.na(missing_search_terms)))
+```
+We cannot find a reliable OA ID for 12 professors in our dataset. 
+
+Loop through the identifier list to fill the IDs in:
+```{r}
+for (i in 1:length(missing_ids)){
+  narcis_id <- missing_ids[i]
+  
+  search_term <- missing_search_terms[i]
+  
+  prof_list_item <- prof_identifier_list[[narcis_id]]
+  
+  if (!is.na(search_term)){
+    
+    if(search_term == "https://openalex.org/A5041930157"){
+      prof_oa_ids <- oa_fetch(
+        entity = "author", 'A5041930157')
+    }else{
+      prof_oa_ids <- oa_fetch("author",
+                              search = search_term)
+    }
+    
+    if (nrow(prof_oa_ids)>0){
+      oa_ids_names <- prof_oa_ids$ids
+      # if a list, only retain the OA IDs:
+      if(class(oa_ids_names) == "list"){
+        oa_ids_names <- c()
+        for (j in 1:nrow(prof_oa_ids)){
+          id <- prof_oa_ids$ids[[j]]['openalex']
+          oa_ids_names <- c(oa_ids_names, id)
+        }
+        oa_ids_names <- unname(oa_ids_names)
+      }
+      
+      prof_list_item["oa_ids_names"] <- list(oa_ids_names)
+    }
+  }
+  
+  prof_identifier_list[[narcis_id]] <- prof_list_item
+  print(paste("done with", i, "out of", length(missing_ids)))
+  
+}
+```
+
+
+Write it out:
+```{r}
+saveRDS(prof_identifier_list, "processed_data/prof_oa_identifier_list.RDS")
+```
+
+```{r echo = F}
+prof_identifier_list <- readRDS("processed_data/prof_oa_identifier_list.RDS")
+```
+
+Extract professor IDs and sources for each professor:
+```{r}
+prof_oa_mapping <- data.frame(matrix(NA, nrow = 0, ncol = 3))
+
+for (i in 1:length(prof_identifier_list)){
+  # initiate a dataframe to store this professor's data
+  prof_oa_ids <- data.frame(matrix(NA, nrow = 0, ncol = 3))
+  # retrieve this professor's list of identifiers
+  prof_identifiers <- prof_identifier_list[[i]]
+  # get their Narcis ID and all the retrieved OA IDs
+  narcis_id <- prof_identifier_list[[i]][["narcis_id"]]
+  
+  pub_ids <- prof_identifier_list[[i]][["oa_ids_pubs"]]
+  
+  orcid_ids <- prof_identifier_list[[i]][["oa_ids_orcid"]]
+  
+  name_ids <- prof_identifier_list[[i]][["oa_ids_names"]]
+  
+  # add any IDs retrieved from the publication list
+  if (!all(is.na(pub_ids))){
+  
+  pub_ids <- cbind.data.frame("profile_id" = narcis_id,
+                              "oa_id" = pub_ids,
+                              "source" = "publications")
+  
+  prof_oa_ids <- rbind(prof_oa_ids,
+                       pub_ids)
+  }
+  # add any IDs associated with prof's ORCID
+  if (!all(is.na(orcid_ids))){
+  orcid_ids <- cbind.data.frame("profile_id" = narcis_id,
+                              "oa_id" = orcid_ids,
+                              "source" = "orcid")
+  
+  prof_oa_ids <- rbind(prof_oa_ids,
+                       orcid_ids)
+  }
+  # add any IDs from name search + NL country
+  if (!all(is.na(name_ids))){
+  name_ids <- cbind.data.frame("profile_id" = narcis_id,
+                              "oa_id" = name_ids,
+                              "source" = "name")
+  
+  prof_oa_ids <- rbind(prof_oa_ids,
+                       name_ids)
+  }
+  
+  # if any rows
+  if (nrow(prof_oa_ids) > 0){
+    
+    # deduplicate
+    prof_oa_ids$duplicate <- duplicated(prof_oa_ids[c("profile_id", "oa_id")])
+    prof_oa_ids <- filter(prof_oa_ids,
+                          duplicate == FALSE)
+    prof_oa_ids <- prof_oa_ids[, -4]
+    
+    prof_oa_mapping <- rbind(prof_oa_mapping,
+                             prof_oa_ids)
+  } else{
+    prof_oa_ids <- cbind.data.frame("profile_id" = narcis_id,
+                                    "oa_id" = NA,
+                                    "source" = NA)
+    prof_oa_mapping <- rbind(prof_oa_mapping,
+                             prof_oa_ids)
+  }
+  print(paste("done with", i, "out of", length(narcis_ids)))
+}
+
+```
+
+
+## Extract publications based on OA IDs
+
+Define the data querying function, which pulls data from OA as shown in the
+Diagram below:
+![Figure 2](images/professor_info_retriever_diagram.png)
+
+```{r}
+professor_info_retriever <- function(prof_oa_ids,
+                                     narcis_id,
+                                     pub_data,
+                                     prof_data,
+                                     api_key,
+                                     # recommend to set to FALSE unless all works well,
+                                     # to avoid using up our twitter query limits
+                                     include_twitter = FALSE){
+  
+  # get the professor's narcis id and get their publications based on this
+  prof_pubs <- filter(pub_data, profile_id == narcis_id)
+  
+  # get the professor's OA IDs list
+  oa_ids <- filter(prof_oa_ids,
+                   profile_id == narcis_id)$oa_id
+  
+  # pull all the data related to these OA ids
+  # if ID found:
+  if (length(oa_ids)>0){
+    # get all papers from OA using these ids:
+    prof_all_works_oa <- oa_fetch(
+      entity = "works", 
+      author.id = oa_ids)
+    
+    # deduplicate based on IDs
+    prof_all_works_oa$duplicate <- duplicated(prof_all_works_oa[, c("id")])
+    prof_all_works_oa <- filter(prof_all_works_oa,
+                                duplicate == FALSE)
+    
+    # if there are still duplicates, deduplicate by lowercased title
+    prof_all_works_oa$display_name_lower <- tolower(prof_all_works_oa$display_name)
+    prof_all_works_oa$duplicate <- duplicated(prof_all_works_oa[, c("display_name_lower")])
+    prof_all_works_oa <- filter(prof_all_works_oa,
+                                duplicate == FALSE)
+    
+    # paste the OA ID and the Narcis ID
+    prof_all_works_oa$oa_id <- paste(oa_ids, collapse = ", ")
+    prof_all_works_oa$profile_id <- narcis_id
+    
+    # get their co-authors in a given year
+    # but also their affiliations, and the autoship positino in every pub, 
+    # since we are already looping...
+    # pleceholder for authoship position
+    prof_pub_position <- rep(NA, nrow(prof_all_works_oa))
+    # placeholders for authors and affiliations
+    prof_coauthors_oa <- NA
+    prof_pub_info_ia <- NA
+    
+    for (i in 1:nrow(prof_all_works_oa)){
+      # fetch the authors nested within the "author" field returned by OA
+      all_authors <- prof_all_works_oa[i, "author"][[1]][[1]]
+      # get the professor info and their affiliations that year
+      if (!is.null(nrow(all_authors))){
+        prof_author_info <- filter(all_authors,  au_id %in% oa_ids)
+        # if author's ID not found here (e.g., a slightly different name), it will be set to NA
+        prof_pub_position[i] <- NA
+        # otherwise, replace with the actual value
+        if (nrow(prof_author_info)>0){
+          # paste the prof's authorship here (first row, as some professors some get 
+          # duplicate mentions in a paper)
+          prof_pub_position[i] <- prof_author_info[1, 'author_position']
+        }
+        # exclude this author themselves from the co-authors
+        coauthors <- filter(all_authors, ! au_id %in% oa_ids)
+        # if not a single-author paper, get coauthor info
+        if (nrow(coauthors) > 0){
+          # get the publication year
+          year <- as.numeric(prof_all_works_oa[i, "publication_year"])
+          # paste the year alongside the coauthors
+          coauthors$year <- year
+          prof_coauthors_oa <- rbind(prof_coauthors_oa,
+                                     coauthors)
+        }
+        # for the prof themselves, get their affiliation info etc
+        if (nrow(prof_author_info) > 0){
+          # get the publication year
+          year <- as.numeric(prof_all_works_oa[i, "publication_year"])
+          # paste the year alongside the coauthors
+          prof_author_info$year <- year
+          prof_pub_info_ia <- rbind(prof_pub_info_ia,
+                                    prof_author_info)
+        }
+      }
+    }
+    # tidy up the dataframe on coauthors, if any info is there
+    if (!is.null(nrow(prof_coauthors_oa))){
+      if (nrow(prof_coauthors_oa) > 0){
+        
+        # and deduplicate coauthorships in the same year
+        prof_coauthors_oa$duplicate <- duplicated(prof_coauthors_oa[, c("au_id", "year")])
+        prof_coauthors_oa <- filter(prof_coauthors_oa,
+                                    duplicate == FALSE)
+        # remove the duplicate column
+        prof_coauthors_oa <- prof_coauthors_oa[, -ncol(prof_coauthors_oa)]
+        
+        # remove the row with NAs
+        prof_coauthors_oa <- prof_coauthors_oa[rowSums(is.na(prof_coauthors_oa)) != ncol(prof_coauthors_oa), ]
+        
+        # add the author id info just in case
+        prof_coauthors_oa$oa_id <- paste(oa_ids, collapse = ", ")
+        prof_coauthors_oa$profile_id <- narcis_id
+      }
+    }
+    
+    # tidy up the info on author affiliations, if any is there
+    if (!is.null(nrow(prof_pub_info_ia))){
+      # once again, if any is there...
+      if (nrow(prof_pub_info_ia) > 0 ){
+        prof_pub_info_ia <- filter(prof_pub_info_ia, !is.na(institution_id))
+        # check that filtering did not remove everything; if so, replace back with NA
+        if (nrow(prof_pub_info_ia) == 0){
+          prof_pub_info_ia <- NA
+        }else{
+          # and deduplicate affiliations in the same year
+          prof_pub_info_ia$duplicate <- duplicated(prof_pub_info_ia[, c("institution_id", "year")])
+          prof_pub_info_ia <- filter(prof_pub_info_ia,
+                                     duplicate == FALSE)
+          # remove the duplicate column
+          prof_pub_info_ia <- prof_pub_info_ia[, -ncol(prof_pub_info_ia)]
+          
+          # drop author position since this is paper related
+          prof_pub_info_ia <- prof_pub_info_ia[ , -which(names(prof_pub_info_ia) %in% c("author_position"))]
+          # add the author id info just in case
+          prof_pub_info_ia$oa_id <- paste(oa_ids, collapse = ", ")
+          prof_pub_info_ia$profile_id <- narcis_id
+        }
+      }
+    }
+    
+    # add the authorship info to the publications
+    prof_all_works_oa$author_position <- prof_pub_position
+    
+    # initialize an empty object for grant info
+    prof_grants_oa <- NA
+    
+    # if there is a grant column, fetch their grant numbers
+    if ("grants" %in% colnames(prof_all_works_oa)){
+      # get the grant list
+      prof_grant_list <- prof_all_works_oa$grants
+      # get the years from the publications
+      year_list <- prof_all_works_oa$publication_year
+      # empty dataframe
+      #prof_grants_oa <- data.frame(matrix(NA, nrow = 0, ncol = 5))
+      # for each grant item in the list
+      for (i in 1:length(prof_grant_list)){
+        grant <- prof_grant_list[[i]]
+        # if not NA, get the data
+        if (! anyNA(grant)){
+          # get all funder IDs and names and put them into a dataframe
+          # NB: not all of these are author's own grants, but they are
+          # co-authorship grants
+          funder_ids <- grant[names(grant)=="funder"]
+          funder_names <- grant[names(grant) == "funder_display_name"]
+          year <- as.numeric(year_list[i])
+          oa_id <- paste(oa_ids, collapse = ", ")
+          profile_id <- narcis_id
+          fund_df <- cbind.data.frame(funder_id = funder_ids,
+                                      funder_names = funder_names)
+          # add some more info
+          fund_df$year <- year
+          fund_df$oa_id <- paste(oa_ids, collapse = ", ")
+          fund_df$profile_id <- narcis_id
+          prof_grants_oa <- rbind(prof_grants_oa,
+                                  fund_df)
+        }
+      }
+      # if not NA, tidy up the dataframe
+      if (!is.null(nrow(prof_grants_oa))){
+        # tidy up the row names
+        rownames(prof_grants_oa) <- 1:nrow(prof_grants_oa)
+        # deduplicate same grants across years
+        prof_grants_oa$duplicate <- duplicated(prof_grants_oa[, c("funder_id", "year")])
+        prof_grants_oa <- filter(prof_grants_oa,
+                                 duplicate == FALSE)
+        # remove the duplicate column
+        prof_grants_oa <- prof_grants_oa[, -(ncol(prof_grants_oa))]
+        # remove the row with NAs
+        prof_grants_oa <- prof_grants_oa[rowSums(is.na(prof_grants_oa)) != ncol(prof_grants_oa), ]
+      }
+    }
+    
+    # get the info on this author
+    prof_info <- oa_fetch(
+      entity = "authors", 
+      identifier = oa_ids)
+    
+    # now, query the Altmetric API to get mentions info on the author
+    prof_all_works_oa_mentions <- altmetric_mention_retriever(api_key = api_key,
+                                                              publication_list = prof_all_works_oa,
+                                                              include_twitter = include_twitter)
+    
+    
+    # output a list populated with all the details
+    prof_output <- list()
+    prof_output["profile_id"] <- narcis_id
+    prof_output["oa_ids"] <- list(oa_ids)
+    prof_output["orcid"] <- prof_info$orcid
+    prof_output["prof_info"] <- list(prof_info)
+    prof_output["narcis_pubs"] <- list(prof_pubs)
+    prof_output["oa_pubs"] <- list(prof_all_works_oa_mentions)
+    prof_output["grant_info"] <- list(prof_grants_oa)
+    prof_output["coauthor_info"] <- list(prof_coauthors_oa)
+    prof_output["affiliation_info"] <- list(prof_pub_info_ia)
+  }else{
+    if (! all(is.na(oa_ids_pubs))){
+    prof_output <- list()
+    prof_output["profile_id"] <- narcis_id
+    prof_output["oa_ids"] <- NA
+    prof_output["orcid"] <- prof_info$orcid
+    prof_output["prof_info"] <- NA
+    prof_output["narcis_pubs"] <- NA
+    prof_output["oa_pubs"] <- NA
+    prof_output["grant_info"] <- NA
+    prof_output["coauthor_info"] <- NA
+    prof_output["affiliation_info"] <- NA
+    }else{
+      prof_output <- list()
+      prof_output["profile_id"] <- narcis_id
+      prof_output["oa_ids"] <- NA
+      prof_output["orcid"] <- prof_info$orcid
+      prof_output["prof_info"] <- NA
+      prof_output["narcis_pubs"] <- prof_pubs
+      prof_output["oa_pubs"] <- NA
+      prof_output["grant_info"] <- NA
+      prof_output["coauthor_info"] <- NA
+      prof_output["affiliation_info"] <- NA
+    }
+  }
+    
+  return(prof_output)
+}
+```
+
+Define the Altmetric querying function:
 ```{r}
 altmetric_mention_retriever <- function(api_key,
                                         publication_list,
@@ -172,421 +1145,15 @@ altmetric_mention_retriever <- function(api_key,
 ```
 
 
-
-
-Define a function that will query Open Alex and Altmetric APIs at once, collecting 
-various information abut each professor from their Narcis ID:
+Pull the professor data:
 ```{r}
-professor_info_retriever <- function(narcis_id,
-                                     pub_data,
-                                     prof_data,
-                                     api_key,
-                                     # recommend to set to FALSE unless all works well,
-                                     # to avoid using up our twitter query limits
-                                     include_twitter = FALSE){
-  
-  # get the professor's narcis id anad get their publications based on this
-  prof_pubs <- filter(pub_data, profile_id == narcis_id)
-  # get their name
-  prof_name_details <- filter(prof_data, profile_id == narcis_id)
-  prof_name <- paste(prof_name_details$first, 
-                     prof_name_details$last)
-  
-  # get their initials, drop their name in the brackets
-  prof_initials <- str_squish(str_split_i(prof_name_details$initialen, "\\(", 1))
-  # but some profs might have a roepnaam which is not the name they use
-  # to sign their papers (the brackets will contain the roepnaam, but the
-  # initials will be containing the actual first name)
-  # get an additional option w/o the first name at all
-  prof_initials_wo_first_name <- paste(str_split(prof_initials, "\\.")[[1]], collapse = ".")
-  # and space them out
-  prof_initials_wo_first_name_space <- paste(str_split(prof_initials, "\\.")[[1]], collapse = ". ")
-  
-  prof_initials <- str_split(prof_initials, "\\.")[[1]][-c(1, length(str_split(prof_initials, "\\.")[[1]]))]
-  prof_initials_no_space <- paste0(paste(prof_initials, collapse = "."), ".")
-  prof_initials_space <- paste0(paste(prof_initials, collapse = ". "), ".")
-  # professor first name, initials, last name
-  prof_name_w_initials <-  tolower(paste(paste(prof_name_details$first, 
-                                               prof_initials_no_space),
-                                         prof_name_details$last))
-  # professor first name, initials, last name, with spaces between the initials
-  prof_name_w_initials_space <-  tolower(paste(paste(prof_name_details$first, 
-                                                     prof_initials_space),
-                                               prof_name_details$last))
-  
-  # just the first letter of the name + initials
-  # with spacing
-  first_initials_space <- paste(paste0(substring(prof_name_details$first, 1, 1), "."),
-                                prof_initials_space)
-  
-  prof_name_first_initials_space <- tolower(paste(first_initials_space, 
-                                                  prof_name_details$last))
-  # w/o spacing
-  first_initials <- str_remove_all(paste(paste0(substring(prof_name_details$first, 1, 1), 
-                                                "."),
-                                         prof_initials_space), " ")
-  
-  prof_name_first_initials <- tolower(paste(first_initials, 
-                                            prof_name_details$last))
-  
-  # for some professors, we manually find their actual name vs their roepnaam in NARCIS
-  prof_alternative_full_name <- ""
-  if (narcis_id == "https://www.narcis.nl/person/RecordID/PRS1239190"){
-  prof_alternative_full_name <- tolower("Albert M. Brouwer")
-  }
-  
-  # get the DOI list without the NAs
-  doi_list <- prof_pubs$DOI[!is.na(prof_pubs$DOI)]
-  # if any DOIs in our list:
-  if (length(doi_list)>0){
-    # call OpenAlex to get their works based on the DOIs
-    # do it in batches (currently 25)
-    batch_size <- 25
-    batches <- ceiling(length(doi_list)/batch_size)
-    prof_works_oa <- data.frame(matrix(NA, ncol = 16, nrow = 0))
-    begin_batch <- 1
-    end_batch <- batch_size
-    # initialize an empty data frame
-    prof_works_oa_batch <- data.frame(matrix(NA, ncol = 16, nrow = 0))
-    # loop through the batches
-    for(i in 1:batches){
-      # get the first batch
-      # try, if error, just stop
-      try(
-        prof_works_oa_batch <- oa_fetch(
-          entity = "works",
-          doi = doi_list[begin_batch:end_batch]), 
-        silent = TRUE
-      )
-      # when binding, some columns might not be there
-      # so to address that, check the columns
-      # if the new batch has less (but only after the first batch was processed, thus i > 1)
-      if (i > 1 & length(which(!colnames(prof_works_oa) %in% colnames(prof_works_oa_batch))) > 0){
-        # add the missing columns filled with NAs
-        prof_works_oa_batch[colnames(prof_works_oa)[which(! colnames(prof_works_oa) %in% colnames(prof_works_oa_batch))]] <- NA
-        # rearrange the columns
-        prof_works_oa_batch <- prof_works_oa_batch[colnames(prof_works_oa)]
-      }
-      # if the new batch has more (but only after the first batch was processed, thus i > 1)
-      if (i > 1 & length(which(! colnames(prof_works_oa_batch) %in% colnames(prof_works_oa))) > 0){
-        # add the missing columns filled with NAs
-        prof_works_oa[colnames(prof_works_oa_batch)[which(! colnames(prof_works_oa_batch) %in% colnames(prof_works_oa))]] <- NA
-        # rearrange the columns
-        prof_works_oa <- prof_works_oa[colnames(prof_works_oa_batch)]
-      }
-      
-      # bind to the rest
-      prof_works_oa <- rbind(prof_works_oa,
-                             prof_works_oa_batch)
-      
-      # get the remaining batch size, and go to the end if less than batch size, 
-      # and go for another round if more than batch size
-      if (length(doi_list)-end_batch <= batch_size){
-        end_batch <- end_batch + length(doi_list)-end_batch
-      }else{
-        end_batch <- end_batch + batch_size
-      }
-      # set the beginning to the beginning + batch size
-      begin_batch <- begin_batch + batch_size
-    }
-    
-    # and now loop through the authors of these papers in OpenAlex to get info
-    # on the author ids OpenAlex has on them
-    prof_oaid_info <- data.frame(matrix(NA, nrow = 0, ncol = 13))
-    # loop through the papers we retrieved, get the DOIs and author lists and try to match the
-    # author to those we miss
-    if (nrow(prof_works_oa) > 0){
-      for (i in 1:nrow(prof_works_oa)){
-      author_info <- c()
-      info <- prof_works_oa[i, c("id","display_name", "doi")]
-      doi_in_question <- str_remove(info$doi, "https://doi.org/")
-      # if found and one person
-      authors <- prof_works_oa[i, "author"][[1]][[1]]
-      if (class(authors) != "logical"){
-        # find the author with a matching name
-        authors$match <- grepl(prof_name, tolower(authors$au_display_name))
-        # check with initials as well
-        authors$match <- ifelse(authors$match == FALSE,
-                                grepl(prof_name_w_initials, tolower(authors$au_display_name)),
-                                authors$match)
-        # and spaced out initials
-        authors$match <- ifelse(authors$match == FALSE,
-                                grepl(prof_name_w_initials_space, tolower(authors$au_display_name)),
-                                authors$match)
-        # and no first name, but only initials and also only spaced out initials
-        authors$match <- ifelse(authors$match == FALSE,
-                                grepl(prof_name_first_initials, tolower(authors$au_display_name)),
-                                authors$match)
-        
-        authors$match <- ifelse(authors$match == FALSE,
-                                grepl(prof_name_first_initials_space, tolower(authors$au_display_name)),
-                                authors$match)
-        
-        # if nothing still, initials without the first name
-        authors$match <- ifelse(authors$match == FALSE,
-                                grepl(prof_initials_wo_first_name, tolower(authors$au_display_name)),
-                                authors$match)
-        
-        authors$match <- ifelse(authors$match == FALSE,
-                                grepl(prof_initials_wo_first_name_space, tolower(authors$au_display_name)),
-                                authors$match)   
-        # and their alternative first name we manually correct for
-        authors$match <- ifelse(authors$match == FALSE,
-                                grepl(prof_alternative_full_name, tolower(authors$au_display_name)),
-                                authors$match)   
-        
-        # fetch the author, if there is a match
-        author <- filter(authors, match == TRUE)
-        
-        if (nrow(author) == 1){
-          # remove the "match" column
-          author_info <- author[, -12]
-          # bind with the narcis ID for later
-          author_info$profile_id <- narcis_id
-        }
-      }
-      
-      prof_oaid_info <- rbind(prof_oaid_info,
-                              author_info)
-      }
-      
-    # make sure the empty oa_id did not make it in here...
-     prof_oaid_info <- filter(prof_oaid_info, au_id != "https://openalex.org/A9999999999")
-    
-    # get all oa ids of the author
-    oa_ids <- as.character(unique(prof_oaid_info$au_id))
-    }
-    
-
-    # if ID found:
-    if (length(oa_ids)>0){
-      # get all papers from OA using these ids:
-      prof_all_works_oa <- oa_fetch(
-        entity = "works", 
-        author.id = oa_ids)
-      
-            
-      # now, merge the works based on the doi and those based on the OA ID
-      prof_all_works_oa <- rbind(prof_works_oa,
-                                 prof_all_works_oa)
-      prof_all_works_oa$duplicate <- duplicated(prof_all_works_oa[, c("id")])
-      # deduplicate
-      prof_all_works_oa <- filter(prof_all_works_oa,
-                                  duplicate == FALSE)
-      
-      # if there are still duplicates, deduplicate by lowercased title
-      prof_all_works_oa$display_name_lower <- tolower(prof_all_works_oa$display_name)
-      prof_all_works_oa$duplicate <- duplicated(prof_all_works_oa[, c("display_name_lower")])
-      prof_all_works_oa <- filter(prof_all_works_oa,
-                                  duplicate == FALSE)
-      
-      # paste the OA ID and the Narcis ID
-      prof_all_works_oa$oa_id <- paste(oa_ids, collapse = ", ")
-      prof_all_works_oa$profile_id <- narcis_id
-      
-      # get their co-authors in a given year
-      # but also their affiliations, and the autoship positino in every pub, 
-      # since we are already looping...
-      # pleceholder for authoship position
-      prof_pub_position <- rep(NA, nrow(prof_all_works_oa))
-      # placeholders for authors and affiliations
-      prof_coauthors_oa <- NA
-      prof_pub_info_ia <- NA
-      
-      for (i in 1:nrow(prof_all_works_oa)){
-        # fetch the authors nested within the "author" field returned by OA
-        all_authors <- prof_all_works_oa[i, "author"][[1]][[1]]
-        # get the professor info and their affiliations that year
-        prof_author_info <- filter(all_authors,  au_id %in% oa_ids)
-        # if author's ID not found here (e.g., a slightly different name), it will be set to NA
-        prof_pub_position[i] <- NA
-        # otherwise, replace with the actual value
-        if (nrow(prof_author_info)>0){
-        # paste the prof's authorship here
-        prof_pub_position[i] <- prof_author_info[, 'author_position']
-        }
-        # exclude this author themselves from the co-authors
-        coauthors <- filter(all_authors, ! au_id %in% oa_ids)
-        # if not a single-author paper, get coauthor info
-        if (nrow(coauthors) > 0){
-          # get the publication year
-          year <- as.numeric(prof_all_works_oa[i, "publication_year"])
-          # paste the year alongside the coauthors
-          coauthors$year <- year
-          prof_coauthors_oa <- rbind(prof_coauthors_oa,
-                                     coauthors)
-        }
-        # for the prof themselves, get their affiliation info etc
-        if (nrow(prof_author_info) > 0){
-          # get the publication year
-          year <- as.numeric(prof_all_works_oa[i, "publication_year"])
-          # paste the year alongside the coauthors
-          prof_author_info$year <- year
-          prof_pub_info_ia <- rbind(prof_pub_info_ia,
-                                    prof_author_info)
-        }
-      }
-      # tidy up the dataframe on coauthors, if any info is there
-      if (!is.null(nrow(prof_coauthors_oa))){
-        if (nrow(prof_coauthors_oa) > 0){
-          
-          # and deduplicate coauthorships in the same year
-          prof_coauthors_oa$duplicate <- duplicated(prof_coauthors_oa[, c("au_id", "year")])
-          prof_coauthors_oa <- filter(prof_coauthors_oa,
-                                      duplicate == FALSE)
-          # remove the duplicate column
-          prof_coauthors_oa <- prof_coauthors_oa[, -ncol(prof_coauthors_oa)]
-          
-          # remove the row with NAs
-          prof_coauthors_oa <- prof_coauthors_oa[rowSums(is.na(prof_coauthors_oa)) != ncol(prof_coauthors_oa), ]
-          
-          # add the author id info just in case
-          prof_coauthors_oa$oa_id <- paste(oa_ids, collapse = ", ")
-          prof_coauthors_oa$profile_id <- narcis_id
-        }
-      }
-      
-      # tidy up the info on author affiliations, if any is there
-      if (!is.null(nrow(prof_pub_info_ia))){
-        # once again, if any is there...
-        if (nrow(prof_pub_info_ia) > 0 ){
-          prof_pub_info_ia <- filter(prof_pub_info_ia, !is.na(institution_id))
-          # check that filtering did not remove everything; if so, replace back with NA
-          if (nrow(prof_pub_info_ia) == 0){
-            prof_pub_info_ia <- NA
-          }else{
-            # and deduplicate affiliations in the same year
-            prof_pub_info_ia$duplicate <- duplicated(prof_pub_info_ia[, c("institution_id", "year")])
-            prof_pub_info_ia <- filter(prof_pub_info_ia,
-                                       duplicate == FALSE)
-            # remove the duplicate column
-            prof_pub_info_ia <- prof_pub_info_ia[, -ncol(prof_pub_info_ia)]
-            
-            # drop author position since this is paper related
-            prof_pub_info_ia <- prof_pub_info_ia[ , -which(names(prof_pub_info_ia) %in% c("author_position"))]
-            # add the author id info just in case
-            prof_pub_info_ia$oa_id <- paste(oa_ids, collapse = ", ")
-            prof_pub_info_ia$profile_id <- narcis_id
-          }
-        }
-      }
-      
-      # add the authorship info to the publications
-      prof_all_works_oa$author_position <- prof_pub_position
-      
-      # initialize an empty object for grant info
-      prof_grants_oa <- NA
-      
-      # if there is a grant column, fetch their grant numbers
-      if ("grants" %in% colnames(prof_all_works_oa)){
-        # get the grant list
-        prof_grant_list <- prof_all_works_oa$grants
-        # get the years from the publications
-        year_list <- prof_all_works_oa$publication_year
-        # empty dataframe
-        #prof_grants_oa <- data.frame(matrix(NA, nrow = 0, ncol = 5))
-        # for each grant item in the list
-        for (i in 1:length(prof_grant_list)){
-          grant <- prof_grant_list[[i]]
-          # if not NA, get the data
-          if (! anyNA(grant)){
-            # get all funder IDs and names and put them into a dataframe
-            # NB: not all of these are author's own grants, but they are
-            # co-authorship grants
-            funder_ids <- grant[names(grant)=="funder"]
-            funder_names <- grant[names(grant) == "funder_display_name"]
-            year <- as.numeric(year_list[i])
-            oa_id <- paste(oa_ids, collapse = ", ")
-            profile_id <- narcis_id
-            fund_df <- cbind.data.frame(funder_id = funder_ids,
-                                        funder_names = funder_names)
-            # add some more info
-            fund_df$year <- year
-            fund_df$oa_id <- paste(oa_ids, collapse = ", ")
-            fund_df$profile_id <- narcis_id
-            prof_grants_oa <- rbind(prof_grants_oa,
-                                    fund_df)
-          }
-        }
-        # if not NA, tidy up the dataframe
-        if (!is.null(nrow(prof_grants_oa))){
-          # tidy up the row names
-          rownames(prof_grants_oa) <- 1:nrow(prof_grants_oa)
-          # deduplicate same grants across years
-          prof_grants_oa$duplicate <- duplicated(prof_grants_oa[, c("funder_id", "year")])
-          prof_grants_oa <- filter(prof_grants_oa,
-                                   duplicate == FALSE)
-          # remove the duplicate column
-          prof_grants_oa <- prof_grants_oa[, -(ncol(prof_grants_oa))]
-          # remove the row with NAs
-          prof_grants_oa <- prof_grants_oa[rowSums(is.na(prof_grants_oa)) != ncol(prof_grants_oa), ]
-        }
-      }
-      
-      # get the info on this author
-      prof_info <- oa_fetch(
-        entity = "authors", 
-        identifier = oa_ids)
-      
-      # now, query the Altmetric API to get mentions info on the author
-      prof_all_works_oa_mentions <- altmetric_mention_retriever(api_key = api_key,
-                                                                publication_list = prof_all_works_oa,
-                                                                include_twitter = include_twitter)
-      
-      
-      # output a list populated with all the details
-      prof_output <- list()
-      prof_output["profile_id"] <- narcis_id
-      prof_output["oa_ids"] <- list(oa_ids)
-      prof_output["orcid"] <- prof_info$orcid
-      prof_output["prof_info"] <- list(prof_info)
-      prof_output["narcis_pubs"] <- list(prof_pubs)
-      prof_output["oa_pubs"] <- list(prof_all_works_oa_mentions)
-      prof_output["grant_info"] <- list(prof_grants_oa)
-      prof_output["coauthor_info"] <- list(prof_coauthors_oa)
-      prof_output["affiliation_info"] <- list(prof_pub_info_ia)
-    }else{
-      prof_output <- list()
-      prof_output["profile_id"] <- narcis_id
-      prof_output["oa_ids"] <- list(NA)
-      prof_output["orcid"] <- prof_name_details$ORCID
-      prof_output["prof_info"] <- list(NA)
-      prof_output["narcis_pubs"] <- list(prof_pubs)
-      prof_output["oa_pubs"] <- list(NA)
-      prof_output["grant_info"] <- list(NA)
-      prof_output["coauthor_info"] <- list(NA)
-      prof_output["affiliation_info"] <- list(NA)
-    }
-    
-  }else{
-    # if no DOIs in our list, paste only the professor publications we have in NARCIS
-    prof_output <- list()
-    prof_output["profile_id"] <- narcis_id
-    prof_output["oa_ids"] <- list(NA)
-    prof_output["orcid"] <- prof_name_details$ORCID
-    prof_output["prof_info"] <- list(NA)
-    prof_output["narcis_pubs"] <- list(prof_pubs)
-    prof_output["oa_pubs"] <- list(NA)
-    prof_output["grant_info"] <- list(NA)
-    prof_output["coauthor_info"] <- list(NA)
-    prof_output["affiliation_info"] <- list(NA)
-  }
-  
-  return(prof_output)
-}
-```
-
-
-
-# Get the data
-
-Fetch the data for the professors in our data:
-```{r warning = F}
 # api key (fill in own)
 altmetric_api_key <- ''
 
-# query in batches
+# get the list of IDs
 narcis_ids <- profs_full$profile_id
+
+# query in batches
 # batch size
 prof_batch_size <- 500
 # vector of indices to loop through
@@ -595,7 +1162,6 @@ batches <- seq(from=1, to=length(narcis_ids), by=prof_batch_size)
 batches <- c(batches, length(narcis_ids)+1)
 
 # loop through the batches
-
 for(i in 1:(length(batches)-1)){
   # initialize an empty list for the batch
   batch_prof_outcomes <- list()
@@ -611,14 +1177,14 @@ for(i in 1:(length(batches)-1)){
     outcome <- NA
     
     # try to query all the data
-    try(outcome <- professor_info_retriever(narcis_id,
+    try(outcome <- professor_info_retriever(prof_oa_ids = prof_oa_mapping,
+                                            narcis_id = narcis_id,
                                             pub_data = prof_pubs_full,
                                             prof_data = profs_full,
                                             api_key = altmetric_api_key,
                                             # recommend to set to FALSE unless all works well,
                                             # to avoid using up our twitter query limits
-                                            include_twitter = FALSE), silent = TRUE)
-    
+                                            include_twitter = FALSE)) #, silent = TRUE)
     # append to the batch data
     batch_prof_outcomes[[narcis_id]] <- outcome
     # print some info out
@@ -631,17 +1197,212 @@ for(i in 1:(length(batches)-1)){
 }
 ```
 
-The resulting output is a list of professors which contains, for each prof:
 
-1. Author's NARCIS ID
-2. Author's OA IDS (if found)
-3. Author's ORCID (if found in either our data or OA)
-4. Author info from IA
-5. Author's publications as per the NARCIS record
-6. Author's publications as per the OA record + nested mentions from the Altmetric API
-7. Info on grants of author and their co-authors per year, extracted from publications in OA
-8. Info on author's co-authors and co-author affiliations per year, extracted from publications in OA
-9. Info on author's own affiliations per year, extracted from publications in OA
+Check which IDs lack the relevant information, and try to retrieve it again
+(sometimes the API request times out etc, so it's worth giving it another try):
+```{r}
+# loop through the batches
+for(i in 1:(length(batches)-1)){
+  # load the batch
+  read_string <- paste0("processed_data/open_alex_prof_data/", paste("prof_data_batch", i, sep = "_"), ".RDS")
+  batch_prof_outcomes <- readRDS(read_string)
+  
+  # get the narcis ids from the batch
+  prof_batch <- narcis_ids[batches[i]:(batches[i+1]-1)]
+  
+  # loop through professors in this batch
+  for (narcis_id in prof_batch){
+    # check if NA, and if so, try to fill it in...
+    outcome <- batch_prof_outcomes[[narcis_id]]
+    
+    # if the outcome is NA or everything OA related is NA, and skip one problematic narcis ID
+    if (all(is.na(outcome))|all(is.na(outcome[c(4, 6, 7, 8, 9)]))){
+      if(narcis_id != "https://www.narcis.nl/person/RecordID/PRS1336203"){
+      # check if there is an OA ID mapped to them
+      oa <- filter(prof_oa_mapping, profile_id == narcis_id)
+      # if there is, give it another go at retrieving the info
+      if (!all(is.na(oa[c('oa_id', 'source')]))){
+        try(outcome <- professor_info_retriever(prof_oa_ids = prof_oa_mapping,
+                                                narcis_id = narcis_id,
+                                                pub_data = prof_pubs_full,
+                                                prof_data = profs_full,
+                                                api_key = altmetric_api_key,
+                                                # recommend to set to FALSE unless all works well,
+                                                # to avoid using up our twitter query limits
+                                                include_twitter = FALSE)) #, silent = TRUE)
+      }else{
+        prof_pubs <- filter(prof_pubs_full, profile_id == narcis_id)
+        if(!all(is.na(prof_pubs))){
+          outcome <- list()
+          outcome["profile_id"] <- narcis_id
+          outcome["oa_ids"] <- NA
+          outcome["orcid"] <- NA
+          outcome["prof_info"] <- NA
+          outcome["narcis_pubs"] <- prof_pubs
+          outcome["oa_pubs"] <- NA
+          outcome["grant_info"] <- NA
+          outcome["coauthor_info"] <- NA
+          outcome["affiliation_info"] <- NA
+          }else{
+            outcome <- list()
+            outcome["profile_id"] <- narcis_id
+            outcome["oa_ids"] <- NA
+            outcome["orcid"] <- NA
+            outcome["prof_info"] <- NA
+            outcome["narcis_pubs"] <- NA
+            outcome["oa_pubs"] <- NA
+            outcome["grant_info"] <- NA
+            outcome["coauthor_info"] <- NA
+            outcome["affiliation_info"] <- NA
+          }
+      }
+      # append to the batch data
+      batch_prof_outcomes[[narcis_id]] <- outcome
+    }
+    # print some info out
+    print(paste("done with", which(narcis_id == prof_batch), "out of", length(prof_batch)))
+  }}
+  # save the batch RDS
+  save_string <- paste0("processed_data/open_alex_prof_data/", paste("prof_data_batch", i, sep = "_"), ".RDS")
+  saveRDS(batch_prof_outcomes, save_string)
+}
+```
 
 
 
+# Data insights
+
+Check the overlaps between NARCIS and OA data for profs in each batch.
+Also, extract the IDs of professors for whom we did not collect any data:
+```{r, eval = F}
+# query in batches
+narcis_ids <- profs_full$profile_id
+# batch size
+prof_batch_size <- 500
+# vector of indices to loop through
+batches <- seq(from=1, to=length(narcis_ids), by=prof_batch_size)
+# to be able to subset, also add the final index+1
+batches <- c(batches, length(narcis_ids)+1)
+
+# list of profs w/o info
+professor_coverage <- data.frame(matrix(NA, ncol = 5, nrow = 0))
+
+# loop through the batches
+for(i in 1:(length(batches)-1)){
+  # read in the first batch
+  prof_batch <- readRDS(paste0("processed_data/open_alex_prof_data/", paste("prof_data_batch", i, sep = "_"), ".RDS"))
+  
+  # loop through profs in the list
+  for (j in 1:length(prof_batch)){
+    prof <- prof_batch[[j]]
+    # if there is some info on the prof
+    if (length(prof) > 1 ){
+      narcis_pubs <- prof[["narcis_pubs"]]
+      oa_pubs <- prof[["oa_pubs"]]
+      if ((!is.null(nrow(prof[["oa_pubs"]]))&!is.null(nrow(prof[["narcis_pubs"]])))){
+        # remove the html parts of the doi from both
+        narcis_pubs$doi_match <- str_remove(narcis_pubs$DOI, "https://doi.org/")
+        oa_pubs$doi_match <- str_remove(oa_pubs$doi, "https://doi.org/")
+        
+        # clean the titles of both
+        narcis_pubs$title_match <- str_squish(tolower(str_remove_all(narcis_pubs$Title, "[^[:alnum:] ]")))
+        oa_pubs$title_match <- str_squish(tolower(str_remove_all(oa_pubs$display_name, "[^[:alnum:] ]")))
+        
+        # find which NARCIS pubs also in OA and vice versa
+        narcis_pubs$in_oa <- ifelse(narcis_pubs$doi_match %in% oa_pubs$doi_match|narcis_pubs$title_match %in% oa_pubs$title_match,
+                                    TRUE,
+                                    FALSE)
+        
+        oa_pubs$in_narcis <- ifelse(oa_pubs$doi_match %in% narcis_pubs$doi_match| oa_pubs$title_match %in% narcis_pubs$title_match,
+                                    TRUE,
+                                    FALSE)
+        
+        # append the professor ID and the coverage overlap into a dataframe
+        profile_id <- prof[['profile_id']]
+        narcis_vs_oa <- round(prop.table(table(narcis_pubs$in_oa))['TRUE'], 2)
+        oa_vs_narcis <- round(prop.table(table(oa_pubs$in_narcis))['TRUE'], 2)
+        narcis_pubs <- NA
+        oa_pubs <- NA
+        if (!is.null(nrow(prof[["oa_pubs"]]))){
+          oa_pubs <- nrow(prof[["oa_pubs"]])
+        }
+        if (!is.null(nrow(prof[["narcis_pubs"]]))){
+          narcis_pubs <- nrow(prof[["narcis_pubs"]])
+        }
+        
+        row <- cbind(profile_id, 
+                     narcis_pubs,
+                     oa_pubs,
+                     narcis_vs_oa,
+                     oa_vs_narcis)
+      }else{
+        profile_id <- prof[['profile_id']]
+        narcis_pubs <- NA
+        oa_pubs <- NA
+        if (!is.null(nrow(prof[["oa_pubs"]]))){
+          oa_pubs <- nrow(prof[["oa_pubs"]])
+        }
+        if (!is.null(nrow(prof[["narcis_pubs"]]))){
+          narcis_pubs <- nrow(prof[["narcis_pubs"]])
+        }
+        narcis_vs_oa <- NA
+        oa_vs_narcis <- NA
+        row <- cbind(profile_id, 
+                     narcis_pubs,
+                     oa_pubs,
+                     narcis_vs_oa,
+                     oa_vs_narcis) 
+      }
+    } else{
+      profile_id <- names(prof_batch)[j]
+      narcis_pubs <- NA
+      oa_pubs <- NA
+      narcis_vs_oa <- NA
+      oa_vs_narcis <- NA
+        row <- cbind(profile_id, 
+                     narcis_pubs,
+                     oa_pubs,
+                     narcis_vs_oa,
+                     oa_vs_narcis)
+    }
+    professor_coverage <- rbind(professor_coverage,
+                                row)
+  }
+  print(paste("done with batch", i))
+}
+
+professor_coverage <- filter(professor_coverage, !is.na(profile_id))
+```
+
+Write this out:
+```{r}
+saveRDS(professor_coverage, "processed_data/professor_coverage.RDS")
+```
+
+```{r echo = F, eval = T}
+professor_coverage <- readRDS("processed_data/professor_coverage.RDS")
+```
+
+
+```{r eval = T}
+professor_coverage$narcis_vs_oa <- as.numeric(professor_coverage$narcis_vs_oa)
+professor_coverage$oa_vs_narcis <- as.numeric(professor_coverage$oa_vs_narcis)
+
+professor_coverage %>% 
+  filter(., !is.na(narcis_vs_oa))%>% 
+  summarise(narcis_vs_oa = mean(narcis_vs_oa),
+            oa_vs_narcis = mean(oa_vs_narcis))
+```
+So, 94% of the Narcis publications are in our OA data.
+And 53% of the OA publications are in our NARCIS data.
+
+
+Finally, we only miss publication data for 0.25% of the professors (17).
+```{r eval = T}
+length(which(is.na(professor_coverage$narcis_pubs)))
+length(which(is.na(professor_coverage$narcis_pubs)))/nrow(professor_coverage)*100
+
+
+length(which(is.na(professor_coverage$oa_pubs)))
+length(which(is.na(professor_coverage$oa_pubs)))/nrow(professor_coverage)*100
+```

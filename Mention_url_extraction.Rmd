@@ -1,0 +1,158 @@
+---
+title: "Extraction of URL mentions"
+author: "Ana Macanovic"
+date: "2023-12-22"
+---
+
+Getting the news data mention URLs based on professors' papers.
+We will then use the URLs to retrieve, wherever available, the full text 
+of the article. 
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+Load the packages:
+```{r message=  F, warning = F}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", 
+                      "stringr")
+groundhog.library(packages_to_load, date = "2023-12-01")
+
+```
+
+# Tidy up professor data from NARCIS
+
+Load the professor profiles:
+```{r message = F, warning = F}
+load("raw_data/media_profs_profiles.rda")
+profs <- read_csv("raw_data/dutch_profs_urls.csv")
+
+# merge the profs with their ORCIDs
+colnames(profs)[c(1,7)] <- c("id", "profile_id")
+
+profs_full <- merge(profs,
+                    metadf[, c(1:4, 361)],
+                    by = "profile_id")
+```
+
+
+# Extract URLs
+
+Extra the URLs from news mentions of each professor:
+```{r}
+# query in batches
+narcis_ids <- profs_full$profile_id
+# batch size
+prof_batch_size <- 500
+# vector of indices to loop through
+batches <- seq(from=1, to=length(narcis_ids), by=prof_batch_size)
+# to be able to subset, also add the final index+1
+batches <- c(batches, length(narcis_ids)+1)
+
+# dataframe to store urls we want to scrape
+url_data <- data.frame(matrix(NA, nrow = 0, ncol = 5))
+
+
+# loop through the batches
+for(i in 1:(length(batches)-1)){
+  # read in the first batch
+  prof_batch <- readRDS(paste0("processed_data/open_alex_prof_data/", paste("prof_data_batch", i, sep = "_"), ".RDS"))
+  # loop through profs in the list
+  for (j in 1:length(prof_batch)){
+    prof <- prof_batch[[j]]
+    # if some data in the prof list
+    if (length(prof)>1){
+      # get the news articles
+      oa_pubs <- prof[['oa_pubs']]
+      # get the prof_id
+      prof_id <- names(prof_batch[j])
+      
+      # if not empty
+      if (!is.null(ncol(oa_pubs))){
+        # if 'news' in the colnames
+        if ('news' %in% colnames(oa_pubs)){
+          # get the news column and the doi
+          news_mentions <- oa_pubs[, c('doi', 'news')]
+          # loop through the news
+          url_list <- c()
+          title_list <- c()
+          resource_list <- c()
+          for (row in 1:nrow(news_mentions)){
+            mentions <- news_mentions$news[row][[1]]
+            # if any mentions of this doi, add the urls to our list
+            if (!is.null(ncol(mentions))){
+              # get the mention data
+              url_list <- mentions$url
+              title_list <- mentions$title
+              resource_list <- as.character(mentions$author$name)
+              # make a dataframe
+              mention_info <- cbind.data.frame(url_list, title_list, resource_list)
+              # append the doi and author id
+              mention_info$doi <- as.character(news_mentions$doi[row])
+              mention_info$profile_id <- prof_id
+              # append to the dataframe
+              url_data <- rbind(url_data,
+                                mention_info)
+            }
+          }
+        }
+      }
+    }
+  }
+  print(paste("done with batch", i))
+}
+```
+
+
+Identify broken ct.moreover links (see more [here](https://help.altmetric.com/support/solutions/articles/6000241413-unclickable-links-on-a-detail-page)):
+```{r}
+url_data$broken_link <- str_detect(url_data$url_list, "ct.moreover")
+
+url_data$broken_link <- ifelse(is.na(url_data$broken_link), TRUE, url_data$broken_link )
+```
+
+Adding a unique URL identifier:
+```{r}
+url_data <- url_data %>% 
+  group_by(profile_id) %>% 
+  mutate(url_id = row_number())
+
+url_data$url_id <- paste0(str_remove(url_data$profile_id, "https://www.narcis.nl/person/RecordID/"),
+                          "_url_",
+                          url_data$url_id)
+```
+
+```{r echo = F, results='hide', eval = T}
+url_data <- readRDS("processed_data/mention_urls.RDS")
+```
+
+
+How many URLs, unique titles, and outlets?
+```{r eval = T}
+nrow(url_data)
+length(unique(url_data$title_list))
+length(unique(url_data$resource_list))
+```
+How many broken links? Unfortunately, around 38%. This leaves us with 359 693 links we can
+try to retrieve. 
+```{r eval = T}
+table(url_data$broken_link)
+prop.table(table(url_data$broken_link))
+```
+How many papers and researchers?
+```{r eval = T}
+length(unique(url_data$doi))
+length(unique(url_data$profile_id))
+```
+
+Write the data out:
+```{r}
+saveRDS(url_data, "processed_data/mention_urls.RDS")
+write_csv(url_data, "processed_data/mention_urls.csv")
+```
+
+After this, we run the python script to collect the unpaywalled non-broken links.

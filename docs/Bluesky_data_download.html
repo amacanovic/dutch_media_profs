@@ -15,7 +15,7 @@
 
 <title>Bluesky_data_download</title>
 
-<script src="site_libs/header-attrs-2.21/header-attrs.js"></script>
+<script src="site_libs/header-attrs-2.25/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
@@ -31,7 +31,7 @@
        h6 {font-size: 12px;}
        code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
        pre:not([class]) { background-color: white }</style>
-<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
 <link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
 <script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
@@ -39,8 +39,8 @@
 <script src="site_libs/navigation-1.1/sourceembed.js"></script>
 <link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
-<link href="site_libs/font-awesome-6.4.0/css/all.min.css" rel="stylesheet" />
-<link href="site_libs/font-awesome-6.4.0/css/v4-shims.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet" />
 
 <style type="text/css">
   code{white-space: pre-wrap;}
@@ -408,7 +408,7 @@ updated once we get a list of handles…</h1>
 ## $ description       &lt;chr&gt; &quot;PhD Candidate in Sociology @UniUtrecht/ICS | explor…
 ## $ avatar            &lt;chr&gt; &quot;https://cdn.bsky.app/img/avatar/plain/did:plc:6uehl…
 ## $ followsCount      &lt;int&gt; 123
-## $ followersCount    &lt;int&gt; 153
+## $ followersCount    &lt;int&gt; 156
 ## $ postsCount        &lt;int&gt; 14
 ## $ indexedAt         &lt;chr&gt; &quot;2023-09-11T07:42:52.595Z&quot;
 ## $ viewer_muted      &lt;lgl&gt; FALSE
@@ -418,7 +418,7 @@ updated once we get a list of handles…</h1>
 <pre class="r"><code>user_skeets &lt;- get_skeets_authored_by(actor = &quot;anamacanovic.bsky.social&quot;, limit = 150) %&gt;%
   dplyr::glimpse()</code></pre>
 <pre><code>## 
-⠙ Got 19 skeets, but there is more.. [267ms]
+⠙ Got 19 skeets, but there is more.. [292ms]
 
                                              
 
@@ -433,8 +433,8 @@ updated once we get a list of handles…</h1>
 ## $ text         &lt;chr&gt; &quot;I wrote this paper as an entry level intoduction to vari…
 ## $ record       &lt;list&gt; [&quot;I wrote this paper as an entry level intoduction to va…
 ## $ reply_count  &lt;int&gt; 0, 0, 1, 0, 15, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 10
-## $ repost_count &lt;int&gt; 2, 13, 29, 44, 141, 0, 0, 3, 3, 0, 1, 1, 0, 0, 1, 0, 0, 0…
-## $ like_count   &lt;int&gt; 5, 11, 61, 31, 286, 1, 1, 10, 7, 0, 2, 0, 0, 2, 6, 1, 6, …
+## $ repost_count &lt;int&gt; 2, 13, 29, 44, 143, 0, 0, 3, 3, 0, 1, 1, 0, 0, 1, 0, 0, 0…
+## $ like_count   &lt;int&gt; 5, 11, 61, 31, 289, 1, 1, 10, 7, 0, 2, 0, 0, 2, 6, 1, 6, …
 ## $ indexed_at   &lt;dttm&gt; 2023-11-07 16:32:11, 2023-10-19 12:50:11, 2023-10-11 13:2…
 ## $ reply        &lt;list&gt; [[&quot;app.bsky.feed.defs#postView&quot;, &quot;at://did:plc:6gmtdexnr…
 ## $ is_reskeet   &lt;lgl&gt; FALSE, TRUE, TRUE, TRUE, TRUE, FALSE, FALSE, TRUE, FALSE…</code></pre>
