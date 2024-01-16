@@ -11,23 +11,26 @@ exclude:
   - "news_data"
   - "_test"
   - "procesed_data"
+  - "oa_database"
 bibliography: references.bib
 navbar:
   left:
     - icon: fa-home
     - text: "Code homepage"
       href: index.html
-    - text: "Twitter handle extraction"
-      href: Twiter_handle_extraction.html
+    # - text: "Twitter handle extraction"
+    #   href: Twiter_handle_extraction.html
     - text: "Open Alex and Altmetric data download"
       href: OpenAlex_Altmetric_data_download.html
+    - text: "SQL database manual"
+      href: SQL_tutorial.html
     - text: "Professor gender inference"
       href: Prof_gender.html
     - text: "Grant parsing"
       href: Grant_parsing.html
-    - text: "Lexis data parser"
-      href: Lexis_nexis_parser.html
-      # here, other .Rmds can be added
+    # - text: "Lexis data parser"
+    #   href: Lexis_nexis_parser.html
+    #   # here, other .Rmds can be added
 
 
   right:

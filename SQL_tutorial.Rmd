@@ -1,0 +1,142 @@
+---
+title: "Using our PostgreSQL database"
+author: "Ana Macanovic"
+date: "2024-01-16"
+---
+
+This script explains how to load the database and query it using R.
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+
+
+# Step 1: Download the software
+
+- Download PostgreSQL from [here](https://www.postgresql.org/).
+- [Here](https://www.postgresqltutorial.com/postgresql-getting-started/install-postgresql/) 
+is a nice resource for easy setup.
+- Download pgadmin for easier database management from [here](https://www.pgadmin.org/).
+
+Choose your credentials, user id and password. 
+
+
+# Step 2: Load in the data dump
+
+This is how to load in the data dump with all the professor data into your database. 
+
+1. Click on your empty database of choice in pgadmin to select it.
+
+2. Right click the database name and select "Restore".
+
+3. In the "Filename" field, choose the path to the data dump. Select "Custom or tar" in the "Format field". When choosing the file in the 
+folder where the dump is, either give the full path, or use the selection menu, but change the file type from "customized files" to "all files" to see
+the file in the file explorer. There is no need to modify any other fields when importing.
+
+4. The process should have started and you can trace it in the "Processes tab". It might take 5-10 minutes.
+
+5. You might get an error saying something along the lines "pg_restore: error: could not execute query: ERROR: schema "public" already exists". If this is
+the only error you get, it's a harmless warning, as the database has been loaded in just fine. See more [here](https://dba.stackexchange.com/questions/90258/pg-restore-archiver-db-could-not-execute-query-error-schema-public-alre).
+
+6. You can check the table contents in pgadmin  by going to  "database name" -> "schemas" -> "tables" and selecting the table of interest.
+
+
+
+# Step 3: Query  the data!
+
+You can easily query our professor data from R using the RPostgres package. 
+All of the data is coded by Narcis IDs.
+
+Load the necessary packages:
+```{r message=  F, warning = F, eval = T}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "openalexR",
+                      "ggplot2", "stringr", "tidyr",
+                      "jsonlite", "xml2", "tidyverse",
+                      "RPostgres",
+                      "DBI", "RODBC", "odbc")
+groundhog.library(packages_to_load, date = "2023-12-01")
+```
+
+Connect to the postgres database.
+Use own credentials chosen during the PostgreSQL setup:
+```{r}
+# default port here, change if needed
+port <- 5432
+# username
+user <- ""
+# password
+password <- ""
+# database name
+database_name <- ""
+
+con <- RPostgres::dbConnect(RPostgres::Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+
+con # Checks connection is working
+```
+If it works, it should report: "<PqConnection> postgres@localhost:", including your port number. 
+
+## Listing the tables in the database:
+
+To get a list of all tables in the database:
+```{r}
+dbListTables(con)
+```
+# Loading the full data afrom a table:
+
+And now, let us load in OA-NARCIS ID mapping and the gender table:
+```{r}
+prof_oa_mapping <- dbGetQuery(conn = con, statement = "select * from oa_identifier_table;")
+profs_full_gender <- dbGetQuery(conn = con, statement = "select * from gender_table;")
+```
+
+# Loading only some fields
+
+To list all the fields in the database, use this command together with the
+table name:
+```{r}
+dbListFields(con, "oa_pubs")
+```
+Now, use the conventional SQL synthax to query things.
+[Here](https://bookdown.org/gonzalezben393/SQLQueries/) is a really neat guide on this R package.
+Mostly, one just needs to surround the column names with \" on both sides when querying.
+
+Here is a showcase on how to get all publications (or only those from 2012) for professor Aart Nederveen 
+with a narcis id https://www.narcis.nl/person/RecordID/PRS1292207:
+```{r}
+pubs_example <- dbGetQuery(conn = con, statement = "select * from oa_pubs where \"profile_id\"='https://www.narcis.nl/person/RecordID/PRS1292207'")
+
+pubs_example_2012 <- dbGetQuery(conn = con, statement = "select * from oa_pubs where \"profile_id\"='https://www.narcis.nl/person/RecordID/PRS1292207' AND \"publication_year\"=2012")
+```
+
+And we can merge these publications with the corresponding mentions from news sources
+using the OA IDs:
+```{r}
+mentions_example <- dbGetQuery(conn = con, statement = "select * from news_mentions where \"profile_id\"='https://www.narcis.nl/person/RecordID/PRS1292207'")
+
+# merge with the publications using the OA ID
+pubs_mentions <- merge(pubs_example,
+                       mentions_example,
+                       all.x = TRUE,
+                       by = "id")
+```
+
+We can also pull all of the concepts of this professor based on the OA IDs of their papers:
+```{r}
+concepts_example <- dbGetQuery(conn = con, statement = "select * from oa_concepts where \"profile_id\"='https://www.narcis.nl/person/RecordID/PRS1292207'")
+```
+ 
+Or their grants or coauthors:
+```{r}
+grants_example <- dbGetQuery(conn = con, statement = "select * from grant_info where \"profile_id\"='https://www.narcis.nl/person/RecordID/PRS1292207'")
+coauthors_example <- dbGetQuery(conn = con, statement = "select * from coauthor_info where \"profile_id\"='https://www.narcis.nl/person/RecordID/PRS1292207'")
+```
+

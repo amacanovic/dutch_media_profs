@@ -279,21 +279,3 @@ for(i in 14:(length(batches)-1)){
 ```
 
 # Descriptives of our data
-
-```{r}
-# getting all the csv files that were processed in batches
-cumulative_info <- list.files(path = "processed_data/open_alex_prof_yearly_data/",
-                              pattern = "cumulative",
-                              full.names = TRUE)%>%
-  map(readRDS) %>% 
-  bind_rows()
-
-```
-
-Get some averages per year:
-```{r}
-year_averages <- cumulative_info %>%
-  group_by(year)%>% 
-  summarise(n = n())
-```
-
