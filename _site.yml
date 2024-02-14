@@ -12,6 +12,7 @@ exclude:
   - "_test"
   - "procesed_data"
   - "oa_database"
+  - "resources"
 bibliography: references.bib
 navbar:
   left:
@@ -22,12 +23,16 @@ navbar:
     #   href: Twiter_handle_extraction.html
     - text: "Open Alex and Altmetric data download"
       href: OpenAlex_Altmetric_data_download.html
+    - text: "Data descriptives"
+      href: Data_descriptives.html
     - text: "SQL database manual"
       href: SQL_tutorial.html
-    - text: "Professor gender inference"
-      href: Prof_gender.html
-    - text: "Grant parsing"
-      href: Grant_parsing.html
+    - text: "Gender inference"
+      href: Gender_inference.html
+    - text: "News full text and author names"
+      href: Mention_url_extraction.html
+    # - text: "Grant parsing"
+    #   href: Grant_parsing.html
     # - text: "Lexis data parser"
     #   href: Lexis_nexis_parser.html
     #   # here, other .Rmds can be added

@@ -1,0 +1,431 @@
+---
+title: "Untitled"
+author: "Ana Macanovic"
+date: "2024-01-28"
+output: html_document
+---
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+
+```{r}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "openalexR",
+                      "ggplot2", "stringr", "tidyr",
+                      "jsonlite", "xml2", "tidyverse",
+                      "RPostgres", "lubridate","digest",
+                      "DBI", "RODBC", "odbc", "foreach",
+                      "doParallel")
+groundhog.library(packages_to_load, date = "2023-12-01")
+
+```
+
+```{r}
+port <- 5432
+user <- "postgres"
+password <- "dutchmediaprofssql"
+database_name <- "postgres"
+
+
+## Altmetric explorer (Ana's key)
+api_secret <- 'c55fc3a742e74ac5b0d3a6f2bc5090b7'
+api_key <- 'bad7d623c7204f75ad0d53acd2fe5d85'
+
+con <- RPostgres::dbConnect(RPostgres::Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+```
+
+
+```{r}
+cores=detectCores()
+cl <- makeCluster(cores[1]-6) #not to overload your computer
+registerDoParallel(cl)
+
+prof_batch_size <- 1000
+# vector of indices to loop through
+batches <- seq(from=1, to=length(coauthor_oa), by=prof_batch_size)
+# to be able to subset, also add the final index+1
+batches <- c(batches, length(coauthor_oa)+1)
+
+
+output <- foreach(i= 1:5, .combine = combine, .multicombine = TRUE) %dopar% {
+  # get the narcis ids from the batch
+  prof_batch <- coauthor_oa[batches[i]:(batches[i+1]-1)]
+  prof_coauthor_info_oa <- NA
+  
+  try(prof_coauthor_info_oa <- oa_fetch(
+    entity = "authors", 
+    openalex_id = prof_batch))
+  
+  if (!all(is.na(prof_coauthor_info_oa))){
+    
+    # unnest the data 
+    prof_coauthor_info_oa_unnest <- unnest(prof_coauthor_info_oa, cols = c(counts_by_year), names_sep = "_")%>%
+      select(-x_concepts)
+    
+    # get their names
+    # first, get all the name alternatives as well
+    coauthor_name_variations <- prof_coauthor_info_oa %>%
+      select(id, display_name, display_name_alternatives)%>%
+      unnest(., cols = c(display_name_alternatives))
+    # wide to long, with all variations
+    coauthor_name_variations <- gather(coauthor_name_variations,
+                                       type, 
+                                       full_name, 
+                                       display_name:display_name_alternatives, 
+                                       factor_key=FALSE)
+    
+    # now, identify which ones are actualy names, and not just initials
+    # get the first word, and detect if longer than 1 character and/or does not contain any full stops
+    coauthor_name_variations$first <- word(coauthor_name_variations$full_name, 1)
+    coauthor_name_variations$valid_name <- ifelse(str_detect(coauthor_name_variations$first, "\\."),
+                                                  "FALSE",
+                                                  "TRUE")
+    # get the name variation lengths
+    coauthor_name_variations$length_first <-  nchar(coauthor_name_variations$first) 
+    coauthor_names <- data.frame(matrix(NA, nrow = 0, ncol = 3))
+    # leave only the ones where we seem to have a shortest name longer than 2 characters
+    coauthor_names <- filter(coauthor_name_variations, valid_name == TRUE)%>%
+      group_by(id)%>%
+      slice(which.max(length_first))%>%
+      filter(., length_first > 2)%>%
+      select(-valid_name, -length_first, -type)
+    
+    # select prof info
+    coauthor_info <- data.frame(matrix(NA, nrow = 0, ncol = 14))
+    columns <- c("id", "display_name", "orcid", "works_count",
+                 "cited_by_count", "counts_by_year_year", "counts_by_year_works_count", 
+                 "counts_by_year_cited_by_count", "affiliation_display_name", 
+                 "affiliation_id", "affiliation_ror", "affiliation_country_code",
+                 "affiliation_type", "works_api_url")
+    # padding in case some columns are missing
+    if(!all(columns %in% colnames(prof_coauthor_info_oa_unnest))){
+      n_missing <- which(!columns %in% colnames(prof_coauthor_info_oa_unnest))
+      padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
+      colnames(padding) <- columns[which(!columns %in% colnames(prof_coauthor_info_oa_unnest))]
+      prof_coauthor_info_oa_unnest <- bind_cols(prof_coauthor_info_oa_unnest,
+                                                padding)
+      prof_coauthor_info_oa_unnest <- prof_coauthor_info_oa_unnest[columns]
+    }
+    
+    coauthor_info <- prof_coauthor_info_oa_unnest%>%
+      select(id, display_name, orcid, works_count,
+             cited_by_count, counts_by_year_year, counts_by_year_works_count, 
+             counts_by_year_cited_by_count, affiliation_display_name, 
+             affiliation_id, affiliation_ror, affiliation_country_code,
+             affiliation_type, works_api_url)
+    
+    list(coauthor_names, coauthor_info)
+    
+  }
+}
+
+#stop cluster
+stopCluster(cl)
+
+
+lapply(purrr::transpose(tmp), function(l) do.call(rbind, l))
+```
+
+```{r setup, include=FALSE}
+# get all the coauthor info
+coauthor_list <- dbGetQuery(conn = con, statement = paste0("select * from coauthor_info;"))
+
+#get the ubique OA IDs of coauthors
+coauthor_oa <- unique(coauthor_list$au_id)
+# drop redundant data
+rm(coauthor_list)
+gc()
+
+
+# coauthor affiliation etc list
+coauthor_info_list <- data.frame(matrix(NA, nrow = 0, ncol = 14))
+# keep a list of co-author names with inferred genders that we can complement further and further
+# as we loop through the data
+coauthor_name_list <- data.frame(matrix(NA, nrow = 0, ncol = 3))
+
+prof_batch_size <- 1000
+# vector of indices to loop through
+batches <- seq(from=1, to=length(coauthor_oa), by=prof_batch_size)
+# to be able to subset, also add the final index+1
+batches <- c(batches, length(coauthor_oa)+1)
+
+
+# query additional prof info
+for(i in 1:(length(batches)-1)){
+  # get the narcis ids from the batch
+  prof_batch <- coauthor_oa[batches[i]:(batches[i+1]-1)]
+  prof_coauthor_info_oa <- NA
+  
+  try(prof_coauthor_info_oa <- oa_fetch(
+    entity = "authors", 
+    openalex_id = prof_batch))
+  
+  if (!all(is.na(prof_coauthor_info_oa))){
+    
+    # unnest the data 
+    prof_coauthor_info_oa_unnest <- unnest(prof_coauthor_info_oa, cols = c(counts_by_year), names_sep = "_")%>%
+      select(-x_concepts)
+    
+    # get their names
+    # first, get all the name alternatives as well
+    coauthor_name_variations <- prof_coauthor_info_oa %>%
+      select(id, display_name, display_name_alternatives)%>%
+      unnest(., cols = c(display_name_alternatives))
+    # wide to long, with all variations
+    coauthor_name_variations <- gather(coauthor_name_variations,
+                                       type, 
+                                       full_name, 
+                                       display_name:display_name_alternatives, 
+                                       factor_key=FALSE)
+    
+    # now, identify which ones are actualy names, and not just initials
+    # get the first word, and detect if longer than 1 character and/or does not contain any full stops
+    coauthor_name_variations$first <- word(coauthor_name_variations$full_name, 1)
+    coauthor_name_variations$valid_name <- ifelse(str_detect(coauthor_name_variations$first, "\\."),
+                                                  "FALSE",
+                                                  "TRUE")
+    # get the name variation lengths
+    coauthor_name_variations$length_first <-  nchar(coauthor_name_variations$first) 
+    coauthor_names <- data.frame(matrix(NA, nrow = 0, ncol = 3))
+    # leave only the ones where we seem to have a shortest name longer than 2 characters
+    coauthor_names <- filter(coauthor_name_variations, valid_name == TRUE)%>%
+      group_by(id)%>%
+      slice(which.max(length_first))%>%
+      filter(., length_first > 2)%>%
+      select(-valid_name, -length_first, -type)
+    
+    # append the new names to the names dataframe
+    if (!all(is.na(coauthor_names))){
+      new_names <- filter(coauthor_names, 
+                          ! id %in% coauthor_name_list$id)
+      coauthor_name_list <- rbind(coauthor_name_list,
+                                  new_names)
+    }
+    
+    # select prof info
+    coauthor_info <- data.frame(matrix(NA, nrow = 0, ncol = 14))
+    columns <- c("id", "display_name", "orcid", "works_count",
+                 "cited_by_count", "counts_by_year_year", "counts_by_year_works_count", 
+                 "counts_by_year_cited_by_count", "affiliation_display_name", 
+                 "affiliation_id", "affiliation_ror", "affiliation_country_code",
+                 "affiliation_type", "works_api_url")
+    # padding in case some columns are missing
+    if(!all(columns %in% colnames(prof_coauthor_info_oa_unnest))){
+      n_missing <- which(!columns %in% colnames(prof_coauthor_info_oa_unnest))
+      padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
+      colnames(padding) <- columns[which(!columns %in% colnames(prof_coauthor_info_oa_unnest))]
+      prof_coauthor_info_oa_unnest <- bind_cols(prof_coauthor_info_oa_unnest,
+                                                padding)
+      prof_coauthor_info_oa_unnest <- prof_coauthor_info_oa_unnest[columns]
+    }
+    
+    coauthor_info <- prof_coauthor_info_oa_unnest%>%
+      select(id, display_name, orcid, works_count,
+             cited_by_count, counts_by_year_year, counts_by_year_works_count, 
+             counts_by_year_cited_by_count, affiliation_display_name, 
+             affiliation_id, affiliation_ror, affiliation_country_code,
+             affiliation_type, works_api_url)
+    
+    # append the new info to the info dataframe
+    if (!all(is.na(coauthor_info))){
+      new_info <- filter(coauthor_info, 
+                         ! id %in% coauthor_info_list$id)
+      
+      coauthor_info_list <- rbind(coauthor_info_list,
+                                  new_info)
+    }
+  }
+  
+  print(paste("done with", i, "out of", length(batches)))
+}
+
+dbWriteTable(con, "oa_coauthor_info_full", coauthor_info_list, row.names=FALSE, append=TRUE)
+
+dbWriteTable(con, "oa_coauthor_name_list", coauthor_name_list, row.names=FALSE, append=TRUE)
+```
+
+
+Missing ones:
+```{r}
+missing_oa <- coauthor_oa[which(! coauthor_oa %in% coauthor_info_list$id)]
+
+prof_batch_size <- 500
+# vector of indices to loop through
+batches <- seq(from=1, to=length(missing_oa), by=prof_batch_size)
+# to be able to subset, also add the final index+1
+batches <- c(batches, length(missing_oa)+1)
+
+
+# query additional prof info
+for(i in 1:(length(batches)-1)){
+  # get the narcis ids from the batch
+  prof_batch <- missing_oa[batches[i]:(batches[i+1]-1)]
+  prof_coauthor_info_oa <- NA
+  
+  try(prof_coauthor_info_oa <- oa_fetch(
+    entity = "authors", 
+    openalex_id = prof_batch))
+  
+  if (!all(is.na(prof_coauthor_info_oa))){
+    
+    # unnest the data 
+    prof_coauthor_info_oa_unnest <- unnest(prof_coauthor_info_oa, cols = c(counts_by_year), names_sep = "_")%>%
+      select(-x_concepts)
+    
+    # get their names
+    # first, get all the name alternatives as well
+    coauthor_name_variations <- prof_coauthor_info_oa %>%
+      select(id, display_name, display_name_alternatives)%>%
+      unnest(., cols = c(display_name_alternatives))
+    # wide to long, with all variations
+    coauthor_name_variations <- gather(coauthor_name_variations,
+                                       type, 
+                                       full_name, 
+                                       display_name:display_name_alternatives, 
+                                       factor_key=FALSE)
+    
+    # now, identify which ones are actualy names, and not just initials
+    # get the first word, and detect if longer than 1 character and/or does not contain any full stops
+    coauthor_name_variations$first <- word(coauthor_name_variations$full_name, 1)
+    coauthor_name_variations$valid_name <- ifelse(str_detect(coauthor_name_variations$first, "\\."),
+                                                  "FALSE",
+                                                  "TRUE")
+    # get the name variation lengths
+    coauthor_name_variations$length_first <-  nchar(coauthor_name_variations$first) 
+    coauthor_names <- data.frame(matrix(NA, nrow = 0, ncol = 3))
+    # leave only the ones where we seem to have a shortest name longer than 2 characters
+    coauthor_names <- filter(coauthor_name_variations, valid_name == TRUE)%>%
+      group_by(id)%>%
+      slice(which.max(length_first))%>%
+      filter(., length_first > 2)%>%
+      select(-valid_name, -length_first, -type)
+    
+    # append the new names to the names dataframe
+    if (!all(is.na(coauthor_names))){
+      new_names <- filter(coauthor_names, 
+                          ! id %in% coauthor_name_list$id)
+      coauthor_name_list <- rbind(coauthor_name_list,
+                                  new_names)
+    }
+    
+    # select prof info
+    coauthor_info <- data.frame(matrix(NA, nrow = 0, ncol = 14))
+    columns <- c("id", "display_name", "orcid", "works_count",
+                 "cited_by_count", "counts_by_year_year", "counts_by_year_works_count", 
+                 "counts_by_year_cited_by_count", "affiliation_display_name", 
+                 "affiliation_id", "affiliation_ror", "affiliation_country_code",
+                 "affiliation_type", "works_api_url")
+    # padding in case some columns are missing
+    if(!all(columns %in% colnames(prof_coauthor_info_oa_unnest))){
+      n_missing <- which(!columns %in% colnames(prof_coauthor_info_oa_unnest))
+      padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
+      colnames(padding) <- columns[which(!columns %in% colnames(prof_coauthor_info_oa_unnest))]
+      prof_coauthor_info_oa_unnest <- bind_cols(prof_coauthor_info_oa_unnest,
+                                                padding)
+      prof_coauthor_info_oa_unnest <- prof_coauthor_info_oa_unnest[columns]
+    }
+    
+    coauthor_info <- prof_coauthor_info_oa_unnest%>%
+      select(id, display_name, orcid, works_count,
+             cited_by_count, counts_by_year_year, counts_by_year_works_count, 
+             counts_by_year_cited_by_count, affiliation_display_name, 
+             affiliation_id, affiliation_ror, affiliation_country_code,
+             affiliation_type, works_api_url)
+    
+    # append the new info to the info dataframe
+    if (!all(is.na(coauthor_info))){
+      new_info <- filter(coauthor_info, 
+                         ! id %in% coauthor_info_list$id)
+      
+      coauthor_info_list <- rbind(coauthor_info_list,
+                                  new_info)
+    }
+  }
+  
+  print(paste("done with", i, "out of", length(batches)-1))
+}
+
+```
+
+```{r}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "openalexR",
+                      "ggplot2", "stringr", "tidyr",
+                      "jsonlite", "xml2", "tidyverse",
+                      "RPostgres", "lubridate","digest",
+                      "DBI", "RODBC", "odbc", "foreach",
+                      "doParallel", "doSNOW")
+groundhog.library(packages_to_load, date = "2023-12-01")
+
+```
+
+```{r}
+port <- 5432
+user <- "postgres"
+password <- "dutchmediaprofssql"
+database_name <- "postgres"
+
+
+## Altmetric explorer (Ana's key)
+api_secret <- 'c55fc3a742e74ac5b0d3a6f2bc5090b7'
+api_key <- 'bad7d623c7204f75ad0d53acd2fe5d85'
+
+con <- RPostgres::dbConnect(RPostgres::Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+```
+
+
+```{r}
+# get all the coauthor info
+coauthor_list <- dbGetQuery(conn = con, statement = paste0("select * from coauthor_info;"))
+
+#get the ubique OA IDs of coauthors
+coauthor_oa <- unique(coauthor_list$au_id)
+# drop redundant data
+rm(coauthor_list)
+gc()
+
+
+```
+
+Parallelizing this process:
+```{r}
+# detect cores and set the preferred number (we have 16 and want to use 10)
+cores=detectCores()
+cl <- makeCluster(cores[1]-6)
+registerDoParallel(cl)
+
+# set the preferred batch size for OA calls
+prof_batch_size <- 100
+# vector of indices to loop through
+batches <- seq(from=1, to=length(coauthor_oa), by=prof_batch_size)
+# to be able to subset, also add the final index+1
+batches <- c(batches, length(coauthor_oa)+1)
+
+# load some stuff for the progress bar
+
+#parallelize the extraction of seller names and extended info
+output <- foreach(i= 20:21, .packages=c('openalexR', 'dplyr', 'tidyr', 'stringr'),
+                  .verbose = T) %do% {
+  # get the narcis ids from the batch
+  prof_batch <- coauthor_oa[batches[i]:(batches[i+1]-1)]
+  loop_output <- coauthor_oa_fetches(prof_batch)
+  return(loop_output)
+  }
+
+stopCluster(cl)
+# tidy up the output
+coauthor_names <- lapply(purrr::transpose(output), function(l) do.call(rbind, l))[["names"]]
+coauthor_info <- lapply(purrr::transpose(output), function(l) do.call(rbind, l))[["info"]]
+```

@@ -346,13 +346,16 @@ div.tocify {
   <a href="OpenAlex_Altmetric_data_download.html">Open Alex and Altmetric data download</a>
 </li>
 <li>
+  <a href="Data_descriptives.html">Data descriptives</a>
+</li>
+<li>
   <a href="SQL_tutorial.html">SQL database manual</a>
 </li>
 <li>
-  <a href="Prof_gender.html">Professor gender inference</a>
+  <a href="Gender_inference.html">Gender inference</a>
 </li>
 <li>
-  <a href="Grant_parsing.html">Grant parsing</a>
+  <a href="Mention_url_extraction.html">News full text and author names</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -402,23 +405,19 @@ updated once we get a list of handles…</h1>
 ## $ did               &lt;chr&gt; &quot;did:plc:6uehlptl2bcbb5qgmb26p2sk&quot;
 ## $ handle            &lt;chr&gt; &quot;anamacanovic.bsky.social&quot;
 ## $ displayName       &lt;chr&gt; &quot;Ana Macanovic&quot;
-## $ description       &lt;chr&gt; &quot;PhD Candidate in Sociology @UniUtrecht/ICS | explor…
 ## $ avatar            &lt;chr&gt; &quot;https://cdn.bsky.app/img/avatar/plain/did:plc:6uehl…
-## $ followsCount      &lt;int&gt; 123
-## $ followersCount    &lt;int&gt; 157
-## $ postsCount        &lt;int&gt; 14
-## $ indexedAt         &lt;chr&gt; &quot;2023-09-11T07:42:52.595Z&quot;
 ## $ viewer_muted      &lt;lgl&gt; FALSE
 ## $ viewer_blockedBy  &lt;lgl&gt; FALSE
-## $ viewer_followedBy &lt;chr&gt; &quot;at://did:plc:6uehlptl2bcbb5qgmb26p2sk/app.bsky.grap…</code></pre>
+## $ viewer_followedBy &lt;chr&gt; &quot;at://did:plc:6uehlptl2bcbb5qgmb26p2sk/app.bsky.grap…
+## $ description       &lt;chr&gt; &quot;PhD Candidate in Sociology @UniUtrecht/ICS | explor…
+## $ indexedAt         &lt;chr&gt; &quot;2024-01-26T01:05:09.055Z&quot;
+## $ followersCount    &lt;int&gt; 159
+## $ followsCount      &lt;int&gt; 124
+## $ postsCount        &lt;int&gt; 14</code></pre>
 <p>Get all the skeets:</p>
 <pre class="r"><code>user_skeets &lt;- get_skeets_authored_by(actor = &quot;anamacanovic.bsky.social&quot;, limit = 150) %&gt;%
   dplyr::glimpse()</code></pre>
 <pre><code>## 
-⠙ Got 19 skeets, but there is more.. [319ms]
-
-                                             
-
 ℹ Parsing 19 results.
 
 ✔ Got 19 results. All done!</code></pre>
@@ -428,10 +427,10 @@ updated once we get a list of handles…</h1>
 ## $ cid          &lt;chr&gt; &quot;bafyreiavbqtpigrauwl6y75kdh6bx7vddvmyhdwshhzc5tynd6iuvnk…
 ## $ author       &lt;list&gt; [&quot;did:plc:6uehlptl2bcbb5qgmb26p2sk&quot;, &quot;anamacanovic.bsky.…
 ## $ text         &lt;chr&gt; &quot;I wrote this paper as an entry level intoduction to vari…
-## $ record       &lt;list&gt; [&quot;I wrote this paper as an entry level intoduction to va…
+## $ record       &lt;list&gt; [&quot;app.bsky.feed.post&quot;, &quot;2023-11-07T16:32:11.239Z&quot;, [&quot;app…
 ## $ reply_count  &lt;int&gt; 0, 0, 1, 0, 15, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 10
-## $ repost_count &lt;int&gt; 2, 13, 29, 44, 143, 0, 0, 3, 3, 0, 1, 1, 0, 0, 1, 0, 0, 0…
-## $ like_count   &lt;int&gt; 5, 11, 61, 31, 289, 1, 1, 10, 7, 0, 2, 0, 0, 2, 6, 1, 6, …
+## $ repost_count &lt;int&gt; 2, 13, 29, 44, 142, 0, 0, 3, 3, 0, 1, 1, 0, 0, 1, 0, 0, 0…
+## $ like_count   &lt;int&gt; 5, 11, 60, 31, 288, 1, 1, 10, 7, 0, 2, 0, 0, 2, 6, 1, 6, …
 ## $ indexed_at   &lt;dttm&gt; 2023-11-07 16:32:11, 2023-10-19 12:50:11, 2023-10-11 13:2…
 ## $ reply        &lt;list&gt; [[&quot;app.bsky.feed.defs#postView&quot;, &quot;at://did:plc:6gmtdexnr…
 ## $ is_reskeet   &lt;lgl&gt; FALSE, TRUE, TRUE, TRUE, TRUE, FALSE, FALSE, TRUE, FALSE…</code></pre>

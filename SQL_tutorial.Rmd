@@ -140,3 +140,8 @@ grants_example <- dbGetQuery(conn = con, statement = "select * from grant_info w
 coauthors_example <- dbGetQuery(conn = con, statement = "select * from coauthor_info where \"profile_id\"='https://www.narcis.nl/person/RecordID/PRS1292207'")
 ```
 
+Get counts of publications per profile_id:
+```{r}
+pub_counts <- dbGetQuery(conn = con, statement = "SELECT COUNT(DISTINCT \"id\"),\"profile_id\" FROM oa_pubs GROUP BY \"profile_id\";")
+```
+

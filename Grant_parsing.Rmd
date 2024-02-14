@@ -43,11 +43,18 @@ replace by an easy token indicating splits:
 ```{r}
 # introduce an easy "splitting" token instead of gender notions
 professor_grant_awards$name_extract <- professor_grant_awards$professor
+professor_grant_awards$name_extract <- str_squish(professor_grant_awards$name_extract)
 professor_grant_awards$name_extract <- str_replace(professor_grant_awards$name_extract, "\\(m\\)",
                                                    "(*)")
 professor_grant_awards$name_extract <- str_replace(professor_grant_awards$name_extract, "\\(v\\)",
                                                    "(*)")
 professor_grant_awards$name_extract <- str_replace(professor_grant_awards$name_extract, "\\(f\\)",
+                                                   "(*)")
+professor_grant_awards$name_extract <- str_replace(professor_grant_awards$name_extract, "\\(M\\)",
+                                                   "(*)")
+professor_grant_awards$name_extract <- str_replace(professor_grant_awards$name_extract, "\\(V\\)",
+                                                   "(*)")
+professor_grant_awards$name_extract <- str_replace(professor_grant_awards$name_extract, "\\(F\\)",
                                                    "(*)")
 
 # if there is no (*) identified, replace the first comma
@@ -209,10 +216,53 @@ professor_grant_awards_final <- filter(professor_grant_awards_final,
 professor_grant_awards_final <- professor_grant_awards_final[, -c(ncol(professor_grant_awards_final))]
 ```
 
+Some more cleaning up needed for the more recent years:
+```{r}
+professor_grant_awards_final <- filter(professor_grant_awards_final,
+                                       ! initials %in% c("Donders", "Amsterdam", "Faculteit"))
+
+# some professors are missing last names, so get them
+professor_grant_awards_missing_last <- filter(professor_grant_awards_final,
+                                             is.na(last))
+
+# and extract the word after their first name
+professor_grant_awards_missing_last$first_correction <- str_extract(professor_grant_awards_missing_last$full_string, 
+                                                                    paste0("(?<=", professor_grant_awards_missing_last$initials, "\\s)[^;]+"))
+
+professor_grant_awards_missing_last$last <- str_split_i(professor_grant_awards_missing_last$first_correction, " ", 1)
+professor_grant_awards_missing_last$last <- str_remove(professor_grant_awards_missing_last$last, ",")
+
+# manual replpacement for some last names containing "Van"
+professor_grant_awards_missing_last$last[which(professor_grant_awards_missing_last$full_string  == "dr. E van Roekel (F), VU Amsterdam")] <- "van Roekel"
+professor_grant_awards_missing_last$last[which(professor_grant_awards_missing_last$full_string  == "Lisanne van Dijk PhD, University Medical Center Groningen (UMCG)")] <- "van Dijk"
+professor_grant_awards_missing_last$last[which(professor_grant_awards_missing_last$full_string  == "Dr. A van der Ent, Wageningen University &amp; Research")] <- "van der Ent"
+professor_grant_awards_missing_last$last[which(professor_grant_awards_missing_last$initials  == "P")] <- "Wan"
+
+# get the first names from the initials field where applicable
+professor_grant_awards_missing_last$first[which(! professor_grant_awards_missing_last$initials  %in% c("P", "E", "J.S.L", "L", "A", "SRM"))] <- professor_grant_awards_missing_last$initials[which(! professor_grant_awards_missing_last$initials  %in% c("P", "E", "J.S.L", "L", "A", "SRM"))]
+
+# turn their names into initials where applicable
+professor_grant_awards_missing_last$initials[which(! professor_grant_awards_missing_last$initials  %in% c("P", "E", "J.S.L", "L", "A", "SRM"))] <- str_sub(professor_grant_awards_missing_last$initials, 1, 1)[which(! professor_grant_awards_missing_last$initials  %in% c("P", "E", "J.S.L", "L", "A", "SRM"))]
+
+# add a full stop to the end of their initials
+professor_grant_awards_missing_last$initials <- paste0(professor_grant_awards_missing_last$initials, ".")
+professor_grant_awards_missing_last$initials[which(professor_grant_awards_missing_last$initials  == "SRM.")] <- "S.R.M"
+
+# add this back on
+professor_grant_awards_final_1 <- filter(professor_grant_awards_final,
+                                         !is.na(last))
+
+professor_grant_awards_final <- rbind(professor_grant_awards_final_1,
+                                        professor_grant_awards_missing_last[colnames(professor_grant_awards_final_1)])
+```
+
+
 ```{r}
 # drop any redundant objects from memory
 rm(professor_grant_awards)
 rm(professor_grant_awards_clean)
+rm(professor_grant_awards_final_1)
+rm(professor_grant_awards_missing_last)
 ```
 
 # Match grant information to professors 
@@ -257,12 +307,40 @@ professor_grant_awards_narcis_match <- merge(professor_grant_awards_narcis,
                                              by = "first_last")
 ```
 
-Select the relevant columns:
+Since 2021, however, there are no first names on NWO pages, so let's check by last names:
 ```{r}
-professor_grant_awards_narcis_final <- professor_grant_awards_narcis_match[, c("grant",
-                                                                               "year",
-                                                                               "profile_id")]
+# also, filter out venis, because our professors are unlikely to have received those recently
+professor_grant_match_2021 <- filter(professor_grant_awards_final,
+                                     year > 2020 & grant != "veni")
+
+professor_grant_match_2021$initials_last <- tolower(paste(professor_grant_match_2021$initials, professor_grant_match_2021$last))
+profs_full$initials_last <- tolower(paste(str_split_i(profs_full$initialen, " \\(", 1), profs_full$last))
+
+professor_grant_awards_narcis_match_2021 <- merge(professor_grant_match_2021,
+                                             profs_full[, c("profile_id", "initials_last")],
+                                             by = "initials_last")
+
+# one duplicate with R. Vliegenthart, manually checking shows it's Rens and not Rozemarijn:
+professor_grant_awards_narcis_match_2021 <- filter(professor_grant_awards_narcis_match_2021,
+                                                   profile_id != "https://www.narcis.nl/person/RecordID/PRS1325655")
+
 ```
+
+Merge the two parts of the dataset:
+```{r}
+professor_grant_awards_narcis_match <- professor_grant_awards_narcis_match[c("grant",
+                                                                             "year",
+                                                                             "profile_id")]
+
+professor_grant_awards_narcis_match_2021 <- professor_grant_awards_narcis_match_2021[c("grant",
+                                                                             "year",
+                                                                             "profile_id")]
+
+professor_grant_awards_narcis_final <- rbind(professor_grant_awards_narcis_match,
+                                             professor_grant_awards_narcis_match_2021)
+```
+
+
 
 Write this out:
 ```{r}

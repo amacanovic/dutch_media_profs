@@ -26,12 +26,16 @@ knitr::opts_chunk$set(message = FALSE)
 Load the libraries that we need:
 ```{r warning = F, message = F, eval = T}
 library(groundhog)
-packages_to_load <- c("readr", "dplyr", 
-                      "stringr", "ggplot2")
+packages_to_load <- c("readr", "dplyr", "jsonlite",
+                      "stringr", "ggplot2", "RPostgres", 
+                      "digest","DBI", "RODBC", "odbc")
 groundhog.library(packages_to_load, date = "2023-12-01")
+# load the helper function file
+source("helper_functions.R")
 ```
 
-# Tidy up professor data from NARCIS
+# Professors
+## Tidy up professor data from NARCIS
 
 Load the professor profiles:
 ```{r message = F, warning = F}
@@ -81,36 +85,9 @@ saveRDS(profs_full, "processed_data/media_profs_profiles_fixed.RDS")
 ```
 
 
-# Using Genderize.io
+## Using Genderize.io
 
-## Define a function calling the API
-```{r eval = F}
-genderize_io_function <- function(name,
-                                  api_key = "",
-                                  country_id = ""){
-  # call the api using the name
-  name_call <- paste0("https://api.genderize.io?name=", name)
-  
-  # if country ID provided
-  if (country_id != ""){
-    name_call <- paste0(name_call, "&country_id=", toupper(country_id))
-  }
-  # if API key provided
-  if (api_key !=""){
-    name_call <- paste0(name_call, "&apikey=", api_key, "")
-  }
-  output <- fromJSON(txt=name_call)
-  # if no gender predicted
-  if(is.null(output[["gender"]])){
-    output[["gender"]] <- NA
-  }
-  output <- data.frame(output)
-  return(output)
-}
-```
-
-
-## Inferring gender
+### Inferring gender
 ```{r warning = F, message = F}
 # fill in own api key
 genderize_api_key <- ''
@@ -135,7 +112,7 @@ saveRDS(genderize_data , "processed_data/profs_full_gender_genderize.RDS")
 ```
 
 
-# Inference using the Voornamenbank
+## Inference using the Voornamenbank
 
 Use the same name list to get the data from the Dutch register by calling the
 Nederlandes Voornamenbank:
@@ -191,7 +168,7 @@ Save this:
 saveRDS(voornamenbank_data, "processed_data/voornamenbank_data.RDS")
 ```
 
-# Combine the genderize and voornamenbank data for final inference
+## Combine the genderize and voornamenbank data for final inference
 
 ```{r}
 genderize_data <- readRDS("processed_data/profs_full_gender_genderize.RDS")
@@ -420,7 +397,7 @@ saveRDS(profs_full_gender, "processed_data/profs_full_gender.RDS")
 
 
 
-# Plots 
+## Plots 
 
 ```{r echo = F, eval = TRUE}
 profs_full_gender <- readRDS("processed_data/profs_full_gender.RDS")
@@ -446,3 +423,83 @@ ggplot(profs_full_gender, aes(format(inferred_gender))) +
     geom_bar(stat = "count") +
     labs(x = "Number")
 ```
+
+
+# Coauthors
+
+Connect to the postgres database.
+Use own credentials.
+```{r}
+port <- 
+user <- ""
+password <- ""
+database_name <- ""
+
+con <- RPostgres::dbConnect(RPostgres::Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+
+con # Checks connection is working
+```
+
+Retrieve the full list of coauthor names from the database:
+```{r}
+coauthor_names <- dbReadTable(con, "oa_coauthor_name_list")
+# lowercase the names
+coauthor_names$first_lowercase <- tolower(coauthor_names$first)
+# remove any remaining special characters apart from dashes that enter many names
+coauthor_names$first_lowercase <- gsub("[^-[:^punct:]]", "", coauthor_names$first_lowercase, perl=T)
+```
+
+And then make a list of unique names that appear at least 3 times in our dataset 
+(which covers 84.6% of all people, and 22.7 k names)
+```{r}
+coauathor_name_counts <- coauthor_names %>%
+  group_by(first_lowercase)%>%
+  summarise(n = n())%>%
+  filter(n > 3)
+
+unique_names <- distinct(coauathor_name_counts, first_lowercase)
+```
+
+Inferring gender with genderize.io:
+```{r}
+# fill in own api key
+genderize_api_key <- ''
+
+# list of names
+names <- unique_names$first_lowercase
+
+coauthor_name_gender <- data.frame(matrix(NA, nrow = 0, ncol = 4))
+
+for (i in 1:length(names)){
+  name <- names[i]
+  output <- genderize_io_function(name,
+                      api_key = genderize_api_key)
+  
+  coauthor_name_gender  <- rbind(coauthor_name_gender ,
+                            output)
+  print(paste("done with", i, "out of", length(names)))
+}
+
+dbWriteTable(con, "coauthor_name_gender", coauthor_name_gender , row.names=FALSE, append=TRUE)
+saveRDS(coauthor_name_gender  , "processed_data/coauthor_gender_genderize_all.RDS")
+```
+
+# Journalists from Mentions data
+Get the journalist names where applicable:
+```{r}
+mentions_full_text <- dbReadTable(con, "mentions_full_text") 
+
+# remove NAs
+mentions_full_text_authors <- filter(mentions_full_text,
+                                      !is.na(web_author))
+
+# check for newspaper names
+counts_of_authors <- mentions_full_text_authors %>%
+  group_by(web_author)%>%
+  summarise(n = n())
+```
+
