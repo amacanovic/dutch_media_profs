@@ -8,9 +8,10 @@ output: html_document
 This script provides some insights into our final dataset.
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(eval = FALSE)
+#knitr::opts_chunk$set(eval = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(cache = TRUE, cache.lazy = FALSE)
 ```
 
 Load the necessary packages:
@@ -25,10 +26,10 @@ groundhog.library(packages_to_load, date = "2023-12-01")
 
 Connect to our database:
 ```{r}
-port <- 
-user <- ""
-password <- ""
-database_name <- ""
+port <- 5432
+user <- "postgres"
+password <- "dutchmediaprofssql"
+database_name <- "postgres"
 
 con <- RPostgres::dbConnect(RPostgres::Postgres(),
                  dbname= database_name,
