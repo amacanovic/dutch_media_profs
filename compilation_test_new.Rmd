@@ -1,0 +1,227 @@
+---
+title: "Untitled"
+author: "Ana Macanovic"
+date: "2024-01-29"
+output: html_document
+---
+
+This script compiles our various data resources into a panel data of professors'
+publications, citations, mentions, and coauthorships per year.
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+Load the packages:
+```{r message=  F, warning = F, eval = T}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "tidyr",
+                      "tidyverse", "RPostgres", "lubridate",
+                      "digest", "DBI", "RODBC", "odbc")
+groundhog.library(packages_to_load, date = "2023-12-01")
+
+# load the helper function file
+source("helper_functions.R")
+```
+
+
+# Tidy up professor data from NARCIS
+
+Load the professor profiles:
+```{r message = F, warning = F}
+narcis_prof_info <- dbReadTable(con, "narcis_prof_info")
+```
+
+
+Connect to the database:
+```{r}
+# fill in own credentials
+port <- 
+user <- ""
+password <- ""
+database_name <- ""
+
+con <- RPostgres::dbConnect(RPostgres::Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+
+con # Checks connection is working
+```
+
+
+Now, get the narcis ids and start compiling per ID:
+```{r}
+narcis_ids <- narcis_prof_info$profile_id
+
+for (i in 1:length(narcis_ids)){
+  id <- narcis_ids[i]
+  
+  # get the author's OA IDs
+  oa_ids <- dbGetQuery(conn = con, 
+                          statement = paste0("select * from oa_id_mapping where \"profile_id\"='", id, "'"))
+  
+  oa_id_list <- oa_ids$oa_id
+  
+  # load the relevant data from the publications table in our database
+  prof_pubs <- dbGetQuery(conn = con, 
+                          statement = paste0("select * from oa_prof_pubs where \"profile_id\"='", id, "'"))
+  
+  unique_pubs <- prof_pubs %>%
+    distinct(., id, .keep_all = TRUE)%>%
+    select(-counts_by_year_year, -counts_by_year_cited_by_count)
+  
+  # get the publications per year
+  prof_year_pubs <- unique_pubs %>% 
+    filter(!is.na(publication_year))%>%
+    distinct(id, .keep_all = TRUE)%>%
+    group_by(publication_year)%>%
+    summarise(count_pubs = n())%>%
+    arrange(publication_year)%>%
+    mutate(count_pubs_total = cumsum(count_pubs))%>%
+    arrange(publication_year)
+
+  # citations per year
+  prof_year_citations <- prof_pubs %>% 
+    filter(!is.na(publication_year) & !is.na(counts_by_year_year) & !is.na(language))%>%
+    group_by(counts_by_year_year)%>%
+    summarise(cited_by = sum(counts_by_year_cited_by_count))%>%
+    arrange(counts_by_year_year) %>%
+    mutate(cited_by_total_oa = cumsum(cited_by))
+  
+  # total citations per paper
+  total_citations <- unique_pubs %>%
+    summarise(cited_by_since_pub_2023 = sum(cited_by_count))
+  
+  # get the citations preceding 2012 by deducting the 2012 citations from the total
+  latest_citation <- prof_year_citations %>%
+    slice(which.max(counts_by_year_year))
+  
+  # merge total citations with the rest of citations
+  total_citations <- merge(total_citations,
+                           latest_citation[, -c(2, 4)],
+                           all.x = TRUE,
+                           by = c("author_position", "language"))%>%
+    replace(is.na(.), 0)
+  
+  # find citations before 2012 by deducting the total accrued over the last decade from the total number of citations
+  total_citations$cited_by_before_2012 <- total_citations$cited_by_since_pub_2023 - total_citations$cited_by_total_oa
+  
+  colnames(prof_year_citations)[2] <- "year"
+  colnames(prof_year_pubs)[2] <- "year"
+  
+  # combine, filling gaps with NAs
+  prof_year_pubs_citations <- merge(prof_year_pubs,
+                                    prof_year_citations,
+                                    all.x = TRUE,
+                                    all.y = TRUE,
+                                    by = c("author_position", "year", "language"))
+  
+  # and merge the pre-2012 citations
+  prof_year_pubs_citations <- merge(prof_year_pubs_citations,
+                                    total_citations[c("author_position", "language", "cited_by_before_2012")],
+                                    all.x = TRUE,
+                                    all.y = TRUE,
+                                    by = c("author_position", "language"))
+  # fill the NAs with preceding values for the total publication count
+  prof_year_pubs_citations <- prof_year_pubs_citations %>%
+    arrange(author_position, language, year) %>%
+    group_by(author_position, language)%>%
+    tidyr::fill(count_pubs_total, .direction = "downup")%>%
+    filter(!is.na(year))
+  # and with zeroes for that year's pubs
+  prof_year_pubs_citations$count_pubs <- ifelse(is.na(prof_year_pubs_citations$count_pubs), 
+                                                0, 
+                                                prof_year_pubs_citations$count_pubs)
+  
+  # and cumulative citations of before 2012 + total_oa
+  prof_year_pubs_citations$cumulative_citations <- prof_year_pubs_citations$cited_by_before_2012 + prof_year_pubs_citations$cited_by_total_oa
+  # get the year of first publication 
+  prof_year_pubs_citations$first_pub <- min(prof_pubs$publication_year)
+  # years since first pub
+  prof_year_pubs_citations$since_first_pub <- prof_year_pubs_citations$year - prof_year_pubs_citations$first_pub
+  # add the professor profile_id
+  prof_year_pubs_citations$profile_id <- id
+
+
+  # now get professor's coauthors per year
+  prof_coauthors <- dbGetQuery(conn = con, 
+                          statement = paste0("select * from oa_coauthor_info where \"profile_id\"='", id, "'"))
+  
+  # add "unknown" if NAs
+  prof_coauthors$institution_country_code <- ifelse(is.na(prof_coauthors$institution_country_code),
+                                                    "unknown",
+                                                    prof_coauthors$institution_country_code)
+  
+  # get additional coauthor info
+  prof_coauthors_full <- dbGetQuery(conn = con, 
+                          statement = paste0('select * from oa_coauthor_info_full where \"id\" in (', toString(sprintf("'%s'", unique(prof_coauthors$au_id))), ")"))
+  # select and rename some columns for matching
+  prof_coauthors_full <- prof_coauthors_full[c("id", "works_count", "cited_by_count", 
+                                                         "counts_by_year_year", "counts_by_year_works_count", 
+                                                         "counts_by_year_cited_by_count", "affiliation_country_code")]
+  colnames(prof_coauthors_full)[c(1, 4, 5, 6)] <- c("au_id", "year", "count_pubs_year", "cited_by_year")
+  
+  # get the profs cumulative stats
+  prof_coauthors_full <- prof_coauthors_full %>%
+    arrange(year) %>%
+    group_by(au_id)%>%
+    mutate(count_pubs_year_total = cumsum(count_pubs_year),
+           cited_by_year_total = cumsum(cited_by_year))
+  # to get their citations at that time, first get their cumualative per-year citations in the last available year
+  # total citations per author
+  coauthors_total_citations <- prof_coauthors_full %>%
+    group_by(au_id)%>%
+    summarise(cited_by_since_pub_2023 = unique(cited_by_count),
+              pubs_since_pub_2023 = unique(works_count))
+  
+  coauthors_latest_citations <- prof_coauthors_full %>%
+    group_by(au_id)%>%
+    slice(which.max(year))
+  
+  # merge total citations with the rest of citations
+  coauthors_total_citations <- merge(coauthors_total_citations,
+                           coauthors_latest_citations[, c(1, 8, 9)],
+                           all.x = TRUE,
+                           by = c("au_id"))%>%
+    replace(is.na(.), 0)
+  
+  
+  # find citations before 2012 by deducting the total accrued over the last decade from the total number of citations
+  coauthors_total_citations$cited_by_before_2012 <- coauthors_total_citations$cited_by_since_pub_2023 - coauthors_total_citations$cited_by_year_total  
+  coauthors_total_citations$pubs_before_2012 <- coauthors_total_citations$pubs_since_pub_2023 - coauthors_total_citations$count_pubs_year_total  
+
+  # merge this with the per-year coauthor info
+  prof_coauthors_pubs_citations <- merge(prof_coauthors_full,
+                                         coauthors_total_citations[, c("au_id", "cited_by_before_2012", "pubs_before_2012")],
+                                         by = "au_id")
+  # and now get the total citations, and follow as they increase per year
+  #  cumulative citations of before 2012 + total_oa
+  prof_coauthors_pubs_citations$cumulative_citations <- prof_coauthors_pubs_citations$cited_by_before_2012 + prof_coauthors_pubs_citations$cited_by_year_total
+  prof_coauthors_pubs_citations$cumulative_pubs <- prof_coauthors_pubs_citations$pubs_before_2012 + prof_coauthors_pubs_citations$count_pubs_year_total
+
+  # get merge the additional stats with coauthor info for the year they coauthored together
+  prof_coauthors_extended <- merge(prof_coauthors,
+                                   prof_coauthors_pubs_citations[c("au_id", "works_count", "cited_by_count", 
+                                                                   "year", "count_pubs_year", "cited_by_year",
+                                                                   "count_pubs_year_total", "cited_by_year_total",
+                                                                   "cited_by_before_2012", "pubs_before_2012", 
+                                                                   "cumulative_pubs", "affiliation_country_code")],
+                                   by = c("au_id"),
+                                   all.x = TRUE)
+  
+  
+  prof_coauthors_per_year <- prof_coauthors %>%
+    group_by(institution_country_code, year)%>%
+    summarise(coauthors = n())%>%
+    mutate(coauthors_total = cumsum(coauthors))
+
+  
+  
+}
+```
+

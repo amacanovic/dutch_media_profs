@@ -621,6 +621,18 @@ for(i in 1:length(narcis_ids)){
 
 ```
 
+Write out the unique publication list:
+```{r}
+oa_prof_pubs <- dbReadTable(con, "oa_prof_pubs")
+
+oa_prof_pubs_unique <- distinct(oa_prof_pubs, id, .keep_all = TRUE)
+
+oa_prof_pubs_unique <- oa_prof_pubs_unique %>%
+  select(-counts_by_year_year, -counts_by_year_cited_by_count)
+
+dbWriteTable(con, "oa_prof_pubs_unique", oa_prof_pubs_unique)
+```
+
 
 # Professor Altmetric data
 

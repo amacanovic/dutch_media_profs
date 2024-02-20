@@ -24,7 +24,7 @@ navbar:
     - text: "Open Alex and Altmetric data download"
       href: OpenAlex_Altmetric_data_download.html
     - text: "Data descriptives"
-      href: Data_descriptives.html
+      href: Overall_descriptives.html
     - text: "SQL database manual"
       href: SQL_tutorial.html
     - text: "Gender inference"

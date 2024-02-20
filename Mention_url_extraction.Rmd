@@ -110,7 +110,7 @@ prof_mention_scraped_data <- read_csv("../dutch_media_profs_python/news_mentions
 prof_mention_extracted_data <- data.frame(matrix(NA, ncol = 14, nrow = 0))
   
 for (i in 1:nrow(prof_mention_scraped_data)){
-  row_of_interest <- prof_mention_scraped_data[i, c("url", "doi", "response")]
+  row_of_interest <- prof_mention_scraped_data[i, c("url", "response")]
   
   text <- as.character(prof_mention_scraped_data$content[i])
   sitename <- NA
@@ -200,7 +200,7 @@ for (i in 1:nrow(prof_mention_scraped_data)){
   row_combined <- cbind(row_of_interest,
                         row_content)
   
-  prof_mention_extracted_data_batch <- rbind(prof_mention_extracted_data_batch,
+  prof_mention_extracted_data <- rbind(prof_mention_extracted_data,
                                              row_combined)
   
   print(paste("done with", i, "out of", nrow(prof_mention_scraped_data)))
@@ -213,16 +213,32 @@ Write this to our database:
 dbWriteTable(con, "pub_att_news_full_text", prof_mention_extracted_data, row.names=FALSE, append=TRUE) 
 ```
 
+How many were ok and how many had errors?
+```{r}
+prof_mention_extracted_data$code <- ifelse(prof_mention_extracted_data$response == "200", "ok", "error")
+table(prof_mention_extracted_data$code)
+```
+
+Most common response codes?
+```{r}
+prof_mention_extracted_data %>%
+  group_by(response)%>%
+  summarise(n = n(),
+            prop = round(n()/nrow(prof_mention_extracted_data)*100,2))%>%
+  arrange(-n)
+```
+
+
 Tidy up the data a bit, dropping any error codes and dropping some of the
 results that did not return the actual news articles:
 ```{r}
 # only sucessful responses
 prof_mention_extracted_data_clean <- filter(prof_mention_extracted_data,
-                                            web_response == "200")
+                                            response == "200")
 
 # seek out erroneous content
 erroneous_content <- prof_mention_extracted_data_clean %>%
-  group_by(web_content)%>%
+  group_by(content)%>%
   summarise(n = n())%>%
   arrange(-n)
 ```
@@ -231,19 +247,20 @@ Filter out the most frequent pieces of content that are not containing actual
 news articles:
 ```{r}
 # indices of content that is not actual news and has appeared at least 5 times
-filter_out_indices <- c(1:41, 43:44, 51:52, 55, 57, 49:60, 62, 64, 67:69,
-                        86, 88, 110, 115, 144, 146, 148, 167, 182, 196:197,
-                        216, 247, 256, 260:261, 269, 273, 292, 295, 300, 309,
-                        326, 345, 354, 356, 364:368, 371, 383, 399, 416:417,
-                        421:422, 433:434, 442:443, 473, 497, 528, 531, 546:548,
-                        553, 561, 570, 597, 600, 683, 696, 707, 721:722, 740)
+filter_out_indices <- c(1:38, 40:42, 47:48, 50, 56, 57, 49:60, 65, 66, 70,
+                        71, 73:74, 81, 963, 101, 103, 106:108, 115, 119, 126,
+                        137, 138, 156, 187, 225, 238, 249, 259, 261, 273,
+                        274, 288, 289, 303, 307, 308, 316, 341, 342, 349, 
+                        354, 361, 362, 367, 370, 373, 386, 387, 406, 413, 
+                        418, 423, 431, 436, 451, 464, 511:512, 528, 529,
+                        533, 534, 539, 540, 544, 545, 595, 603:605, 622,
+                        623, 628)
 
-
-filter_out_strings <- erroneous_content$web_content[filter_out_indices]
+filter_out_strings <- erroneous_content$content[filter_out_indices]
 
 # filter those mentions out
 prof_mention_extracted_data_clean <- filter(prof_mention_extracted_data_clean,
-                                            ! web_content %in% filter_out_strings)
+                                            ! content %in% filter_out_strings)
 ```
 
 Now, to identify people's names, use the database of US and Dutch first names.
@@ -266,9 +283,13 @@ for (file in us_names_files){
                         file_read)
 }
 
+# and only keep names carried by at least 500 people (like in the dutch dataset)
+us_names_all_500 <- filter(us_names_all, 
+                              V3 >= 500)
 # we need only the unique name list
-us_names_unique <- distinct(us_names_all, V1)
+us_names_unique <- distinct(us_names_all_500, V1)
 us_names_unique <- tolower(us_names_unique$V1)
+
 
 # dutch names
 nl_names <- read_delim("resources/Top_eerste_voornamen_NL_2017.csv", 
@@ -289,9 +310,9 @@ mentions dataset.
 First, tidy the data up a bit:
 ```{r}
 prof_mention_extracted_data_authors <- filter(prof_mention_extracted_data_clean,
-                                              !is.na(web_author))
+                                              !is.na(author))
 # clean up the author column a bit
-prof_mention_extracted_data_authors$author_match <- tolower(prof_mention_extracted_data_authors$web_author)
+prof_mention_extracted_data_authors$author_match <- tolower(prof_mention_extracted_data_authors$author)
 
 # separate mutliple authors with ";"
 author_list <- prof_mention_extracted_data_authors %>%
@@ -377,7 +398,7 @@ author_list_filt_names_unique <-  author_list_filt_names_unique %>%
 
 
 # rename columns for merge
-colnames(author_list_filt_names_unique) <- c("url", "web_author_tidy", "web_author_first_name")
+colnames(author_list_filt_names_unique) <- c("url", "author_tidy", "author_first_name")
 ```
 
 Combine these names with the full mention list:
@@ -389,21 +410,21 @@ first_merge <- merge(prof_mention_extracted_data_authors,
 
 
 full_mention_data_names <- merge(prof_mention_extracted_data,
-                                 first_merge[c("web_author", "web_author_first_name")],
-                                 by = "web_author",
+                                 first_merge[c("author", "author_first_name")],
+                                 by = "author",
                                  all.x = TRUE)
 
 # only select the url_id and name columns, so that we can later match this to 
 # the actual mentions content
 full_mention_data_names <- full_mention_data_names %>%
-  select(url_id, web_author_first_name)
+  select(url, author_first_name)
 
 # remove a few more names that are incorrect and only select the first name appearing
 # then also only leave the URL and the name
 full_mention_data_names <- filter(full_mention_data_names,
-                                  ! web_author_first_name %in% c("said", "field"))%>%
+                                  ! author_first_name %in% c("el") & !is.na(author_first_name))%>%
   distinct(., url, .keep_all = TRUE)%>%
-  select(url, web_author_first_name)
+  select(url, author_first_name)
 
 dbWriteTable(con, "pub_att_news_author_names", full_mention_data_names, row.names=FALSE, append=TRUE) 
 

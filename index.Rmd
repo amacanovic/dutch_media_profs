@@ -40,7 +40,7 @@ klippy::klippy(position = c('top', 'right'))
 ::: {.column width="80%"}
 
 # Repository Description
-Last compiled on `r format(Sys.time(), '%B, %Y')`  
+Last compiled on `r format(Sys.time(), '%B %d, %Y')`  
 
 This website shows the script for the Dutch Media Profs project.
 

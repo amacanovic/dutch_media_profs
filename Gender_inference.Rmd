@@ -453,15 +453,9 @@ coauthor_names$first_lowercase <- tolower(coauthor_names$first)
 coauthor_names$first_lowercase <- gsub("[^-[:^punct:]]", "", coauthor_names$first_lowercase, perl=T)
 ```
 
-And then make a list of unique names that appear at least 3 times in our dataset 
-(which covers 84.6% of all people, and 22.7 k names)
+Get unique names in our dataset:
 ```{r}
-coauathor_name_counts <- coauthor_names %>%
-  group_by(first_lowercase)%>%
-  summarise(n = n())%>%
-  filter(n > 3)
-
-unique_names <- distinct(coauathor_name_counts, first_lowercase)
+unique_names <- distinct(coauthor_names, first_lowercase)
 ```
 
 Inferring gender with genderize.io:
@@ -485,8 +479,13 @@ for (i in 1:length(names)){
 }
 
 dbWriteTable(con, "coauthor_name_gender", coauthor_name_gender , row.names=FALSE, append=TRUE)
-saveRDS(coauthor_name_gender  , "processed_data/coauthor_gender_genderize_all.RDS")
 ```
+
+What is the share?
+```{r}
+
+```
+
 
 # Journalists from Mentions data
 Get the journalist names where applicable:

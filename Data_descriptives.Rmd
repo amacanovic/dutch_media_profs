@@ -43,6 +43,9 @@ con <- RPostgres::dbConnect(RPostgres::Postgres(),
 ## NARCIS data
 First, the counts of professor profiles and NARCIS publications
 ```{r}
+profs_full <- dbGetQuery(con, "select * from narcis_prof_info;")
+prof_pubs_full <- dbGetQuery(con, "select * from narcis_pub_info;")
+
 nrow(profs_full)
 nrow(prof_pubs_full)
 ```
@@ -233,6 +236,41 @@ table(coauthor_name_list_not_na$gender)
 prop.table(table(coauthor_name_list_not_na$gender))*100
 ```
 
+## Attention data
+
+News attention:
+```{r}
+altmetric_pub_att_blogs <- dbGetQuery(con, "select * from altmetric_pub_att_blogs;")
+altmetric_pub_att_news <- dbGetQuery(con, "select * from altmetric_pub_att_news;")
+altmetric_pub_att_reddit <- dbGetQuery(con, "select * from altmetric_pub_att_reddit;")
+altmetric_pub_att_wiki <- dbGetQuery(con, "select * from altmetric_pub_att_wiki;")
+altmetric_pub_att_policy <- dbGetQuery(con, "select * from altmetric_pub_att_policy;")
+# altmetric_pub_att_twitter <- dbGetQuery(con, "select * from altmetric_pub_att_twitter;")
+
+```
+
+Average mentions per publication:
+```{r}
+items <- c("blogs", "news", "reddit", "wiki", "policy")
+total_pubs <- 1208052
+
+for (item in items){
+  data <- get(paste0("altmetric_pub_att_", item))
+  
+  grouped <- data %>%
+    group_by(id)%>%
+    summarise(n = n())
+  
+  print(item)
+  print(paste("attention count:", nrow(data)))
+  print(paste("publications receiving attention:", nrow(grouped)))
+  print(paste("share w/ att. out of all pub:", nrow(grouped)/total_pubs*100))
+  print(paste("attention per mentioned pub:", sum(grouped$n)/nrow(grouped)))
+  print(paste("attention per any pub:", sum(grouped$n)/total_pubs))
+}
+```
+
+
 # OA vs NARCIS publication coverage
 
 Using DOIs and titles, estimate the extent to which OA covers our NARCIS data.
@@ -355,3 +393,47 @@ Median coverage is 42%:
 ```{r}
 summary(full_prof_coverage$coverage_oa_narcis)
 ```
+
+# A flat table of professor statistics
+```{r}
+oa_prof_pubs_unique <- dbReadTable(con, "oa_prof_pubs_unique")
+
+altmetric_pub_att_news <- dbReadTable(con, "altmetric_pub_att_news")
+altmetric_pub_att_wiki <- dbReadTable(con, "altmetric_pub_att_wiki")
+
+# merge
+
+grouped_news <- altmetric_pub_att_news %>%
+  group_by(id)%>%
+  summarise(n_news = n())
+
+grouped_wiki <- altmetric_pub_att_wiki %>%
+  group_by(id)%>%
+  summarise(n_wiki = n())
+
+grouped_policy <- altmetric_pub_att_policy %>%
+  group_by(id)%>%
+  summarise(n_policy = n())
+
+oa_prof_pubs_merge <- merge(oa_prof_pubs,
+                            grouped_news,
+                            all.x = TRUE,
+                            by = "id")
+
+oa_prof_pubs_merge <- merge(oa_prof_pubs_merge,
+                            grouped_wiki,
+                            all.x = TRUE,
+                            by = "id")
+
+oa_prof_pubs_merge <- merge(oa_prof_pubs_merge,
+                            grouped_policy,
+                            all.x = TRUE,
+                            by = "id")
+
+per_prof_stats <- oa_prof_pubs_merge %>%
+  group_by(profile_id)%>%
+  summarise(n = n(),
+            news = sum(n_news))
+
+```
+

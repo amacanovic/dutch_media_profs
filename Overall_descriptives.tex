@@ -1,0 +1,500 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Untitled},
+  pdfauthor={Ana Macanovic},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Untitled}
+\author{Ana Macanovic}
+\date{2024-02-19}
+
+\begin{document}
+\maketitle
+
+Get an overview of our dataset at the professor level.
+
+Load the packages:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(groundhog)}
+\NormalTok{packages\_to\_load }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"readr"}\NormalTok{, }\StringTok{"dplyr"}\NormalTok{, }\StringTok{"tidyr"}\NormalTok{, }\StringTok{"ggpubr"}\NormalTok{,}
+                      \StringTok{"ggplot2"}\NormalTok{,}
+                      \StringTok{"tidyverse"}\NormalTok{, }\StringTok{"RPostgres"}\NormalTok{, }\StringTok{"lubridate"}\NormalTok{,}
+                      \StringTok{"digest"}\NormalTok{, }\StringTok{"DBI"}\NormalTok{, }\StringTok{"RODBC"}\NormalTok{, }\StringTok{"odbc"}\NormalTok{)}
+\FunctionTok{groundhog.library}\NormalTok{(packages\_to\_load, }\AttributeTok{date =} \StringTok{"2023{-}12{-}01"}\NormalTok{)}
+
+\CommentTok{\# load the helper function file}
+\FunctionTok{source}\NormalTok{(}\StringTok{"helper\_functions.R"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Connect to the database:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# fill in own credentials}
+\NormalTok{port }\OtherTok{\textless{}{-}} 
+\NormalTok{user }\OtherTok{\textless{}{-}} \StringTok{""}
+\NormalTok{password }\OtherTok{\textless{}{-}} \StringTok{""}
+\NormalTok{database\_name }\OtherTok{\textless{}{-}} \StringTok{""}
+
+\NormalTok{con }\OtherTok{\textless{}{-}}\NormalTok{ RPostgres}\SpecialCharTok{::}\FunctionTok{dbConnect}\NormalTok{(RPostgres}\SpecialCharTok{::}\FunctionTok{Postgres}\NormalTok{(),}
+                 \AttributeTok{dbname=}\NormalTok{ database\_name,}
+                 \AttributeTok{port =}\NormalTok{ port,}
+                 \AttributeTok{user =}\NormalTok{ user, }
+                 \AttributeTok{password =}\NormalTok{ password)}
+
+\NormalTok{con }\CommentTok{\# Checks connection is working}
+\end{Highlighting}
+\end{Shaded}
+
+Load the professor profiles:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{narcis\_prof\_info }\OtherTok{\textless{}{-}} \FunctionTok{dbReadTable}\NormalTok{(con, }\StringTok{"narcis\_prof\_info"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Get total publications:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{oa\_pubs }\OtherTok{\textless{}{-}} \FunctionTok{dbReadTable}\NormalTok{(con, }\StringTok{"oa\_prof\_pubs"}\NormalTok{)}
+
+\NormalTok{oa\_distinct\_pubs }\OtherTok{\textless{}{-}}\NormalTok{ oa\_pubs}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{distinct}\NormalTok{(., id, }\AttributeTok{.keep\_all =} \ConstantTok{TRUE}\NormalTok{)}\SpecialCharTok{\%\textgreater{}\%}
+    \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{counts\_by\_year\_year, }\SpecialCharTok{{-}}\NormalTok{counts\_by\_year\_cited\_by\_count)}
+
+\NormalTok{profs\_pubs\_citations }\OtherTok{\textless{}{-}}\NormalTok{ oa\_distinct\_pubs }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(profile\_id)}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}
+    \AttributeTok{pubs\_total =} \FunctionTok{n}\NormalTok{(),}
+    \AttributeTok{cited\_by\_total =} \FunctionTok{sum}\NormalTok{(cited\_by\_count)}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+Get coauthor counts:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{oa\_coauthors }\OtherTok{\textless{}{-}} \FunctionTok{dbReadTable}\NormalTok{(con, }\StringTok{"oa\_coauthor\_info"}\NormalTok{)}
+
+\NormalTok{profs\_coauthors }\OtherTok{\textless{}{-}}\NormalTok{ oa\_coauthors }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{distinct}\NormalTok{(., au\_id, profile\_id, }\AttributeTok{.keep\_all =} \ConstantTok{TRUE}\NormalTok{)}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(profile\_id)}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}
+    \AttributeTok{coauthors\_total =} \FunctionTok{n}\NormalTok{())}
+\end{Highlighting}
+\end{Shaded}
+
+Get media attention counts:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{altmetric\_pub\_att\_news }\OtherTok{\textless{}{-}} \FunctionTok{dbReadTable}\NormalTok{(con, }\StringTok{"altmetric\_pub\_att\_news"}\NormalTok{)}
+
+\NormalTok{altmetric\_pub\_att\_news }\OtherTok{\textless{}{-}} \FunctionTok{merge}\NormalTok{(altmetric\_pub\_att\_news,}
+\NormalTok{                                oa\_distinct\_pubs, }
+                                \AttributeTok{by =} \StringTok{"id"}\NormalTok{,}
+                                \AttributeTok{all.x =} \ConstantTok{TRUE}\NormalTok{)}
+
+\NormalTok{profs\_attention }\OtherTok{\textless{}{-}}\NormalTok{ altmetric\_pub\_att\_news }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(profile\_id)}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}
+    \AttributeTok{attention\_total =} \FunctionTok{n}\NormalTok{())}
+\end{Highlighting}
+\end{Shaded}
+
+Combine it all:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{prof\_table }\OtherTok{\textless{}{-}} \FunctionTok{merge}\NormalTok{(profs\_pubs\_citations,}
+\NormalTok{                    profs\_coauthors,}
+                    \AttributeTok{by =} \StringTok{"profile\_id"}\NormalTok{,}
+                    \AttributeTok{all.x =} \ConstantTok{TRUE}\NormalTok{,}
+                    \AttributeTok{all.y =} \ConstantTok{TRUE}\NormalTok{)}
+
+\NormalTok{prof\_table }\OtherTok{\textless{}{-}} \FunctionTok{merge}\NormalTok{(prof\_table,}
+\NormalTok{                    profs\_attention,}
+                    \AttributeTok{by =} \StringTok{"profile\_id"}\NormalTok{,}
+                    \AttributeTok{all.x =} \ConstantTok{TRUE}\NormalTok{,}
+                    \AttributeTok{all.y =} \ConstantTok{TRUE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Merge with professor gender:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{gender\_inference\_table }\OtherTok{\textless{}{-}} \FunctionTok{dbReadTable}\NormalTok{(con, }\StringTok{"gender\_table"}\NormalTok{)}
+
+\NormalTok{prof\_table }\OtherTok{\textless{}{-}} \FunctionTok{merge}\NormalTok{(prof\_table,}
+\NormalTok{                    gender\_inference\_table[}\FunctionTok{c}\NormalTok{(}\StringTok{"profile\_id"}\NormalTok{, }\StringTok{"inferred\_gender"}\NormalTok{)],}
+                    \AttributeTok{by =} \StringTok{"profile\_id"}\NormalTok{,}
+                    \AttributeTok{all.x =} \ConstantTok{TRUE}\NormalTok{,}
+                    \AttributeTok{all.y =} \ConstantTok{TRUE}\NormalTok{)}
+
+
+\NormalTok{prof\_table }\OtherTok{\textless{}{-}}\NormalTok{ prof\_table }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{replace}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(.), }\DecValTok{0}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Get some group means to plot mean lines in our histograms:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# get some means for lines in our histograms}
+\NormalTok{means\_prof\_table }\OtherTok{\textless{}{-}}\NormalTok{ prof\_table }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(inferred\_gender)}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}\AttributeTok{mean\_pubs =} \FunctionTok{mean}\NormalTok{(pubs\_total),}
+            \AttributeTok{mean\_coauthors =} \FunctionTok{mean}\NormalTok{(coauthors\_total),}
+            \AttributeTok{mean\_attention =} \FunctionTok{mean}\NormalTok{(attention\_total))}
+\end{Highlighting}
+\end{Shaded}
+
+Separate men and women into two datasets for mean testing:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{men\_profs }\OtherTok{\textless{}{-}} \FunctionTok{filter}\NormalTok{(prof\_table, inferred\_gender }\SpecialCharTok{==} \StringTok{"m"}\NormalTok{)}
+\NormalTok{women\_profs }\OtherTok{\textless{}{-}} \FunctionTok{filter}\NormalTok{(prof\_table, inferred\_gender }\SpecialCharTok{==} \StringTok{"w"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{group-differences---per-years-since-entry-into-academia}{%
+\section{Group differences - per years since entry into
+academia:}\label{group-differences---per-years-since-entry-into-academia}}
+
+Get, for each prof, the year of entry into academia:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# limit to the last 50 years and can\textquotesingle{}t go into the future}
+\NormalTok{prof\_entry }\OtherTok{\textless{}{-}}\NormalTok{ oa\_distinct\_pubs }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(publication\_year }\SpecialCharTok{\textgreater{}} \DecValTok{1974} \SpecialCharTok{\&}\NormalTok{ publication\_year }\SpecialCharTok{\textless{}=} \DecValTok{2024}\NormalTok{)}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(profile\_id)}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{slice}\NormalTok{(}\FunctionTok{which.min}\NormalTok{(publication\_year))}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(profile\_id, publication\_year)}
+
+\FunctionTok{colnames}\NormalTok{(prof\_entry)[}\DecValTok{2}\NormalTok{] }\OtherTok{\textless{}{-}} \StringTok{"entry"}
+
+\NormalTok{prof\_entry}\SpecialCharTok{$}\NormalTok{years\_since\_entry }\OtherTok{\textless{}{-}} \DecValTok{2024} \SpecialCharTok{{-}}\NormalTok{ prof\_entry}\SpecialCharTok{$}\NormalTok{entry}
+
+\NormalTok{prof\_table }\OtherTok{\textless{}{-}} \FunctionTok{merge}\NormalTok{(prof\_table,}
+\NormalTok{                    prof\_entry,}
+                    \AttributeTok{by =} \StringTok{"profile\_id"}\NormalTok{,}
+                    \AttributeTok{all.x =} \ConstantTok{TRUE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Break this into groups of 10:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{prof\_table}\SpecialCharTok{$}\NormalTok{year\_group }\OtherTok{\textless{}{-}} \FunctionTok{cut}\NormalTok{(prof\_table}\SpecialCharTok{$}\NormalTok{years\_since\_entry, }\FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{10}\NormalTok{, }\DecValTok{20}\NormalTok{, }\DecValTok{30}\NormalTok{, }\DecValTok{40}\NormalTok{, }\DecValTok{50}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+Get a nicer table going:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{year\_group\_stats }\OtherTok{\textless{}{-}}\NormalTok{ prof\_table }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(., }\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(inferred\_gender) }\SpecialCharTok{\&} \SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(year\_group))}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(year\_group, inferred\_gender)}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}
+    \AttributeTok{n =} \FunctionTok{n}\NormalTok{(),}
+    \AttributeTok{mean\_pubs =} \FunctionTok{mean}\NormalTok{(pubs\_total),}
+    \AttributeTok{mean\_coauthors =} \FunctionTok{mean}\NormalTok{(coauthors\_total),}
+    \AttributeTok{mean\_attention =} \FunctionTok{mean}\NormalTok{(attention\_total))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Total publications - facet by the N years since first publication:
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{prof\_table }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(}\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(year\_group))}\SpecialCharTok{\%\textgreater{}\%}
+\FunctionTok{ggplot}\NormalTok{(., }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{pubs\_total, }\AttributeTok{color=}\NormalTok{inferred\_gender)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_histogram}\NormalTok{(}\AttributeTok{fill=}\StringTok{"white"}\NormalTok{, }\AttributeTok{position=}\StringTok{"dodge"}\NormalTok{, }\AttributeTok{bins =} \DecValTok{40}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{geom\_vline}\NormalTok{(}\AttributeTok{data=}\NormalTok{year\_group\_stats, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{xintercept=}\NormalTok{mean\_pubs, }\AttributeTok{color=}\NormalTok{inferred\_gender),}
+             \AttributeTok{linetype=}\StringTok{"dashed"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{xlab}\NormalTok{(}\StringTok{"Total Publications"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Count"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}\AttributeTok{color=}\StringTok{\textquotesingle{}Inferred gender\textquotesingle{}}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ggtitle}\NormalTok{(}\StringTok{"Histograms: publications per years since entry"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{facet\_wrap}\NormalTok{(. }\SpecialCharTok{\textasciitilde{}}\NormalTok{ year\_group, }\AttributeTok{nrow =} \DecValTok{2}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{1}
+\tightlist
+\item
+  Total coauthors - facet by the N years since first publication:
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{prof\_table }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(}\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(year\_group))}\SpecialCharTok{\%\textgreater{}\%}
+\FunctionTok{ggplot}\NormalTok{(., }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{coauthors\_total, }\AttributeTok{color=}\NormalTok{inferred\_gender)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_histogram}\NormalTok{(}\AttributeTok{fill=}\StringTok{"white"}\NormalTok{, }\AttributeTok{position=}\StringTok{"dodge"}\NormalTok{, }\AttributeTok{bins =} \DecValTok{40}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{geom\_vline}\NormalTok{(}\AttributeTok{data=}\NormalTok{means\_prof\_table, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{xintercept=}\NormalTok{mean\_coauthors, }\AttributeTok{color=}\NormalTok{inferred\_gender),}
+             \AttributeTok{linetype=}\StringTok{"dashed"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{xlab}\NormalTok{(}\StringTok{"Total Coauthors"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Count"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}\AttributeTok{color=}\StringTok{\textquotesingle{}Inferred gender\textquotesingle{}}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ggtitle}\NormalTok{(}\StringTok{"Histograms: coauthors per years since entry"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{facet\_wrap}\NormalTok{(. }\SpecialCharTok{\textasciitilde{}}\NormalTok{ year\_group, }\AttributeTok{nrow =} \DecValTok{2}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{2}
+\tightlist
+\item
+  Total news mentions - facet by the N years since first publication:
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{prof\_table }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(}\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(year\_group))}\SpecialCharTok{\%\textgreater{}\%}
+\FunctionTok{ggplot}\NormalTok{(., }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{attention\_total, }\AttributeTok{color=}\NormalTok{inferred\_gender)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_histogram}\NormalTok{(}\AttributeTok{fill=}\StringTok{"white"}\NormalTok{, }\AttributeTok{position=}\StringTok{"dodge"}\NormalTok{, }\AttributeTok{bins =} \DecValTok{40}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{geom\_vline}\NormalTok{(}\AttributeTok{data=}\NormalTok{means\_prof\_table, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{xintercept=}\NormalTok{mean\_attention, }\AttributeTok{color=}\NormalTok{inferred\_gender),}
+             \AttributeTok{linetype=}\StringTok{"dashed"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{xlim}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{1500}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylim}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{600}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{xlab}\NormalTok{(}\StringTok{"Total Coauthors"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Count"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}\AttributeTok{color=}\StringTok{\textquotesingle{}Inferred gender\textquotesingle{}}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ggtitle}\NormalTok{(}\StringTok{"Histograms: news attention per years since entry"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{facet\_wrap}\NormalTok{(. }\SpecialCharTok{\textasciitilde{}}\NormalTok{ year\_group, }\AttributeTok{nrow =} \DecValTok{2}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{publications}{%
+\subsection{Publications}\label{publications}}
+
+Histogram
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(prof\_table, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{pubs\_total, }\AttributeTok{color=}\NormalTok{inferred\_gender)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_histogram}\NormalTok{(}\AttributeTok{fill=}\StringTok{"white"}\NormalTok{, }\AttributeTok{position=}\StringTok{"dodge"}\NormalTok{, }\AttributeTok{bins =} \DecValTok{40}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{geom\_vline}\NormalTok{(}\AttributeTok{data=}\NormalTok{means\_prof\_table, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{xintercept=}\NormalTok{mean\_pubs, }\AttributeTok{color=}\NormalTok{inferred\_gender),}
+             \AttributeTok{linetype=}\StringTok{"dashed"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{xlab}\NormalTok{(}\StringTok{"Total Publications"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Count"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}\AttributeTok{color=}\StringTok{\textquotesingle{}Inferred gender\textquotesingle{}}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ggtitle}\NormalTok{(}\StringTok{"Histograms: publications"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Box plots:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggboxplot}\NormalTok{(prof\_table, }\AttributeTok{x =} \StringTok{"inferred\_gender"}\NormalTok{, }\AttributeTok{y =} \StringTok{"pubs\_total"}\NormalTok{, }
+          \AttributeTok{color =} \StringTok{"inferred\_gender"}\NormalTok{,}
+          \AttributeTok{ylab =} \StringTok{"Average N publications"}\NormalTok{, }\AttributeTok{xlab =} \StringTok{"Inferred gender"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Mean comparison:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{wilcox.test}\NormalTok{(men\_profs}\SpecialCharTok{$}\NormalTok{pubs\_total, women\_profs}\SpecialCharTok{$}\NormalTok{pubs\_total, }\AttributeTok{alternative =} \StringTok{"greater"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{total-coauthors}{%
+\subsection{Total coauthors}\label{total-coauthors}}
+
+Histogram
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(prof\_table, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{coauthors\_total, }\AttributeTok{color=}\NormalTok{inferred\_gender)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_histogram}\NormalTok{(}\AttributeTok{fill=}\StringTok{"white"}\NormalTok{, }\AttributeTok{position=}\StringTok{"dodge"}\NormalTok{, }\AttributeTok{bins =} \DecValTok{40}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{geom\_vline}\NormalTok{(}\AttributeTok{data=}\NormalTok{means\_prof\_table, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{xintercept=}\NormalTok{mean\_coauthors, }\AttributeTok{color=}\NormalTok{inferred\_gender),}
+             \AttributeTok{linetype=}\StringTok{"dashed"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{xlab}\NormalTok{(}\StringTok{"Total Coauthors"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Count"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}\AttributeTok{color=}\StringTok{\textquotesingle{}Inferred gender\textquotesingle{}}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ggtitle}\NormalTok{(}\StringTok{"Histograms: coauthors"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Box plots:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggboxplot}\NormalTok{(prof\_table, }\AttributeTok{x =} \StringTok{"inferred\_gender"}\NormalTok{, }\AttributeTok{y =} \StringTok{"coauthors\_total"}\NormalTok{, }
+          \AttributeTok{color =} \StringTok{"inferred\_gender"}\NormalTok{, }
+          \AttributeTok{ylab =} \StringTok{"Average N Coauthors"}\NormalTok{, }\AttributeTok{xlab =} \StringTok{"Inferred gender"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Mean comparison:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{wilcox.test}\NormalTok{(men\_profs}\SpecialCharTok{$}\NormalTok{coauthors\_total, women\_profs}\SpecialCharTok{$}\NormalTok{coauthors\_total, }\AttributeTok{alternative =} \StringTok{"greater"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{news-attention}{%
+\subsection{News attention}\label{news-attention}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(prof\_table, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{attention\_total, }\AttributeTok{color=}\NormalTok{inferred\_gender)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_histogram}\NormalTok{(}\AttributeTok{fill=}\StringTok{"white"}\NormalTok{, }\AttributeTok{position=}\StringTok{"dodge"}\NormalTok{, }\AttributeTok{bins =} \DecValTok{40}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{geom\_vline}\NormalTok{(}\AttributeTok{data=}\NormalTok{means\_prof\_table, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{xintercept=}\NormalTok{mean\_attention, }\AttributeTok{color=}\NormalTok{inferred\_gender),}
+             \AttributeTok{linetype=}\StringTok{"dashed"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{xlab}\NormalTok{(}\StringTok{"Total News Mentions"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Count"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}\AttributeTok{color=}\StringTok{\textquotesingle{}Inferred gender\textquotesingle{}}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ggtitle}\NormalTok{(}\StringTok{"Histograms: news attention"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Box plots:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggboxplot}\NormalTok{(prof\_table, }\AttributeTok{x =} \StringTok{"inferred\_gender"}\NormalTok{, }\AttributeTok{y =} \StringTok{"attention\_total"}\NormalTok{, }
+          \AttributeTok{color =} \StringTok{"inferred\_gender"}\NormalTok{,}
+          \AttributeTok{ylab =} \StringTok{"Average N news mentions"}\NormalTok{, }\AttributeTok{xlab =} \StringTok{"Inferred gender"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Mean comparison:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{wilcox.test}\NormalTok{(men\_profs}\SpecialCharTok{$}\NormalTok{attention\_total, women\_profs}\SpecialCharTok{$}\NormalTok{attention\_total, }\AttributeTok{alternative =} \StringTok{"greater"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+
+\end{document}

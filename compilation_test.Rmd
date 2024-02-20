@@ -71,13 +71,13 @@ for (i in 1:length(narcis_ids)){
   
   # get the author's OA IDs
   oa_ids <- dbGetQuery(conn = con, 
-                          statement = paste0("select * from oa_identifier_table where \"profile_id\"='", id, "'"))
+                          statement = paste0("select * from oa_id_mapping where \"profile_id\"='", id, "'"))
   
   oa_id_list <- oa_ids$oa_id
   
   # load the relevant data from the publications table in our database
   prof_pubs <- dbGetQuery(conn = con, 
-                          statement = paste0("select * from oa_pubs where \"profile_id\"='", id, "'"))
+                          statement = paste0("select * from oa_prof_pubs where \"profile_id\"='", id, "'"))
   
   # get the publications and citations per year and per author spot
   prof_year_pubs <- prof_pubs %>% 
@@ -90,10 +90,10 @@ for (i in 1:length(narcis_ids)){
     mutate(count_pubs_total = cumsum(count_pubs))
   
   prof_year_citations <- prof_pubs %>% 
-    filter(!is.na(publication_year) & !is.na(counts_by_year_year_year) & !is.na(language))%>%
-    group_by(author_position, counts_by_year_year_year, language)%>%
-    summarise(cited_by = sum(counts_by_year_year_cited_by_count))%>%
-    arrange(counts_by_year_year_year) %>%
+    filter(!is.na(publication_year) & !is.na(counts_by_year_year) & !is.na(language))%>%
+    group_by(author_position, counts_by_year_year, language)%>%
+    summarise(cited_by = sum(counts_by_year_cited_by_count))%>%
+    arrange(counts_by_year_year) %>%
     group_by(author_position, language) %>%
     mutate(cited_by_total_oa = cumsum(cited_by))
   
@@ -106,7 +106,7 @@ for (i in 1:length(narcis_ids)){
   # get the citations preceding 2012 by deducting the 2012 citations from the total
   latest_citation <- prof_year_citations %>%
     group_by(author_position, language)%>%
-    slice(which.max(counts_by_year_year_year))
+    slice(which.max(counts_by_year_year))
   
   # merge total citations with the rest of citations
   total_citations <- merge(total_citations,
@@ -157,7 +157,7 @@ for (i in 1:length(narcis_ids)){
 
   # now get professor's coauthors per year
   prof_coauthors <- dbGetQuery(conn = con, 
-                          statement = paste0("select * from coauthor_info where \"profile_id\"='", id, "'"))
+                          statement = paste0("select * from oa_coauthor_info where \"profile_id\"='", id, "'"))
   
   # add "unknown" if NAs
   prof_coauthors$institution_country_code <- ifelse(is.na(prof_coauthors$institution_country_code),
@@ -218,7 +218,7 @@ for (i in 1:length(narcis_ids)){
                                                                    "count_pubs_year_total", "cited_by_year_total",
                                                                    "cited_by_before_2012", "pubs_before_2012", 
                                                                    "cumulative_pubs", "affiliation_country_code")],
-                                   by = c("au_id", "year"),
+                                   by = c("au_id"),
                                    all.x = TRUE)
   
   
@@ -226,16 +226,6 @@ for (i in 1:length(narcis_ids)){
     group_by(institution_country_code, year)%>%
     summarise(coauthors = n())%>%
     mutate(coauthors_total = cumsum(coauthors))
-  
-  
-  # do the same for affiliations, pull them first
-  prof_affiliations <- dbGetQuery(conn = con, 
-                          statement = paste0("select * from affiliation_info where \"profile_id\" in (", id, ")"))
-  
-  prof_affiliations_per_year <- prof_affiliations %>%
-    group_by(institution_country_code, year)%>%
-    summarise(institutions = n())%>%
-    mutate(institutions_total = cumsum(institutions))
 
   
   
