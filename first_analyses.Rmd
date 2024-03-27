@@ -1,0 +1,336 @@
+---
+title: "Untitled"
+author: "Ana Macanovic"
+date: "2024-02-29"
+---
+
+```{r}
+options(width = 120)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+
+Load the packages:
+```{r message=  F, warning = F, eval = T}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "tidyr", 
+                      "tidyverse", "RPostgres", "lubridate", "psych",
+                      "gridExtra",
+                      "panelr", "skimr",
+                      "lmtest", "sandwich")
+groundhog.library(packages_to_load, date = "2023-12-01")
+
+```
+
+Load the panel:
+```{r warning = F, message = F}
+prof_year_p_c_g_a_t <-  read_csv("panel_datasets/prof_year_p_c_g_a_t.csv")
+prof_year_p_c_g_a_t_l <-  read_csv("panel_datasets/prof_year_p_c_g_a_t_l.csv")
+```
+ 
+# Simple descriptives
+
+Professors per field and subfield?
+```{r}
+print.data.frame(prof_year_p_c_g_a_t %>%
+  distinct(profile_id, .keep_all = TRUE)%>%
+  filter(!is.na(yearly_field))%>%
+  group_by(yearly_field)%>%
+  summarise(n = n())%>%
+  arrange(-n))
+```
+
+```{r}
+print.data.frame(prof_year_p_c_g_a_t %>%
+  distinct(profile_id, .keep_all = TRUE)%>%
+  filter(!is.na(yearly_subfield))%>%
+  group_by(yearly_subfield)%>%
+  summarise(n = n())%>%
+  arrange(-n))
+```
+
+A correlation matrix:
+```{r}
+round(cor(prof_year_p_c_g_a_t[c("count_pubs", "cited_by",
+                              "attn_news_by", "attn_blogs_by", "attn_twitter_by")],
+          use="complete.obs"), 2)
+```
+
+And some descriptives:
+```{r}
+psych::describe(prof_year_p_c_g_a_t[c("count_pubs", "cited_by",
+                             "attn_news_by", "attn_blogs_by",
+                             "attn_twitter_by")])
+```
+
+Get some panel statistics:
+```{r}
+xtsum::xtsum(
+  prof_year_p_c_g_a_t,
+  variables = c("count_pubs", "cited_by",
+                "attn_news_by", "attn_blogs_by", "attn_twitter_by"),
+  id = "profile_id",
+  t = "year",
+  na.rm = TRUE,
+  return.data.frame = FALSE,
+  dec = 2
+)
+```
+
+# Simple models
+
+## Only gender
+
+Publications and gender:
+```{r}
+gender_pubs <- lm(count_pubs~inferred_gender, 
+                  data = prof_year_p_c_g_a_t_l)
+
+# clustered SE
+coeftest(gender_pubs, vcov = vcovCL(gender_pubs, cluster = ~profile_id))
+```
+Citations and gender:
+```{r}
+gender_cits <- lm(cited_by~inferred_gender, 
+                  data = prof_year_p_c_g_a_t_l)
+
+# clustered SE
+coeftest(gender_cits, vcov = vcovCL(gender_cits, cluster = ~profile_id))
+```
+
+News attention and gender:
+```{r}
+gender_news <- lm(attn_news_by~inferred_gender, 
+                  data = prof_year_p_c_g_a_t_l)
+
+# clustered SE
+coeftest(gender_news, vcov = vcovCL(gender_news, cluster = ~profile_id))
+```
+Blog attention and gender:
+```{r}
+gender_blogs <- lm(attn_blogs_by~inferred_gender, 
+                  data = prof_year_p_c_g_a_t_l)
+
+coeftest(gender_blogs, vcov = vcovCL(gender_blogs, cluster = ~profile_id))
+```
+Twitter attention and gender:
+```{r}
+gender_twitter <- lm(attn_twitter_by~inferred_gender, 
+                  data = prof_year_p_c_g_a_t_l)
+
+coeftest(gender_twitter, vcov = vcovCL(gender_twitter, cluster = ~profile_id))
+```
+
+## Gender and fields:
+
+Reference:  "Agricultural and Biological Sciences" 
+
+Publications and gender:
+```{r}
+gender_pubs <- lm(count_pubs~inferred_gender+as.factor(overall_field), 
+                  data = prof_year_p_c_g_a_t_l)
+
+# clustered SE
+coeftest(gender_pubs, vcov = vcovCL(gender_pubs, cluster = ~profile_id))
+```
+Citations and gender:
+```{r}
+gender_cits <- lm(cited_by~inferred_gender+as.factor(overall_field), 
+                  data = prof_year_p_c_g_a_t_l)
+
+# clustered SE
+coeftest(gender_cits, vcov = vcovCL(gender_cits, cluster = ~profile_id))
+```
+
+News attention and gender:
+```{r}
+gender_news <- lm(attn_news_by~inferred_gender+as.factor(overall_field), 
+                  data = prof_year_p_c_g_a_t_l)
+
+# clustered SE
+coeftest(gender_news, vcov = vcovCL(gender_news, cluster = ~profile_id))
+```
+Blog attention and gender:
+```{r}
+gender_blogs <- lm(attn_blogs_by~inferred_gender+as.factor(overall_field), 
+                  data = prof_year_p_c_g_a_t_l)
+
+coeftest(gender_blogs, vcov = vcovCL(gender_blogs, cluster = ~profile_id))
+```
+Twitter attention and gender:
+```{r}
+gender_twitter <- lm(attn_twitter_by~inferred_gender+as.factor(overall_field), 
+                  data = prof_year_p_c_g_a_t_l)
+
+coeftest(gender_twitter, vcov = vcovCL(gender_twitter, cluster = ~profile_id))
+```
+
+
+## Gender and controls (not lagged)
+
+News attention and gender:
+```{r}
+gender_news <- lm(attn_news_by~count_pubs + cited_by + inferred_gender + as.factor(overall_field), 
+                  data = prof_year_p_c_g_a_t_l)
+
+# clustered SE
+coeftest(gender_news, vcov = vcovCL(gender_news, cluster = ~profile_id))
+
+summary(gender_news)$adj.r.squared
+```
+Blog attention and gender:
+```{r}
+gender_blogs <- lm(attn_blogs_by~count_pubs + cited_by + inferred_gender + as.factor(overall_field), 
+                  data = prof_year_p_c_g_a_t_l)
+
+coeftest(gender_blogs, vcov = vcovCL(gender_blogs, cluster = ~profile_id))
+
+summary(gender_blogs)$adj.r.squared
+```
+Twitter attention and gender:
+```{r}
+gender_twitter <- lm(attn_twitter_by~count_pubs + cited_by + inferred_gender + as.factor(overall_field),
+                  data = prof_year_p_c_g_a_t_l)
+
+coeftest(gender_twitter, vcov = vcovCL(gender_twitter, cluster = ~profile_id))
+
+summary(gender_twitter)$adj.r.squared
+```
+
+
+
+## Gender and controls (lagged)
+
+News attention and gender:
+```{r}
+gender_news <- lm(attn_news_by~count_pubs_l + cited_by_l + inferred_gender + as.factor(overall_field), 
+                  data = prof_year_p_c_g_a_t_l)
+
+# clustered SE
+coeftest(gender_news, vcov = vcovCL(gender_news, cluster = ~profile_id))
+
+summary(gender_news)$adj.r.squared
+```
+Blog attention and gender:
+```{r}
+gender_blogs <- lm(attn_blogs_by~count_pubs_l + cited_by_l + inferred_gender + as.factor(overall_field), 
+                  data = prof_year_p_c_g_a_t_l)
+
+coeftest(gender_blogs, vcov = vcovCL(gender_blogs, cluster = ~profile_id))
+
+summary(gender_blogs)$adj.r.squared
+```
+Twitter attention and gender:
+```{r}
+gender_twitter <- lm(attn_twitter_by~count_pubs_l + cited_by_l + inferred_gender + as.factor(overall_field),
+                  data = prof_year_p_c_g_a_t_l)
+
+coeftest(gender_twitter, vcov = vcovCL(gender_twitter, cluster = ~profile_id))
+
+summary(gender_twitter)$adj.r.squared
+```
+
+## Cumulative media attention?
+
+Sure, seems there. 
+
+News attention and gender:
+```{r}
+gender_news <- lm(attn_news_by~attn_news_by_l + as.factor(overall_field), 
+                  data = prof_year_p_c_g_a_t_l)
+
+# clustered SE
+coeftest(gender_news, vcov = vcovCL(gender_news, cluster = ~profile_id))
+
+summary(gender_news)$adj.r.squared
+```
+Blog attention and gender:
+```{r}
+gender_blogs <- lm(attn_blogs_by~attn_blogs_by_l + as.factor(overall_field), 
+                  data = prof_year_p_c_g_a_t_l)
+
+coeftest(gender_blogs, vcov = vcovCL(gender_blogs, cluster = ~profile_id))
+
+summary(gender_blogs)$adj.r.squared
+```
+Twitter attention and gender:
+```{r}
+gender_twitter <- lm(attn_twitter_by~attn_twitter_by_l + as.factor(overall_field),
+                  data = prof_year_p_c_g_a_t_l)
+
+coeftest(gender_twitter, vcov = vcovCL(gender_twitter, cluster = ~profile_id))
+
+summary(gender_twitter)$adj.r.squared
+```
+
+
+
+
+
+## Cumulative media attention per gender?
+
+Only for blogs?
+
+News attention and gender:
+```{r}
+gender_news <- lm(attn_news_by~attn_news_by_l*inferred_gender + as.factor(overall_field), 
+                  data = prof_year_p_c_g_a_t_l)
+
+# clustered SE
+coeftest(gender_news, vcov = vcovCL(gender_news, cluster = ~profile_id))
+
+summary(gender_news)$adj.r.squared
+```
+Blog attention and gender:
+```{r}
+gender_blogs <- lm(attn_blogs_by~attn_blogs_by_l*inferred_gender + as.factor(overall_field), 
+                  data = prof_year_p_c_g_a_t_l)
+
+coeftest(gender_blogs, vcov = vcovCL(gender_blogs, cluster = ~profile_id))
+
+summary(gender_blogs)$adj.r.squared
+```
+Twitter attention and gender:
+```{r}
+gender_twitter <- lm(attn_twitter_by~attn_twitter_by_l*inferred_gender + as.factor(overall_field) +years_since_first_pub*inferred_gender,
+                  data = prof_year_p_c_g_a_t_l)
+
+coeftest(gender_twitter, vcov = vcovCL(gender_twitter, cluster = ~profile_id))
+
+summary(gender_twitter)$adj.r.squared
+```
+NBA PAPER
+
+```{r}
+cor(prof_year_p_c_g_a_t_l[c("attn_twitter_by", "attn_twitter_by_total")],
+          use="complete.obs")
+```
+DO THE VIF. 
+```{r}
+gender_twitter <- lm(attn_twitter_by~attn_twitter_by_l + count_pubs_l + cited_by_l   + inferred_gender + as.factor(overall_field) +years_since_first_pub,
+                  data = prof_year_p_c_g_a_t_l)
+
+coeftest(gender_twitter, vcov = vcovCL(gender_twitter, cluster = ~profile_id))
+
+summary(gender_twitter)$adj.r.squared
+```
+the model above, watching out for totals etc. 
++ 
+ 
+Network
+- coauthors 
+- coauthors cites
+- coauthors attention
+- are these for t or t-1
+
+Share of coauthors in the high end of attention distribution.
+
+
+- any attention (are you in the attention elite)
+- amount of attention
+- top 10%
+
+PUB TYPE
+- articles, books + book chapters
+- preprints? conf. proceedings?

@@ -628,7 +628,9 @@ oa_prof_pubs <- dbReadTable(con, "oa_prof_pubs")
 oa_prof_pubs_unique <- distinct(oa_prof_pubs, id, .keep_all = TRUE)
 
 oa_prof_pubs_unique <- oa_prof_pubs_unique %>%
-  select(-counts_by_year_year, -counts_by_year_cited_by_count)
+  select(-counts_by_year_year, -counts_by_year_cited_by_count)%>%
+  select(-c(au_id:institution_lineage)) %>%
+  select(-c(oa_id:profile_id))
 
 dbWriteTable(con, "oa_prof_pubs_unique", oa_prof_pubs_unique)
 ```
@@ -636,7 +638,7 @@ dbWriteTable(con, "oa_prof_pubs_unique", oa_prof_pubs_unique)
 
 # Professor Altmetric data
 
-## Professor attention data (DOI based)
+## Professor attention data (DOI based, excluding Twitter)
 
 Get the altmetric attention for our professors, per DOI:
 ```{r}
@@ -697,6 +699,7 @@ for (i in 1:nrow(prof_orcids)){
   
   # if any data, unnest twice to unravel the info
   if (!all(is.na(prof_attention))){
+    prof_attention <- prof_attention %>% distinct(id, .keep_all = TRUE)
     prof_attention <- unnest(prof_attention, cols = c("meta"))
     prof_attention <- unnest(prof_attention, cols = c("dates"))
     # now, extract the year and group mentions by year
@@ -721,7 +724,7 @@ for (i in 1:nrow(prof_orcids)){
   print(paste("done with", i, "out of", nrow(prof_orcids)))
 }
 
-dbWriteTable(con, "almetric_prof_attention", prof_attention_list, row.names=FALSE, append=TRUE)
+dbWriteTable(con, "altmetric_prof_attention", prof_attention_list, row.names=FALSE, append=TRUE)
 ```
 
 
@@ -773,13 +776,13 @@ for (i in 1:length(batches)){
   # if not empty
   if (!all(is.na(tweet_info_full))){
     # if there is no table yet, write it as a new table
-    if (! dbExistsTable(con, "twitter_mentions")){
+    if (! dbExistsTable(con, "altmetric_pub_att_twitter")){
       # write to the database
-      dbWriteTable(con, "twitter_mentions", tweet_info_full, row.names=FALSE, append=TRUE) 
+      dbWriteTable(con, "altmetric_pub_att_twitter", tweet_info_full, row.names=FALSE, append=TRUE) 
       # otherwise, append
     }else{
       # check fields in the existing table
-      fields <- dbListFields(con, "twitter_mentions")
+      fields <- dbListFields(con, "altmetric_pub_att_twitter")
       # if needed, pad the dataset
       if(!all(fields %in% colnames(tweet_info_full))){
         n_missing <- which(!fields %in% colnames(tweet_info_full))
@@ -792,7 +795,7 @@ for (i in 1:length(batches)){
       # only leave these fields in
       tweet_info_full <-  tweet_info_full %>%
         select(all_of(fields))
-      dbAppendTable(con, "twitter_mentions", tweet_info_full, row.names=NULL, append=TRUE) 
+      dbAppendTable(con, "altmetric_pub_att_twitter", tweet_info_full, row.names=NULL, append=TRUE) 
     }
   }
   print(paste("done with", i, "out of", length(batches), sep = " "))
@@ -1057,6 +1060,13 @@ dbWriteTable(con, "oa_coauthor_name_list", coauthor_name_list, row.names=FALSE, 
 
 We have 1 371 810 unique coauthors we fetched the data for, and 177 823 unique first names. 
 
+Write out unique combinations of papers, coauthors, and professors:
+```{r}
+oa_coauthor_matching <- coauthor_info_list %>% distinct(id, oa_id, profile_id, .keep_all = TRUE)
+
+dbWriteTable(con, "oa_coauthor_matching", oa_coauthor_matching, row.names=FALSE, append=TRUE)
+```
+
 
 ## Coauthor Altmetric attention (per ORCID)
 
@@ -1064,7 +1074,7 @@ Use the same coauthor list, but now to pull the attention data from Altmetric.
 Only pull the data for those coauthors who
 ```{r}
 # get the coauthorship list
-coauthor_list <- dbGetQuery(conn = con, statement = paste0("select * from coauthor_info;"))
+coauthor_list <- dbReadTable(con, "oa_coauthor_info")
 
 # unique IDs
 coauthor_altmetric_list <- distinct(coauthor_list, au_id, .keep_all = TRUE)
@@ -1084,7 +1094,7 @@ gc()
 ```
 
 Loop through the ORCIDs and get authors' attention:
-```{r}
+```{r warning = F, message = F}
 coauthor_attention_list <- data.frame(matrix(NA, nrow = 0, ncol = 4))
 colnames(coauthor_attention_list) <- c("mention_type", "year", "yearly_count", "id")
 
@@ -1100,6 +1110,8 @@ for (i in 1:nrow(coauthor_altmetric_list)){
   
   # if any data, unnest twice to unravel the info
   if (!all(is.na(coauthor_attention))){
+    #deduplicate
+    coauthor_attention <- coauthor_attention %>% distinct(id, .keep_all =  TRUE)
     coauthor_attention <- unnest(coauthor_attention, cols = c("meta"))
     coauthor_attention <- unnest(coauthor_attention, cols = c("dates"))
     # now, extract the year and group mentions by year
@@ -1128,4 +1140,115 @@ dbWriteTable(con, "altmetric_coauthor_attention", coauthor_attention_list, row.n
 ```
 
 
+## Topics for each professor
+
+First, get a distinct publication list:
+```{r}
+oa_prof_pubs <- dbReadTable(con, "oa_prof_pubs")
+
+oa_distinct_pubs <- oa_prof_pubs%>%
+  distinct(., id, .keep_all = TRUE)%>%
+    select(id:display_name, ab:is_retracted)
+
+oa_prof_pub_match <- oa_prof_pubs %>%
+  distinct(., id, profile_id, .keep_all = TRUE)%>%
+    select(id, au_id, au_display_name, oa_id, profile_id)
+
+dbWriteTable(con, "oa_distinct_pubs", oa_distinct_pubs)
+dbWriteTable(con, "oa_prof_pub_match", oa_prof_pub_match)
+```
+
+Get the topics for each publication:
+```{r}
+# batch size
+batch_size <- 100
+# vector of indices to loop through
+batches <- seq(from=1, to=length(oa_distinct_pubs$id), by=batch_size)
+# to be able to subset, also add the final index+1
+batches <- c(batches, length(oa_distinct_pubs$id)+1)
+
+# per batch
+for (i in 1:length(batches)){
+  # get the list
+  batch_ids <- oa_distinct_pubs$id[batches[i]:(batches[i+1]-1)]
+  batch_ids <- str_remove(batch_ids, "https\\:\\/\\/openalex.org\\/")
+  # collapse them so that we can fetch all of them at once from the API
+  batch_ids <- paste(batch_ids, collapse = "|")
+  get_api <- fromJSON(paste0("https://api.openalex.org/works?filter=ids.openalex:", batch_ids, "&per-page=100"))
+  if ('topics' %in% names(get_api[["results"]])){
+    result_ids <- get_api[["results"]][["id"]]
+    topics <- get_api[["results"]][["topics"]]
+    if (length(topics) > 0){
+      topics_df <- bind_rows(topics, .id = "column_label")
+      topics_df <- unnest(topics_df, cols = c(subfield, field, domain), names_sep = "_")
+      colnames(topics_df)[2] <- "topic_id"
+      oa_id_matching <- cbind.data.frame(column_label = c(1:100),
+                                         id = get_api[["results"]][["id"]])
+      
+      topics_df <- merge(topics_df,
+                         oa_id_matching,
+                         by = "column_label")
+      
+      
+      if (dbExistsTable(con, "oa_pubs_topics")){
+        # check fields in the existing table
+        fields <- dbListFields(con, "oa_pubs_topics")
+        # if not all fields there
+        if(!all(fields %in% colnames(topics_df))){
+          n_missing <- which(!fields %in% colnames(topics_df))
+          padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
+          colnames(padding) <- fields[which(!fields %in% colnames(topics_df))]
+          topics_df <- bind_cols(topics_df,
+                              padding)
+          topics_df <- topics_df[fields]
+        }
+        # only leave these fields in
+        topics_df <-  topics_df %>%
+          select(all_of(fields))
+        
+        dbAppendTable(con, "oa_pubs_topics", topics_df, row.names=NULL, append=TRUE)
+      }else{
+        dbWriteTable(con, "oa_pubs_topics", topics_df, row.names=FALSE, append=TRUE)
+      }
+    }
+  }
+  print(paste("done with", i, "out of", length(batches)))
+}
+
+# 
+# for (oa_id in oa_distinct_pubs$id){
+#   # fetch from the official API
+#   get_api2 <- fromJSON(paste("https://api.openalex.org/", str_remove(oa_id, "https\\:\\/\\/openalex.org\\/"), "&per-page=100", sep = ""))
+#   if ('topics' %in% names(get_api)){
+#     topics <- get_api[['topics']]
+#     if (length(topics) > 0){
+#       topics <- unnest(topics, cols = c(subfield, field, domain), names_sep = "_")
+#       colnames(topics)[1] <- "topic_id"
+#       topics$id <- oa_id
+#       
+#       if (dbExistsTable(con, "oa_pubs_topics")){
+#         # check fields in the existing table
+#         fields <- dbListFields(con, "oa_pubs_topics")
+#         # if not all fields there
+#         if(!all(fields %in% colnames(topics))){
+#           n_missing <- which(!fields %in% colnames(topics))
+#           padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
+#           colnames(padding) <- fields[which(!fields %in% colnames(topics))]
+#           topics <- bind_cols(topics,
+#                               padding)
+#           topics <- topics[fields]
+#         }
+#         # only leave these fields in
+#         topics <-  topics %>%
+#           select(all_of(fields))
+#         
+#         dbAppendTable(con, "oa_pubs_topics", topics, row.names=NULL, append=TRUE)
+#       }else{
+#         dbWriteTable(con, "oa_pubs_topics", topics, row.names=FALSE, append=TRUE)
+#       }
+#       print(which(oa_distinct_pubs$id == oa_id))
+#     }
+#   }
+# }
+```
 

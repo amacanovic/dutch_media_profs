@@ -1,0 +1,787 @@
+---
+title: "Untitled"
+author: "Ana Macanovic"
+date: "2024-03-04"
+output: html_document
+---
+
+```{r include = FALSE}
+knitr::opts_chunk$set(echo=FALSE)
+knitr::opts_chunk$set(warning=FALSE)
+knitr::opts_chunk$set(message=FALSE)
+```
+
+
+Load the packages:
+```{r message=  F, warning = F, eval = T, echo=T}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "tidyr", 
+                      "tidyverse", "RPostgres", "lubridate", "psych",
+                      "gridExtra",
+                      "panelr", "skimr",
+                      "lmtest", "sandwich")
+groundhog.library(packages_to_load, date = "2023-12-01")
+
+```
+
+Load the panel and tidying it up:
+```{r warning = F, message = F, echo=T}
+prof_year_p_c_g_a_t <-  read_csv("panel_datasets/prof_year_p_c_g_a_t.csv")
+prof_year_p_c_g_a_t_l <-  read_csv("panel_datasets/prof_year_p_c_g_a_t_l.csv")
+
+prof_year_p_c_g_a_t_l$all_mentions <- prof_year_p_c_g_a_t_l$attn_news_by + prof_year_p_c_g_a_t_l$attn_blogs_by + prof_year_p_c_g_a_t_l$attn_twitter_by
+prof_year_p_c_g_a_t_l$all_mentions_total <- prof_year_p_c_g_a_t_l$attn_news_by_total + prof_year_p_c_g_a_t_l$attn_blogs_by_total + prof_year_p_c_g_a_t_l$attn_twitter_by_total
+```
+ 
+Get attention percentiles per year and per year and field.(code is hidden for clarity)
+```{r}
+fame_distributions_y <- prof_year_p_c_g_a_t_l %>%
+  filter(year >= 2011 & !is.na(overall_field))%>%
+  group_by(year) %>%
+  summarize(n = n(),
+            quant50_att = quantile(all_mentions, probs = 0.5, na.rm = TRUE),
+            quant75_att = quantile(all_mentions, probs = 0.75, na.rm = TRUE),
+            quant90_att = quantile(all_mentions, probs = 0.9, na.rm = TRUE),
+            quant95_att = quantile(all_mentions, probs = 0.95, na.rm = TRUE),
+            quant50_pubs = quantile(count_pubs, probs = 0.5, na.rm = TRUE),
+            quant75_pubs = quantile(count_pubs, probs = 0.75, na.rm = TRUE),
+            quant90_pubs = quantile(count_pubs, probs = 0.9, na.rm = TRUE),
+            quant95_pubs = quantile(count_pubs, probs = 0.95, na.rm = TRUE),
+            quant50_cits = quantile(cited_by, probs = 0.5, na.rm = TRUE),
+            quant75_cits = quantile(cited_by, probs = 0.75, na.rm = TRUE),
+            quant90_cits = quantile(cited_by, probs = 0.9, na.rm = TRUE),
+            quant95_cits = quantile(cited_by, probs = 0.95, na.rm = TRUE))
+
+fame_distributions_y_f <- prof_year_p_c_g_a_t_l %>%
+  filter(year >= 2011 & !is.na(overall_field))%>%
+  group_by(year, overall_field) %>%
+  summarize(n = n(),
+            quant50_att = quantile(all_mentions, probs = 0.5, na.rm = TRUE),
+            quant75_att = quantile(all_mentions, probs = 0.75, na.rm = TRUE),
+            quant90_att = quantile(all_mentions, probs = 0.9, na.rm = TRUE),
+            quant95_att = quantile(all_mentions, probs = 0.95, na.rm = TRUE),
+            quant50_pubs = quantile(count_pubs, probs = 0.5, na.rm = TRUE),
+            quant75_pubs = quantile(count_pubs, probs = 0.75, na.rm = TRUE),
+            quant90_pubs = quantile(count_pubs, probs = 0.9, na.rm = TRUE),
+            quant95_pubs = quantile(count_pubs, probs = 0.95, na.rm = TRUE),
+            quant50_cits = quantile(cited_by, probs = 0.5, na.rm = TRUE),
+            quant75_cits = quantile(cited_by, probs = 0.75, na.rm = TRUE),
+            quant90_cits = quantile(cited_by, probs = 0.9, na.rm = TRUE),
+            quant95_cits = quantile(cited_by, probs = 0.95, na.rm = TRUE))
+
+fame_distributions_y_tot <- prof_year_p_c_g_a_t_l %>%
+  filter(year >= 2011 & !is.na(overall_field))%>%
+  group_by(year) %>%
+  summarize(n = n(),
+            quant50_att = quantile(all_mentions_total, probs = 0.5, na.rm = TRUE),
+            quant75_att = quantile(all_mentions_total, probs = 0.75, na.rm = TRUE),
+            quant90_att = quantile(all_mentions_total, probs = 0.9, na.rm = TRUE),
+            quant95_att = quantile(all_mentions_total, probs = 0.95, na.rm = TRUE),
+            quant50_pubs = quantile(count_pubs_total, probs = 0.5, na.rm = TRUE),
+            quant75_pubs = quantile(count_pubs_total, probs = 0.75, na.rm = TRUE),
+            quant90_pubs = quantile(count_pubs_total, probs = 0.9, na.rm = TRUE),
+            quant95_pubs = quantile(count_pubs_total, probs = 0.95, na.rm = TRUE),
+            quant50_cits = quantile(cited_by_total_all, probs = 0.5, na.rm = TRUE),
+            quant75_cits = quantile(cited_by_total_all, probs = 0.75, na.rm = TRUE),
+            quant90_cits = quantile(cited_by_total_all, probs = 0.9, na.rm = TRUE),
+            quant95_cits = quantile(cited_by_total_all, probs = 0.95, na.rm = TRUE))
+
+fame_distributions_y_f_tot <- prof_year_p_c_g_a_t_l %>%
+  filter(year >= 2011 & !is.na(overall_field))%>%
+  group_by(year, overall_field) %>%
+  summarize(n = n(),
+            quant50_att = quantile(all_mentions_total, probs = 0.5, na.rm = TRUE),
+            quant75_att = quantile(all_mentions_total, probs = 0.75, na.rm = TRUE),
+            quant90_att = quantile(all_mentions_total, probs = 0.9, na.rm = TRUE),
+            quant95_att = quantile(all_mentions_total, probs = 0.95, na.rm = TRUE),
+            quant50_pubs = quantile(count_pubs_total, probs = 0.5, na.rm = TRUE),
+            quant75_pubs = quantile(count_pubs_total, probs = 0.75, na.rm = TRUE),
+            quant90_pubs = quantile(count_pubs_total, probs = 0.9, na.rm = TRUE),
+            quant95_pubs = quantile(count_pubs_total, probs = 0.95, na.rm = TRUE),
+            quant50_cits = quantile(cited_by_total_all, probs = 0.5, na.rm = TRUE),
+            quant75_cits = quantile(cited_by_total_all, probs = 0.75, na.rm = TRUE),
+            quant90_cits = quantile(cited_by_total_all, probs = 0.9, na.rm = TRUE),
+            quant95_cits = quantile(cited_by_total_all, probs = 0.95, na.rm = TRUE))
+
+```
+
+Match profs with percentiles.
+```{r}
+prof_percentile_matching <- prof_year_p_c_g_a_t_l %>%
+  filter(year > 2011)%>%
+  select(profile_id, year, inferred_gender, overall_field, attn_news_by, count_pubs,
+         count_pubs_total, cited_by, cited_by_total_all,
+         attn_news_by_total, attn_blogs_by, attn_blogs_by_total, attn_twitter_by,
+         attn_twitter_by_total, all_mentions, all_mentions_total)
+
+prof_percentile_matching <- merge(prof_percentile_matching,
+                                  fame_distributions_y,
+                                  by = "year",
+                                  all.x = TRUE)
+prof_percentile_matching <- prof_percentile_matching %>%
+  mutate(per_50_year_att = if_else(all_mentions >= quant50_att, 1, 0),
+         per_75_year_att = if_else(all_mentions >= quant75_att, 1, 0),
+         per_90_year_att = if_else(all_mentions >= quant90_att, 1, 0),
+         per_95_year_att = if_else(all_mentions >= quant95_att, 1, 0),
+         per_50_year_pubs = if_else(count_pubs >= quant50_pubs, 1, 0),
+         per_75_year_pubs = if_else(count_pubs >= quant75_pubs, 1, 0),
+         per_90_year_pubs = if_else(count_pubs >= quant90_pubs, 1, 0),
+         per_95_year_pubs = if_else(count_pubs >= quant95_pubs, 1, 0),
+         per_50_year_cits = if_else(cited_by >= quant50_cits, 1, 0),
+         per_75_year_cits = if_else(cited_by >= quant75_cits, 1, 0),
+         per_90_year_cits = if_else(cited_by >= quant90_cits, 1, 0),
+         per_95_year_cits = if_else(cited_by >= quant95_cits, 1, 0))%>%
+  select(!(quant50_att:quant95_cits))
+
+prof_percentile_matching <- merge(prof_percentile_matching,
+                                  fame_distributions_y_f,
+                                  by = c("year", "overall_field"),
+                                  all.x = TRUE)
+
+prof_percentile_matching <- prof_percentile_matching %>%
+  mutate(per_50_year_field_att = if_else(all_mentions >= quant50_att, 1, 0),
+         per_75_year_field_att = if_else(all_mentions >= quant75_att, 1, 0),
+         per_90_year_field_att = if_else(all_mentions >= quant90_att, 1, 0),
+         per_95_year_field_att = if_else(all_mentions >= quant95_att, 1, 0),
+         per_50_year_field_pubs = if_else(count_pubs >= quant50_pubs, 1, 0),
+         per_75_year_field_pubs = if_else(count_pubs >= quant75_pubs, 1, 0),
+         per_90_year_field_pubs = if_else(count_pubs >= quant90_pubs, 1, 0),
+         per_95_year_field_pubs = if_else(count_pubs >= quant95_pubs, 1, 0),
+         per_50_year_field_cits = if_else(cited_by >= quant50_cits, 1, 0),
+         per_75_year_field_cits = if_else(cited_by >= quant75_cits, 1, 0),
+         per_90_year_field_cits = if_else(cited_by >= quant90_cits, 1, 0),
+         per_95_year_field_cits = if_else(cited_by >= quant95_cits, 1, 0))%>%
+  select(!(quant50_att:quant95_cits))
+```
+
+# Gender structure overall
+This explores the share of publications, citations, and attention of women
+out of the total number of publications, citations, and attention.
+
+Get fame gender breakdown per year. [code hidden]
+```{r}
+year_breakdown_att <- prof_percentile_matching %>%
+  group_by(year)%>%
+  summarise(n_att = sum(all_mentions),
+            w_att = sum(all_mentions[inferred_gender == "w"]))%>%
+  mutate(w_att = w_att/n_att*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+
+ year_breakdown_field_att <- prof_percentile_matching %>%
+  filter(!is.na(overall_field))%>%
+  group_by(year, overall_field)%>%
+  summarise(n_att = sum(all_mentions),
+            w_att = sum(all_mentions[inferred_gender == "w"]))%>%
+  mutate(w_att = w_att/n_att*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+ 
+ 
+ year_breakdown_pubs <- prof_percentile_matching %>%
+  group_by(year)%>%
+  summarise(n_pubs = sum(count_pubs),
+            w_pubs = sum(count_pubs[inferred_gender == "w"]))%>%
+  mutate(w_pubs = w_pubs/n_pubs*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+
+ year_breakdown_field_pubs <- prof_percentile_matching %>%
+  filter(!is.na(overall_field))%>%
+  group_by(year, overall_field)%>%
+  summarise(n_pubs = sum(count_pubs),
+            w_pubs = sum(count_pubs[inferred_gender == "w"]))%>%
+  mutate(w_pubs = w_pubs/n_pubs*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+ 
+ year_breakdown_cits <- prof_percentile_matching %>%
+   filter(year >= 2012)%>%
+   group_by(year)%>%
+   summarise(n_cits = sum(cited_by, na.rm = T),
+             w_cits = sum(cited_by[inferred_gender == "w"],  na.rm = T)) %>%
+   mutate(w_cits = w_cits/n_cits*100)%>%
+   mutate(across(where(is.numeric), \(x) round(x, 2)))
+ 
+ year_breakdown_field_cits <- prof_percentile_matching %>%
+   filter(year >= 2012)%>%
+   filter(!is.na(overall_field))%>%
+   group_by(year, overall_field)%>%
+   summarise(n_cits = sum(cited_by, na.rm = T),
+             w_cits = sum(cited_by[inferred_gender == "w"],  na.rm = T)) %>%
+   mutate(w_cits = w_cits/n_cits*100)%>%
+   mutate(across(where(is.numeric), \(x) round(x, 2)))
+ 
+ 
+ share_women_year <- prof_percentile_matching %>%
+   group_by(year)%>%
+   summarise(
+     n = n(),
+     w = sum(inferred_gender == "w")/n()*100)%>%
+   mutate(across(where(is.numeric), \(x) round(x, 2)))
+ 
+ share_women_field_year <- prof_percentile_matching %>%
+   filter(!is.na(overall_field))%>%
+   group_by(year, overall_field)%>%
+   summarise( n = n(),
+              w = sum(inferred_gender == "w")/n()*100)%>%
+   mutate(across(where(is.numeric), \(x) round(x, 2)))
+
+#put all data frames into list
+merge_list_year <- list(share_women_year, 
+                        year_breakdown_pubs, 
+                        year_breakdown_cits,
+                        year_breakdown_att)
+
+merge_list_year_field <- list(share_women_field_year, 
+                              year_breakdown_field_pubs, 
+                              year_breakdown_field_cits,
+                              year_breakdown_field_att)
+
+
+year_breakdown <- merge_list_year %>%
+  reduce(full_join,
+         by = "year")
+
+year_field_breakdown <- merge_list_year_field %>%
+  reduce(left_join,
+         by = c("year", "overall_field"))
+
+```
+
+Plot the shares of women per year:
+
+```{r fig.width = 10}
+year_breakdown$year <- as.factor(year_breakdown$year)
+
+(plot_data_year <- year_breakdown %>%
+    filter(year != "2024")%>%
+    select(-contains("n"))%>%
+    pivot_longer(!year, names_to = "type", values_to = "share_women") %>%
+    ggplot(aes(color=type, y=share_women, x=year, group = type)) + 
+    geom_line()+
+    scale_color_hue(labels = c("Professors", "In all attention",
+                                  "In all citations", "In all publication counts"))+
+    labs(x = 'Year', y = "Share women", color = "")+
+    theme_minimal())
+```
+
+Share of women per field:
+
+```{r fig.width = 10}
+year_field_breakdown$year <- as.factor(year_field_breakdown$year)
+label_counts <- filter(year_field_breakdown,
+                       year == 2013)
+label_counts$label <- paste0(label_counts$overall_field, " (n = ", label_counts$n, ")")
+
+year_field_breakdown <- year_field_breakdown %>% 
+  mutate(overall_field_short = case_match(
+    overall_field,
+    "Agricultural and Biological Sciences"  ~ "Agri & Bio Sciences",
+    "Arts and Humanities"  ~ "Arts & Humanities",
+    "Biochemistry, Genetics and Molecular Biology" ~ "Biochem, Genetics & Mol Bio",
+    "Business, Management and Accounting" ~ "Business, Mgmt & Acc",
+    "Chemical Engineering" ~ "Chem Eng",
+    "Chemistry" ~  "Chem",
+    "Computer Science" ~ "Comp Sci",
+    "Decision Sciences" ~ "Dec Sci",
+    "Dentistry"  ~ "Dentistry",
+    "Earth and Planetary Sciences" ~ "Earth & Planetary Sci",
+    "Economics, Econometrics and Finance" ~"Econ & Finance",
+    "Energy" ~  "Energy",      
+    "Engineering" ~ "Engineering",
+    "Environmental Science" ~ "Envir Sci",
+    "Health Professions" ~ "Health Prof",
+    "Immunology and Microbiology" ~  "Immunology & MicroBio",
+    "Materials Science" ~ "Materials Sci",
+    "Mathematics"  ~ "Math",
+    "Medicine" ~ "Medicine",
+    "Neuroscience" ~ "Neurosci",
+    "Physics and Astronomy" ~ "Physics & Astro",
+    "Psychology" ~ "Psychology",
+    "Social Sciences"    ~ "Soc Sci"                         
+  ))
+
+year_field_breakdown <- year_field_breakdown %>% 
+  mutate(general_field = case_match(
+    overall_field,
+    "Arts and Humanities"  ~ "Arts & Humanities",
+    c("Biochemistry, Genetics and Molecular Biology","Agricultural and Biological Sciences",
+      "Chemical Engineering", "Chemistry",  "Computer Science", "Decision Sciences",
+      "Earth and Planetary Sciences", "Energy", "Engineering", "Environmental Science",
+      "Immunology and Microbiology", "Materials Science", "Mathematics", "Neuroscience", 
+      "Physics and Astronomy" ) ~ "STEM",
+    c("Dentistry", "Health Professions", "Medicine") ~ "Medicine",
+    c("Business, Management and Accounting", "Economics, Econometrics and Finance",
+      "Psychology", "Social Sciences") ~ "Social sciences"))
+    
+labels <- year_field_breakdown %>% filter(year == 2023)%>%
+  group_by(general_field) %>%
+  summarise( n = sum(n))
+
+labels$field_n_label <- paste0(labels$general_field, " (n = ", labels$n, ")")
+
+year_field_breakdown <- merge(year_field_breakdown,
+                              labels[c("general_field", "field_n_label")])
+
+(plot_data_year_field <-  year_field_breakdown %>%
+  filter(year != "2024")%>%
+  select(-c(n, n_pubs, n_cits, n_att, overall_field_short))%>%
+  group_by(year, field_n_label)%>%
+  summarise(w = mean(w),
+            w_att = mean(w_att),
+            w_pubs = mean(w_pubs),
+            w_cits = mean(w_cits))%>%
+  pivot_longer(w:w_cits, names_to = "type", values_to = "share_women") %>%
+    ggplot(aes(color=type, y=share_women, x=year, group = type)) + 
+    geom_line()+
+    facet_wrap(.~field_n_label, scales = "free")+
+    scale_color_hue(labels = c("Professors", "In all attention",
+                                  "In all citations", "In all publication counts"))+
+    labs(x = 'Year', y = "Share women", color = "")+
+    theme_minimal())
+
+```
+
+
+
+# Gender structure of top 25% by pubs, cits, and attention
+This explores the share of women in the top 25% of scientists given their
+yearly publications, citations, and attention.
+
+Fame gender breakdown per year. [code hidden]
+```{r}
+year_breakdown_att <- prof_percentile_matching %>%
+  group_by(year)%>%
+  filter(per_75_year_field_att == 1)%>%
+  summarise(n_att = n(),
+            w_att = sum(inferred_gender == "w")/n()*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+
+ year_breakdown_field_att <- prof_percentile_matching %>%
+  filter(!is.na(overall_field) & per_75_year_field_att == 1)%>%
+  group_by(year, overall_field)%>%
+   summarise(n_att = n(),
+            w_att = sum(inferred_gender == "w")/n()*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+ 
+ 
+ year_breakdown_pubs <- prof_percentile_matching %>%
+  group_by(year)%>%
+  filter(per_75_year_field_pubs == 1)%>%
+  summarise(n_pubs = n(),
+            w_pubs = sum(inferred_gender == "w")/n()*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+
+ year_breakdown_field_pubs <- prof_percentile_matching %>%
+  filter(!is.na(overall_field) & per_75_year_field_pubs == 1)%>%
+  group_by(year, overall_field)%>%
+   summarise(n_pubs = n(),
+            w_pubs = sum(inferred_gender == "w")/n()*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+ 
+ year_breakdown_cits <- prof_percentile_matching %>%
+  group_by(year)%>%
+  filter(per_75_year_field_cits == 1)%>%
+  summarise(n_cits = n(),
+            w_cits = sum(inferred_gender == "w")/n()*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+
+ year_breakdown_field_cits <- prof_percentile_matching %>%
+  filter(!is.na(overall_field) & per_75_year_field_cits == 1)%>%
+  group_by(year, overall_field)%>%
+   summarise(n_cits = n(),
+            w_cits = sum(inferred_gender == "w")/n()*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+ 
+ 
+ share_women_year <- prof_percentile_matching %>%
+   group_by(year)%>%
+   summarise(
+     n = n(),
+     w = sum(inferred_gender == "w")/n()*100)%>%
+   mutate(across(where(is.numeric), \(x) round(x, 2)))
+ 
+ share_women_field_year <- prof_percentile_matching %>%
+   filter(!is.na(overall_field))%>%
+   group_by(year, overall_field)%>%
+   summarise( n = n(),
+              w = sum(inferred_gender == "w")/n()*100)%>%
+   mutate(across(where(is.numeric), \(x) round(x, 2)))
+
+#put all data frames into list
+merge_list_year <- list(share_women_year, 
+                        year_breakdown_pubs, 
+                        year_breakdown_cits,
+                        year_breakdown_att)
+
+merge_list_year_field <- list(share_women_field_year, 
+                              year_breakdown_field_pubs, 
+                              year_breakdown_field_cits,
+                              year_breakdown_field_att)
+
+
+year_breakdown <- merge_list_year %>%
+  reduce(full_join,
+         by = "year")
+
+year_field_breakdown <- merge_list_year_field %>%
+  reduce(left_join,
+         by = c("year", "overall_field"))
+
+```
+
+Plot the shares of famous women (top 25% of pubs, citations, attention):
+
+```{r fig.width = 10}
+year_breakdown$year <- as.factor(year_breakdown$year)
+
+((plot_data_year <- year_breakdown %>%
+    filter(year != "2024")%>%
+    select(-contains("n"))%>%
+    pivot_longer(!year, names_to = "type", values_to = "share_women")%>%
+    ggplot(aes(color=type, y=share_women, x=year, group = type)) + 
+    geom_line()+
+    scale_color_hue(labels = c("Professors", "In top 25% attention",
+                                  "In top 25% citations", "In top 25% publication counts"))+
+    labs(x = 'Year', y = "Share women", color = "")+
+    theme_minimal()))
+```
+
+Do the same per field:
+
+```{r fig.width = 10}
+year_field_breakdown$year <- as.factor(year_field_breakdown$year)
+label_counts <- filter(year_field_breakdown,
+                       year == 2013)
+label_counts$label <- paste0(label_counts$overall_field, " (n = ", label_counts$n, ")")
+
+year_field_breakdown <- year_field_breakdown %>% 
+  mutate(overall_field_short = case_match(
+    overall_field,
+    "Agricultural and Biological Sciences"  ~ "Agri & Bio Sciences",
+    "Arts and Humanities"  ~ "Arts & Humanities",
+    "Biochemistry, Genetics and Molecular Biology" ~ "Biochem, Genetics & Mol Bio",
+    "Business, Management and Accounting" ~ "Business, Mgmt & Acc",
+    "Chemical Engineering" ~ "Chem Eng",
+    "Chemistry" ~  "Chem",
+    "Computer Science" ~ "Comp Sci",
+    "Decision Sciences" ~ "Dec Sci",
+    "Dentistry"  ~ "Dentistry",
+    "Earth and Planetary Sciences" ~ "Earth & Planetary Sci",
+    "Economics, Econometrics and Finance" ~"Econ & Finance",
+    "Energy" ~  "Energy",      
+    "Engineering" ~ "Engineering",
+    "Environmental Science" ~ "Envir Sci",
+    "Health Professions" ~ "Health Prof",
+    "Immunology and Microbiology" ~  "Immunology & MicroBio",
+    "Materials Science" ~ "Materials Sci",
+    "Mathematics"  ~ "Math",
+    "Medicine" ~ "Medicine",
+    "Neuroscience" ~ "Neurosci",
+    "Physics and Astronomy" ~ "Physics & Astro",
+    "Psychology" ~ "Psychology",
+    "Social Sciences"    ~ "Soc Sci"                         
+  ))
+
+year_field_breakdown <- year_field_breakdown %>% 
+  mutate(general_field = case_match(
+    overall_field,
+    "Arts and Humanities"  ~ "Arts & Humanities",
+    c("Biochemistry, Genetics and Molecular Biology","Agricultural and Biological Sciences",
+      "Chemical Engineering", "Chemistry",  "Computer Science", "Decision Sciences",
+      "Earth and Planetary Sciences", "Energy", "Engineering", "Environmental Science",
+      "Immunology and Microbiology", "Materials Science", "Mathematics", "Neuroscience", 
+      "Physics and Astronomy" ) ~ "STEM",
+    c("Dentistry", "Health Professions", "Medicine") ~ "Medicine",
+    c("Business, Management and Accounting", "Economics, Econometrics and Finance",
+      "Psychology", "Social Sciences") ~ "Social sciences"))
+    
+labels <- year_field_breakdown %>% filter(year == 2023)%>%
+  group_by(general_field) %>%
+  summarise( n = sum(n))
+
+labels$field_n_label <- paste0(labels$general_field, " (n = ", labels$n, ")")
+
+year_field_breakdown <- merge(year_field_breakdown,
+                              labels[c("general_field", "field_n_label")])
+
+(plot_data_year_field <-  year_field_breakdown %>%
+  filter(year != "2024")%>%
+  select(-c(n, n_pubs, n_cits, n_att, overall_field_short))%>%
+  group_by(year, field_n_label)%>%
+  summarise(w = mean(w),
+            w_att = mean(w_att),
+            w_pubs = mean(w_pubs),
+            w_cits = mean(w_cits))%>%
+  pivot_longer(w:w_cits, names_to = "type", values_to = "share_women") %>%
+    ggplot(aes(color=type, y=share_women, x=year, group = type)) + 
+    geom_line()+
+    facet_wrap(.~field_n_label, scales = "free")+
+    scale_color_hue(labels = c("Professors", "In top 25% attention",
+                                  "In top 25% citations", "In top 25% publication counts"))+
+    labs(x = 'Year', y = "Share women", color = "")+
+    theme_minimal())
+
+```
+
+
+# Gender structure of top 5% by pubs, cits, and attention
+This explores the share of women in the top 5% of scientists given their
+yearly publications, citations, and attention.
+
+Fame gender breakdown per year. [code hidden]
+```{r}
+year_breakdown_att <- prof_percentile_matching %>%
+  group_by(year)%>%
+  filter(per_95_year_field_att == 1)%>%
+  summarise(n_att = n(),
+            w_att = sum(inferred_gender == "w")/n()*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+
+ year_breakdown_field_att <- prof_percentile_matching %>%
+  filter(!is.na(overall_field) & per_95_year_field_att == 1)%>%
+  group_by(year, overall_field)%>%
+   summarise(n_att = n(),
+            w_att = sum(inferred_gender == "w")/n()*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+ 
+ 
+ year_breakdown_pubs <- prof_percentile_matching %>%
+  group_by(year)%>%
+  filter(per_95_year_field_pubs == 1)%>%
+  summarise(n_pubs = n(),
+            w_pubs = sum(inferred_gender == "w")/n()*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+
+ year_breakdown_field_pubs <- prof_percentile_matching %>%
+  filter(!is.na(overall_field) & per_95_year_field_pubs == 1)%>%
+  group_by(year, overall_field)%>%
+   summarise(n_pubs = n(),
+            w_pubs = sum(inferred_gender == "w")/n()*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+ 
+ year_breakdown_cits <- prof_percentile_matching %>%
+  group_by(year)%>%
+  filter(per_95_year_field_cits == 1)%>%
+  summarise(n_cits = n(),
+            w_cits = sum(inferred_gender == "w")/n()*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+
+ year_breakdown_field_cits <- prof_percentile_matching %>%
+  filter(!is.na(overall_field) & per_95_year_field_cits == 1)%>%
+  group_by(year, overall_field)%>%
+   summarise(n_cits = n(),
+            w_cits = sum(inferred_gender == "w")/n()*100)%>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
+ 
+ 
+ share_women_year <- prof_percentile_matching %>%
+   group_by(year)%>%
+   summarise(
+     n = n(),
+     w = sum(inferred_gender == "w")/n()*100)%>%
+   mutate(across(where(is.numeric), \(x) round(x, 2)))
+ 
+ share_women_field_year <- prof_percentile_matching %>%
+   filter(!is.na(overall_field))%>%
+   group_by(year, overall_field)%>%
+   summarise( n = n(),
+              w = sum(inferred_gender == "w")/n()*100)%>%
+   mutate(across(where(is.numeric), \(x) round(x, 2)))
+
+#put all data frames into list
+merge_list_year <- list(share_women_year, 
+                        year_breakdown_pubs, 
+                        year_breakdown_cits,
+                        year_breakdown_att)
+
+merge_list_year_field <- list(share_women_field_year, 
+                              year_breakdown_field_pubs, 
+                              year_breakdown_field_cits,
+                              year_breakdown_field_att)
+
+
+year_breakdown <- merge_list_year %>%
+  reduce(full_join,
+         by = "year")
+
+year_field_breakdown <- merge_list_year_field %>%
+  reduce(left_join,
+         by = c("year", "overall_field"))
+
+```
+
+Plot the shares of famous women (top 5% of pubs, citations, attention):
+
+```{r fig.width = 10}
+year_breakdown$year <- as.factor(year_breakdown$year)
+
+((plot_data_year <- year_breakdown %>%
+    filter(year != "2024")%>%
+    select(-contains("n"))%>%
+    pivot_longer(!year, names_to = "type", values_to = "share_women")%>%
+    ggplot(aes(color=type, y=share_women, x=year, group = type)) + 
+    geom_line()+
+    scale_color_hue(labels = c("Professors", "In top 5% attention",
+                                  "In top 5% citations", "In top 5% publication counts"))+
+    labs(x = 'Year', y = "Share women", color = "")+
+    theme_minimal()))
+```
+
+Do the same per field:
+
+```{r fig.width = 10}
+year_field_breakdown$year <- as.factor(year_field_breakdown$year)
+label_counts <- filter(year_field_breakdown,
+                       year == 2013)
+label_counts$label <- paste0(label_counts$overall_field, " (n = ", label_counts$n, ")")
+
+year_field_breakdown <- year_field_breakdown %>% 
+  mutate(overall_field_short = case_match(
+    overall_field,
+    "Agricultural and Biological Sciences"  ~ "Agri & Bio Sciences",
+    "Arts and Humanities"  ~ "Arts & Humanities",
+    "Biochemistry, Genetics and Molecular Biology" ~ "Biochem, Genetics & Mol Bio",
+    "Business, Management and Accounting" ~ "Business, Mgmt & Acc",
+    "Chemical Engineering" ~ "Chem Eng",
+    "Chemistry" ~  "Chem",
+    "Computer Science" ~ "Comp Sci",
+    "Decision Sciences" ~ "Dec Sci",
+    "Dentistry"  ~ "Dentistry",
+    "Earth and Planetary Sciences" ~ "Earth & Planetary Sci",
+    "Economics, Econometrics and Finance" ~"Econ & Finance",
+    "Energy" ~  "Energy",      
+    "Engineering" ~ "Engineering",
+    "Environmental Science" ~ "Envir Sci",
+    "Health Professions" ~ "Health Prof",
+    "Immunology and Microbiology" ~  "Immunology & MicroBio",
+    "Materials Science" ~ "Materials Sci",
+    "Mathematics"  ~ "Math",
+    "Medicine" ~ "Medicine",
+    "Neuroscience" ~ "Neurosci",
+    "Physics and Astronomy" ~ "Physics & Astro",
+    "Psychology" ~ "Psychology",
+    "Social Sciences"    ~ "Soc Sci"                         
+  ))
+
+year_field_breakdown <- year_field_breakdown %>% 
+  mutate(general_field = case_match(
+    overall_field,
+    "Arts and Humanities"  ~ "Arts & Humanities",
+    c("Biochemistry, Genetics and Molecular Biology","Agricultural and Biological Sciences",
+      "Chemical Engineering", "Chemistry",  "Computer Science", "Decision Sciences",
+      "Earth and Planetary Sciences", "Energy", "Engineering", "Environmental Science",
+      "Immunology and Microbiology", "Materials Science", "Mathematics", "Neuroscience", 
+      "Physics and Astronomy" ) ~ "STEM",
+    c("Dentistry", "Health Professions", "Medicine") ~ "Medicine",
+    c("Business, Management and Accounting", "Economics, Econometrics and Finance",
+      "Psychology", "Social Sciences") ~ "Social sciences"))
+    
+labels <- year_field_breakdown %>% filter(year == 2023)%>%
+  group_by(general_field) %>%
+  summarise( n = sum(n))
+
+labels$field_n_label <- paste0(labels$general_field, " (n = ", labels$n, ")")
+
+year_field_breakdown <- merge(year_field_breakdown,
+                              labels[c("general_field", "field_n_label")])
+
+(plot_data_year_field <-  year_field_breakdown %>%
+  filter(year != "2024")%>%
+  select(-c(n, n_pubs, n_cits, n_att, overall_field_short))%>%
+  group_by(year, field_n_label)%>%
+  summarise(w = mean(w),
+            w_att = mean(w_att),
+            w_pubs = mean(w_pubs),
+            w_cits = mean(w_cits))%>%
+  pivot_longer(w:w_cits, names_to = "type", values_to = "share_women") %>%
+    ggplot(aes(color=type, y=share_women, x=year, group = type)) + 
+    geom_line()+
+    facet_wrap(.~field_n_label, scales = "free")+
+    scale_color_hue(labels = c("Professors", "In top 5% attention",
+                                  "In top 5% citations", "In top 2% publication counts"))+
+    labs(x = 'Year', y = "Share women", color = "")+
+    theme_minimal())
+
+```
+
+
+# Individual paths
+
+Get some insights into the paths of professors over time in terms of
+their citations, publications, and media attention:
+
+
+1. Top 30 people in total pub counts in our dataset:
+
+```{r}
+prof_year_p_c_g_a_t_l <-  prof_year_p_c_g_a_t_l %>%
+  mutate(general_field = case_match(
+    overall_field,
+    "Arts and Humanities"  ~ "Arts & Humanities",
+    c("Biochemistry, Genetics and Molecular Biology","Agricultural and Biological Sciences",
+      "Chemical Engineering", "Chemistry",  "Computer Science", "Decision Sciences",
+      "Earth and Planetary Sciences", "Energy", "Engineering", "Environmental Science",
+      "Immunology and Microbiology", "Materials Science", "Mathematics", "Neuroscience", 
+      "Physics and Astronomy" ) ~ "STEM",
+    c("Dentistry", "Health Professions", "Medicine") ~ "Medicine",
+    c("Business, Management and Accounting", "Economics, Econometrics and Finance",
+      "Psychology", "Social Sciences") ~ "Social sciences"))
+
+
+
+top_20_pubs <- prof_year_p_c_g_a_t_l %>%
+  group_by(profile_id)%>%
+  filter(year == max(year)) %>% 
+  ungroup()%>%
+  group_by(general_field)%>%
+  slice_max(count_pubs_total, n = 30)
+
+
+prof_year_p_c_g_a_t_l %>%
+  filter(profile_id %in% top_20_pubs$profile_id & year < 2024 & !is.na(general_field))%>%
+  ggplot(aes(x=years_since_first_pub, y=count_pubs_total, group=profile_id, color=profile_id)) +
+  geom_line(aes(linetype=inferred_gender))+
+  guides(color = FALSE)+
+  facet_wrap(.~general_field, scales = "free_y")+
+  theme_minimal()
+  
+```
+
+2. Top 30 people in total citations in our dataset:
+
+```{r}
+top_20_cits <- prof_year_p_c_g_a_t_l %>%
+  group_by(profile_id)%>%
+  filter(year == max(year)) %>% 
+  ungroup()%>%
+  group_by(general_field)%>%
+  slice_max(cited_by_total_all, n = 30)
+
+
+prof_year_p_c_g_a_t_l %>%
+  filter(profile_id %in% top_20_cits$profile_id & year < 2024 & !is.na(general_field))%>%
+  ggplot(aes(x=years_since_first_pub, y=cited_by_total_all, group=profile_id, color=profile_id)) +
+  geom_line(aes(linetype=inferred_gender))+
+  guides(color = FALSE)+
+  facet_wrap(.~general_field, scales = "free_y")+
+  theme_minimal()
+```
+
+3. Top 30 people in total news attention in our dataset:
+
+```{r}
+top_20_news <- prof_year_p_c_g_a_t_l %>%
+  group_by(profile_id)%>%
+  filter(year == max(year)) %>% 
+  ungroup()%>%
+  group_by(general_field)%>%
+  slice_max(attn_news_by_total, n = 30)
+
+
+prof_year_p_c_g_a_t_l %>%
+  filter(profile_id %in% top_20_news$profile_id & year < 2024 & !is.na(general_field))%>%
+  ggplot(aes(x=years_since_first_pub, y=attn_news_by_total, group=profile_id, color=profile_id)) +
+  geom_line(aes(linetype=inferred_gender))+
+  guides(color = FALSE)+
+  facet_wrap(.~general_field, scales = "free_y")+
+  theme_minimal()
+```
+

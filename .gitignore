@@ -58,8 +58,14 @@ po/*~
 /data/
 /oa_database/
 /resources/
+/panel_datasets/
+/temp_altm/
+
 
 #/docs/ 
+
+# .csv files
+
 
 
 name_data/temp_name_webpages/origin_df.rda

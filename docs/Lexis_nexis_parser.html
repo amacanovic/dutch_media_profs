@@ -342,20 +342,49 @@ div.tocify {
 <li>
   <a href="index.html">Code homepage</a>
 </li>
-<li>
-  <a href="OpenAlex_Altmetric_data_download.html">Open Alex and Altmetric data download</a>
-</li>
-<li>
-  <a href="Gender_inference.html">Gender inference</a>
-</li>
-<li>
-  <a href="Mention_url_extraction.html">News full text and author names</a>
-</li>
-<li>
-  <a href="Overall_descriptives.html">Database description and coverage</a>
-</li>
-<li>
-  <a href="Data_descriptives.html">Professor-level descriptives</a>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="glyphicon glyphicon glyphicon glyphicon-list"></span>
+     
+    Scripts
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="SQL_tutorial.html">Intro: SQL tutorial</a>
+    </li>
+    <li>
+      <a href="OpenAlex_Altmetric_data_download.html">1. Open Alex and Altmetric data download</a>
+    </li>
+    <li>
+      <a href="Gender_inference.html">2. Gender inference</a>
+    </li>
+    <li>
+      <a href="Grant_parsing.html">3. Grant parsing</a>
+    </li>
+    <li>
+      <a href="Lexis_nexis_parser.html">4. Lexis data parser</a>
+    </li>
+    <li>
+      <a href="Mention_url_extraction.html">5. Mention URL extraction</a>
+    </li>
+    <li>
+      <a href="Data_descriptives.html">5. Database description and coverage</a>
+    </li>
+    <li>
+      <a href="Panel_data_compilation.html">6. Panel data compilation</a>
+    </li>
+    <li>
+      <a href="exploring_fame.html">7. Share of women in fame plots</a>
+    </li>
+    <li>
+      <a href="Various_plots.html">8. Data plots</a>
+    </li>
+    <li>
+      <a href="Various_regressions.html">9. Regression models</a>
+    </li>
+  </ul>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -393,7 +422,9 @@ div.tocify {
 
 <p>Load the packages:</p>
 <pre class="r"><code>library(groundhog)
-packages_to_load &lt;- c(&quot;readr&quot;, &quot;dplyr&quot;, &quot;stringr&quot;, &quot;tidyr&quot;)
+packages_to_load &lt;- c(&quot;readr&quot;, &quot;dplyr&quot;, &quot;stringr&quot;, &quot;tidyr&quot;, &quot;tidyverse&quot;,
+                      &quot;RPostgres&quot;, &quot;lubridate&quot;,
+                      &quot;DBI&quot;, &quot;RODBC&quot;, &quot;odbc&quot;)
 groundhog.library(packages_to_load, date = &quot;2023-12-01&quot;)</code></pre>
 <p>Load the R package by J. Grubber that conveniently tidies up the
 LexisNexis data:</p>
@@ -413,20 +444,454 @@ colnames(profs)[c(1,7)] &lt;- c(&quot;id&quot;, &quot;profile_id&quot;)
 profs_full &lt;- merge(profs,
                     metadf[, c(1:4, 361)],
                     by = &quot;profile_id&quot;)</code></pre>
+<p>Connect to database:</p>
+<pre class="r"><code># default port here, change if needed
+port &lt;- 5432
+# username
+user &lt;- &quot;&quot;
+# password
+password &lt;- &quot;&quot;
+# database name
+database_name &lt;- &quot;&quot;
+
+con &lt;- RPostgres::dbConnect(RPostgres::Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)</code></pre>
 </div>
-<div id="reading-in-the-data" class="section level1" number="2">
-<h1><span class="header-section-number">2</span> Reading in the
-data</h1>
-<p>Set the folder, and load the files:</p>
-<pre class="r"><code>LNToutput &lt;- lnt_read(x = &quot;news_data&quot;)</code></pre>
-<p>This helps load the meta data, full articles, and individual
-paragraphs:</p>
-<pre class="r"><code>meta_df &lt;- LNToutput@meta
-articles_df &lt;- LNToutput@articles
-paragraphs_df &lt;- LNToutput@paragraphs</code></pre>
+<div id="data-coverage" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Data coverage</h1>
+<div id="reading-in-the-lexisnexis-result-counts" class="section level2"
+number="2.1">
+<h2><span class="header-section-number">2.1</span> Reading in the
+LexisNexis result counts</h2>
+<pre class="r"><code>folder &lt;- &quot;../lexis_crawl/downloads/hits&quot;
+
+
+result_count_list &lt;- list.files(path = folder,
+                                pattern=&quot;*.csv&quot;, 
+                                full.names = T) %&gt;% 
+  map_df(~read_csv(.))
+
+result_count_list &lt;- result_count_list[, -1]</code></pre>
+</div>
+<div id="checking-the-count-of-downloaded-files" class="section level2"
+number="2.2">
+<h2><span class="header-section-number">2.2</span> Checking the count of
+downloaded files</h2>
+<pre class="r"><code>folder &lt;- &quot;../lexis_crawl/downloads/zipfiles&quot;
+all_docs &lt;- lnt_read(x = folder, convert_date = F)
+meta_data &lt;- all_docs@meta
+meta_data$profile_id &lt;- str_split_i(meta_data$Source_File, &quot;/zips/&quot;, 2)
+meta_data$profile_id &lt;- str_split_i(meta_data$profile_id, &quot;_&quot;, 1)
+
+articles_output &lt;- meta_data %&gt;%
+  group_by(profile_id)%&gt;%
+  summarise(retrieved = n())</code></pre>
+<p>Merge:</p>
+<pre class="r"><code>result_count_list &lt;- merge(result_count_list,
+                           articles_output,
+                           all.x = TRUE, by = &quot;profile_id&quot;)
+
+result_count_list$retrieved &lt;- ifelse(is.na(result_count_list$retrieved),
+                                      0,
+                                      result_count_list$retrieved)
+
+result_count_list$share_retrieved &lt;- result_count_list$retrieved / result_count_list$hits_identified * 100</code></pre>
+<p>Get missing articles and their indices to go back and collect
+them:</p>
+<pre class="r"><code>missing_indices &lt;- filter(result_count_list, 
+                          share_retrieved &lt; 100)
+
+missing_indices$first_index_pending &lt;- missing_indices$retrieved + 1
+missing_indices$last_index_pending &lt;- missing_indices$hits_identified
+
+write_csv(missing_indices, &quot;../lexis_crawl/missing_indices.csv&quot;)</code></pre>
+<p>Tidy up the dates:</p>
+<pre class="r"><code>meta_data$date_eng &lt;- tolower(meta_data$Date)
+# replace dutch dates with english for easier conversion later on
+meta_data$date_eng &lt;- str_replace(meta_data$date_eng,
+                                  &quot;januari&quot;,
+                                  &quot;january&quot;)
+meta_data$date_eng &lt;- str_replace(meta_data$date_eng,
+                                  &quot;februari&quot;,
+                                  &quot;february&quot;)
+meta_data$date_eng &lt;- str_replace(meta_data$date_eng,
+                                  &quot;maart&quot;,
+                                  &quot;march&quot;)
+meta_data$date_eng &lt;- str_replace(meta_data$date_eng,
+                                  &quot;mei&quot;,
+                                  &quot;may&quot;)
+meta_data$date_eng &lt;- str_replace(meta_data$date_eng,
+                                  &quot;mai&quot;,
+                                  &quot;may&quot;)
+meta_data$date_eng &lt;- str_replace(meta_data$date_eng,
+                                  &quot;juni&quot;,
+                                  &quot;june&quot;)
+meta_data$date_eng &lt;- str_replace(meta_data$date_eng,
+                                  &quot;juli&quot;,
+                                  &quot;july&quot;)
+meta_data$date_eng &lt;- str_replace(meta_data$date_eng,
+                                  &quot;augustus&quot;,
+                                  &quot;august&quot;)
+meta_data$date_eng &lt;- str_replace(meta_data$date_eng,
+                                  &quot;oktober&quot;,
+                                  &quot;october&quot;)
+meta_data$date_eng &lt;- str_replace(meta_data$date_eng,
+                                  &quot;dezember&quot;,
+                                  &quot;december&quot;)
+
+# convert the dates
+meta_data$date_tidy &lt;- lubridate::parse_date_time(meta_data$date_eng,  c(&quot;dmy&quot;, &quot;md,y&quot;))
+
+# get the year
+meta_data$year &lt;- year(meta_data$date_tidy)
+
+# select columns of interest
+meta_data_sel &lt;- meta_data %&gt;%
+  select(ID, Newspaper, Length:Author, Headline, profile_id, date_tidy, year)
+
+colnames(meta_data_sel) &lt;- tolower(colnames(meta_data_sel))</code></pre>
+<p>Prepare the article texts:</p>
+<pre class="r"><code>article_content &lt;- all_docs@articles
+colnames(article_content) &lt;- tolower(colnames(article_content))</code></pre>
+<p>Clean up the memory:</p>
+<pre class="r"><code>rm(all_docs)
+rm(missing_indices)
+gc()</code></pre>
+<p>Merge the metadata and the content</p>
+<pre class="r"><code>news_mentions &lt;- merge(meta_data_sel,
+                       article_content,
+                       by = &quot;id&quot;)
+
+# profile ID to match the rest
+news_mentions$profile_id &lt;- paste0(&quot;https://www.narcis.nl/person/RecordID/&quot;, news_mentions$profile_id)</code></pre>
+<p>Denote whether an article is from a national, regional or specialized
+Dutch source, or perhaps a higher-profile international source:</p>
+<pre class="r"><code>national_news_nl &lt;- c(
+  &quot;De Telegraaf&quot;,
+  &quot;De Telegraaf.nl&quot;,
+  &quot;Algemeen Dagblad&quot;,
+  &quot;AD/Algemeen Dagblad.nl&quot;,
+  &quot;AD/Algemeen Dagblad&quot;,
+  &quot;Metro&quot;,
+  &quot;Metro (NL)&quot;,
+  &quot;De Volkskrant&quot;,
+  &quot;De Volkskrant.nl&quot;,
+  &quot;NRC Handelsblad&quot;,
+  &quot;Trouw&quot;,
+  &quot;Trouw.nl&quot;,
+  &quot;Het Financieele Dagblad&quot;,
+  &quot;Het Financieele Dagblad (Abstract)/MD Info&quot;,
+  &quot;FD.nl&quot;,
+  &quot;Reformatorisch Dagblad&quot;,
+  &quot;Nederlands Dagblad&quot;,
+  &quot;NRC Next&quot;,
+  &quot;NRC&quot;,
+  &quot;NRC.NEXT&quot;,
+  &quot;NRC.nl&quot;,
+  &quot;Het Financieele Dagblad (Abstract)/MD Info&quot;
+)
+
+regional_news_nl &lt;- c(
+  &quot;De Limburger&quot;,
+  &quot;Gelderlander&quot;,
+  &quot;De Twentsche Courant Tubantia&quot;,
+  &quot;De Gelderlander&quot;,
+  &quot;De Gelderlander.nl&quot;,
+  &quot;Stentor&quot;,
+  &quot;Noordhollands Dagblad&quot;,
+  &quot;Dagblad van het Noorden&quot;,
+  &quot;Brabants Dagblad&quot;,
+  &quot;BN/DeStem&quot;,
+  &quot;BN De Stem.nl&quot;,
+  &quot;Tubantia&quot;,
+  
+  &quot;Tubantia.nl&quot;,
+  &quot;Eindhovens Dagblad&quot;,
+  &quot;BN De Stem&quot;,
+  &quot;Leeuwarder Courant&quot;,
+  &quot;Het Parool&quot;,
+  &quot;Het Parool.nl&quot;,
+  &quot;Provinciale Zeeuwse Courant&quot;,
+  &quot;Haarlems Dagblad&quot;,
+  &quot;Leidsch Dagblad&quot;,
+  &quot;De Gooi- en Eemlander&quot;,
+  &quot;Nieuwsblad Noordoost-Friesland&quot;,
+  &quot;Steenwijker Courant&quot;,
+  &quot;Friesch Dagblad&quot;,
+  &quot;AD/Haagsche Courant&quot;,
+  &quot;AD/Rotterdams Dagblad&quot;,
+  &quot;AD/Utrechts Nieuwsblad&quot;,
+  &quot;Noordhollands Dagblad&quot;,
+  &quot;AD/Groene Hart&quot;,
+  &quot;AD/De Dordtenaar&quot;,
+  &quot;AD/Amersfoortse Courant&quot;,
+  &quot;AD/Rivierenland&quot;,
+  &quot;Limburgs Dagblad&quot;,
+  &quot;Brabants Dagblad.nl&quot;,
+  &quot;Eindhovens Dagblad.nl&quot;,
+  &quot;De Stentor.nl&quot;,
+  &quot;De Stentor&quot;,
+  &quot;De Stentor/Zwolse Courant&quot;,
+  &quot;De Stentor/Gelders Dagblad&quot;,
+  &quot;De Stentor/Zutphens Dagblad&quot;,
+  &quot;De Stentor/Nieuw Kamper Dagblad&quot;,
+  &quot;De Stentor/Dagblad Flevoland&quot;,
+  &quot;De Stentor/Veluws Dagblad&quot;,
+  &quot;De Stentor/Deventer Dagblad&quot;,
+  &quot;Dagblad Tubantia/Twentsche Courant&quot;,
+  &quot;de limburger.nl&quot;,
+  &quot;De Stentor/Apeldoornse Courant&quot;,
+  &quot;DAGBLAD VAN HET NOORDEN&quot;,
+  &quot;De Stentor/Sallands Dagblad&quot;,
+  &quot;De Stentor/Gelders Dagblad&quot;,
+  &quot;De Stentor/Zutphens Dagblad&quot;,
+  &quot;De Stentor/Zwolse Courant&quot;,
+  &quot;De Groene Amsterdammer&quot;,
+  &quot;De Stentor/Apeldoornse Courant&quot;,
+  &quot;De Stentor/Dagblad Flevoland&quot;,
+  &quot;Dagblad van het Noorden.nl&quot;,
+  &quot;Noordhollands Dagblad.nl&quot;,
+  &quot;De Stentor/Deventer Dagblad&quot;,
+  &quot;Rotterdams Dagblad&quot;,
+  &quot;Friesch Dagblad&quot;,
+  &quot;Haarlems Dagblad.nl&quot;,
+  &quot;Meppeler Courant&quot;,
+  &quot;IJmuider Courant.nl&quot;,
+  &quot;Dagblad voor Zuidwest-Nederland&quot;,
+  &quot;Zwolse Courant&quot;,
+  &quot;Ijmuider Courant&quot;,
+  &quot;Leidsch Dagblad.nl&quot;,
+  &quot;Utrechts Nieuwsblad&quot;,
+  &quot;Haagsche Courant&quot;,
+  &quot;Leeuwarder Courant.nl&quot;,
+  &quot;De Stentor/Nieuw Kamper Dagblad&quot;,
+  &quot;Amersfoortse Courant&quot;,
+  &quot;Goudsche Courant&quot;,
+  &quot;Friesch Dagblad.nl&quot;,
+  &quot;Dagblad Rivierenland&quot;,
+  &quot;PZC.nl&quot;,
+  &quot;Woerdense Courant&quot;,
+  &quot;Goudse post&quot;,
+  &quot;Tubantia.nl&quot;,
+  &quot;nu.nl&quot;,
+  &quot;Voorburgse Courant&quot;,
+  &quot;De Stad Wageningen&quot;,
+  &quot;De Stem&quot;,
+  &quot;Knack Magazine&quot;,
+  &quot;IJmuider Courant&quot;,
+  &quot;De Brug Nijmegen&quot;,
+  &quot;de Volkskrant (Abstract) / MD Info&quot;)
+
+professional_pub_nl &lt;- c(
+  &quot;De Accountant&quot;,
+  &quot;Cobouw&quot;,
+  &quot;Boerderij&quot;,
+  &quot;Logistiek&quot;,
+  &quot;Psychologie Magazine&quot;,
+  &quot;Boerderij Vandaag&quot;,
+  &quot;Nieuwsblad Transport&quot;,
+  &quot;Vrij Nederland&quot;,
+  &quot;Food &amp; Agri business&quot;,
+  &quot;Pakblad&quot;,
+  &quot;Nieuwsblad Transport&quot;,
+  &quot;restaurantonline.co.uk&quot;,
+  &quot;Groenten en Fruit&quot;,
+  &quot;Pluimveehouderij&quot;,
+  &quot;Logistiek Krant&quot;)
+
+high_profile_int &lt;- c(
+  &quot;The Times Higher Education Supplement&quot;,
+  &quot;Financial Times (London, England)&quot;,
+  &quot;The New York Times&quot;, 
+  &quot;Business Wire&quot;,
+  &quot;The Times (London)&quot;,
+  &quot;MailOnline&quot;,
+  &quot;Guardian.com&quot;,
+  &quot;The Guardian - Final Edition&quot;,
+  &quot;Guardian Weekly&quot;,
+  &quot;Asian News International (ANI)&quot;,
+  &quot;Associated Press International&quot;,
+  &quot;Associated Press Online&quot;,
+  &quot;FT.com&quot;,
+  &quot;The Toronto Star&quot;,
+  &quot;thetimes.co.uk&quot;,
+  &quot;Xinhua General News Service&quot;,
+  &quot;FT.com Headlines&quot;,
+  &quot;The Guardian (London)&quot;,
+  &quot;The International Herald Tribune&quot;,
+  &quot;The Guardian&quot;,
+  &quot;CNN Wire&quot;,
+  &quot;telegraph.co.uk&quot;,
+  &quot;The Daily Telegraph (London)&quot;,
+  &quot;The Independent (United Kingdom)&quot;,
+  &quot;The Independent (London)&quot;,
+  &quot;The Guardian(London)&quot;,
+  &quot;Independent.co.uk&quot;,
+  &quot;CNN.com&quot;,
+  &quot;The Sunday Times (London)&quot;,
+  &quot;NEW YORK TIMES&quot;)
+
+# government and press releases
+pr_govt &lt;- c(&quot;Targeted News Service&quot;, 
+            &quot;US Fed News&quot;,
+            &quot;US Official News&quot;,
+            &quot;PR Newswire&quot;, 
+            &quot;M2 PressWIRE&quot;, 
+            &quot;Premium Official News&quot;,
+            &quot;European Union News&quot;, 
+            &quot;TendersInfo&quot;, 
+            &quot;GlobeNewswire&quot;,
+            &quot;PR Newswire Europe&quot;,
+            &quot;PR.com&quot;,
+            &quot;ENP Newswire&quot;,
+            &quot;FinancialWire&quot;)
+
+# university newspapers
+uni_news &lt;- c(&quot;University Wire&quot;)
+
+# news bites
+news_bites &lt;- c(&quot;News Bites - Private Companies&quot;,
+                &quot;News Bites - People in Business&quot;,
+                &quot;News Bites - Benelux: Netherlands&quot;,
+                &quot;News Bites - Nordic: Denmark&quot;,
+                &quot;OzEquities News Bites (Australia)&quot;,
+                &quot;Australian Company News Bites - Stock Report&quot;,
+                &quot;News Bites - Western Europe: Spain&quot;,
+                &quot;News Bites - Western Europe : Germany&quot;,
+                &quot;News Bites - Western Europe&quot;,
+                &quot;News Bites - Western Europe: Switzerland&quot;,
+                &quot;News Bites - Nordic: Sweden&quot;)
+
+# irrelevant sources
+irrelevant &lt;-   &quot;FD (Fair Disclosure) Wire&quot;</code></pre>
+<p>Remove spaces around / for easier identification:</p>
+<pre class="r"><code>news_mentions$newspaper_tidy &lt;- str_replace(news_mentions$newspaper, &quot; \\/ &quot;, &quot;\\/&quot;)</code></pre>
+<p>Denote whether the article belongs to any of these, and then also
+exclude one source that works a lot with newsletters, but not actual
+news:</p>
+<pre class="r"><code># national Dutch sources
+news_mentions$national_nl &lt;- ifelse(tolower(news_mentions$newspaper_tidy) %in% tolower(national_news_nl), 1, 0)
+# local Dutch sources
+news_mentions$regional_nl &lt;- ifelse(tolower(news_mentions$newspaper_tidy) %in% tolower(regional_news_nl), 1, 0)
+# higher-profile interantional sources
+news_mentions$high_prof_intl &lt;- ifelse(tolower(news_mentions$newspaper_tidy) %in% tolower(high_profile_int), 1, 0)
+# newsletters by &quot;news bites&quot;
+news_mentions$newsletter &lt;- ifelse(tolower(news_mentions$newspaper_tidy) %in% tolower(news_bites), 1, 0)
+# PR documents
+news_mentions$pr_news &lt;- ifelse(tolower(news_mentions$newspaper_tidy) %in% tolower(pr_govt), 1, 0)
+# unviersity newspapers
+news_mentions$uni_news &lt;- ifelse(tolower(news_mentions$newspaper_tidy) %in% tolower(uni_news), 1, 0)
+# blogs
+news_mentions$blog &lt;- ifelse(str_detect(tolower(news_mentions$newspaper_tidy), &quot;blog&quot;), 1, 0)
+news_mentions$blog &lt;- ifelse(is.na(news_mentions$blog), 0, news_mentions$blog)
+# irrelevant
+news_mentions$irrelevant &lt;- ifelse(tolower(news_mentions$newspaper_tidy) %in% tolower(irrelevant), 1, 0)
+
+# no source
+news_mentions$source_unknown &lt;- ifelse(news_mentions$newspaper_tidy == &quot;&quot;, 1, 0)
+news_mentions$source_unknown &lt;- ifelse(is.na(news_mentions$newspaper_tidy), 1, news_mentions$source_unknown)
+
+# and the remainder
+news_mentions$source_unclassified &lt;- ifelse(news_mentions$national_nl == 0 &amp; news_mentions$regional_nl == 0 &amp;
+                                              news_mentions$high_prof_intl == 0 &amp; news_mentions$newsletter == 0 &amp;
+                                              news_mentions$pr_news == 0 &amp; news_mentions$uni_news == 0 &amp;
+                                              news_mentions$blog == 0 &amp;
+                                              news_mentions$source_unknown == 0, 1, 0)
+
+# get a categorical variable
+news_mentions$source_type &lt;- ifelse(news_mentions$national_nl == 1,
+                                    &quot;national_nl&quot;,
+                                    ifelse(news_mentions$regional_nl == 1,
+                                           &quot;regional_nl&quot;,
+                                           ifelse(news_mentions$high_prof_intl == 1,
+                                                  &quot;high_prof_intl&quot;,
+                                                  ifelse(news_mentions$newsletter == 1,
+                                                         &quot;newsletter&quot;,
+                                                         ifelse(news_mentions$pr_news == 1,
+                                                                &quot;pr_news&quot;, 
+                                                                ifelse(news_mentions$uni_news == 1,
+                                                                       &quot;uni_news&quot;,
+                                                                       ifelse(news_mentions$blog == 1,
+                                                                              &quot;blog&quot;,
+                                                                              ifelse(news_mentions$irrelevant == 1,
+                                                                                     &quot;irrelevant&quot;,
+                                                                                     ifelse(news_mentions$source_unknown == 1,
+                                                                                            &quot;unknown&quot;,
+                                                                                            &quot;other&quot;)))))))))</code></pre>
+<p>Write this out to our database:</p>
+<pre class="r"><code>dbWriteTable(con, &quot;lexis_nexis_mentions&quot;, news_mentions)</code></pre>
+<p>Add in professor gender:</p>
+<pre class="r"><code>gender_table &lt;- dbReadTable(con, &quot;gender_table&quot;)
+
+news_mentions_gender &lt;- merge(news_mentions[, -1],
+                              gender_table[c(&quot;profile_id&quot;, &quot;inferred_gender&quot;)],
+                              by = &quot;profile_id&quot;)</code></pre>
+<p>Deduplicate mentions to remove multiple regional newspapers
+discussing the same person:</p>
+<pre class="r"><code>news_mentions_gender_dedupe &lt;- news_mentions_gender
+news_mentions_gender_dedupe$dupl &lt;- duplicated(news_mentions_gender[c(&quot;profile_id&quot;, &quot;headline&quot;, &quot;length&quot;)])
+
+news_mentions_gender_dedupe &lt;- news_mentions_gender_dedupe %&gt;%
+  filter(dupl == FALSE)%&gt;%
+  select(-dupl)</code></pre>
+<p>Source breakdown per gender?</p>
+<pre class="r"><code>breakdown &lt;- news_mentions_gender_dedupe %&gt;%
+  filter(! str_remove(profile_id, &quot;https://www.narcis.nl/person/RecordID/&quot;) %in% missing_indices$profile_id)%&gt;%
+  group_by(inferred_gender, source_type)%&gt;%
+  summarise(n = n())%&gt;%
+  pivot_wider(names_from = inferred_gender, values_from = n)
+
+breakdown$share_articles_m &lt;- round(breakdown$m / sum(breakdown$m), 3)*100
+breakdown$share_articles_w &lt;- round(breakdown$w / sum(breakdown$w), 3)*100
+
+# average articles per gender 
+prof_counts &lt;- filter(gender_table,
+                      profile_id %in% unique(news_mentions_gender_dedupe$profile_id))%&gt;%
+  group_by(inferred_gender)%&gt;%
+  summarise(profs = n())%&gt;%
+  pivot_wider(names_from = inferred_gender, values_from = profs)
+     
+colnames(prof_counts) &lt;- paste0(&quot;count_&quot;, colnames(prof_counts))    
+
+
+breakdown$count_prof_m &lt;- prof_counts$count_m
+breakdown$count_prof_w &lt;- prof_counts$count_w
+
+breakdown$avg_per_m &lt;-  round(breakdown$m / breakdown$count_prof_m, 3)
+breakdown$avg_per_w &lt;-  round(breakdown$w / breakdown$count_prof_w, 3)
+
+breakdown2 &lt;- breakdown
+breakdown2$share_w_profs &lt;- round(breakdown2$count_prof_w/(breakdown2$count_prof_w + breakdown2$count_prof_m), 3)
+breakdown2$share_w_mentions &lt;- round(breakdown2$w/(breakdown2$w + breakdown2$m), 3)
+breakdown2 &lt;- breakdown2 %&gt;%
+  select(source_type, share_w_profs, share_w_mentions)</code></pre>
+<p>Genders:</p>
+<pre class="r"><code>result_count_list &lt;- merge(result_count_list,
+                           gender_table[c(&quot;profile_id&quot;, &quot;inferred_gender&quot;)],
+                           by = &quot;profile_id&quot;)
+
+gender_hits &lt;- result_count_list %&gt;%
+  group_by(inferred_gender)%&gt;%
+  summarise(n = n(),
+            avg_hits = mean(hits_identified),
+            total_hits = sum(hits_identified))
+
+gender_hits$share_hits &lt;- round(gender_hits$total_hits/sum(gender_hits$total_hits), 2)*100
+
+gender_hits</code></pre>
+<pre class="r"><code>zeroes &lt;- result_count_list %&gt;%
+  group_by(inferred_gender)%&gt;%
+  summarise(n = n(),
+            zeroes = sum(hits_identified &gt; 132))
+
+zeroes$share &lt;- zeroes$zeroes/zeroes$n</code></pre>
+</div>
 </div>
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIk5leGlzX2RhdGFfaGFuZGxpbmciDQphdXRob3I6ICJBbmEgTWFjYW5vdmljIg0KZGF0ZTogIjIwMjMtMTItMDYiDQotLS0NCg0KYGBge3Igc2V0dXAsIGluY2x1ZGU9RkFMU0V9DQprbml0cjo6b3B0c19jaHVuayRzZXQoZWNobyA9IFRSVUUpDQprbml0cjo6b3B0c19jaHVuayRzZXQoZXZhbCA9IEZBTFNFKQ0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KHdhcm5pbmcgPSBGQUxTRSkNCmtuaXRyOjpvcHRzX2NodW5rJHNldChtZXNzYWdlID0gRkFMU0UpDQpgYGANCg0KTG9hZCB0aGUgcGFja2FnZXM6DQpgYGB7ciBtZXNzYWdlPSAgRiwgd2FybmluZyA9IEZ9DQpsaWJyYXJ5KGdyb3VuZGhvZykNCnBhY2thZ2VzX3RvX2xvYWQgPC0gYygicmVhZHIiLCAiZHBseXIiLCAic3RyaW5nciIsICJ0aWR5ciIpDQpncm91bmRob2cubGlicmFyeShwYWNrYWdlc190b19sb2FkLCBkYXRlID0gIjIwMjMtMTItMDEiKQ0KYGBgDQoNCkxvYWQgdGhlIFIgcGFja2FnZSBieSBKLiBHcnViYmVyIHRoYXQgY29udmVuaWVudGx5IHRpZGllcyB1cCB0aGUgTGV4aXNOZXhpcyBkYXRhOg0KYGBge3J9DQojIHJlbW90ZXM6Omluc3RhbGxfZ2l0aHViKCJKQkdydWJlci9MZXhpc05leGlzVG9vbHMiKQ0KbGlicmFyeSgiTGV4aXNOZXhpc1Rvb2xzIikNCmBgYA0KDQojIFRpZHkgdXAgcHJvZmVzc29yIGRhdGEgZnJvbSBOQVJDSVMNCg0KTG9hZCB0aGUgcHJvZmVzc29yIHByb2ZpbGVzOg0KYGBge3IgbWVzc2FnZSA9IEYsIHdhcm5pbmcgPSBGfQ0KbG9hZCgicmF3X2RhdGEvbWVkaWFfcHJvZnNfcHJvZmlsZXMucmRhIikNCnByb2ZzIDwtIHJlYWRfY3N2KCJyYXdfZGF0YS9kdXRjaF9wcm9mc191cmxzLmNzdiIpDQoNCiMgbWVyZ2UgdGhlIHByb2ZzIHdpdGggdGhlaXIgT1JDSURzDQpjb2xuYW1lcyhwcm9mcylbYygxLDcpXSA8LSBjKCJpZCIsICJwcm9maWxlX2lkIikNCg0KcHJvZnNfZnVsbCA8LSBtZXJnZShwcm9mcywNCiAgICAgICAgICAgICAgICAgICAgbWV0YWRmWywgYygxOjQsIDM2MSldLA0KICAgICAgICAgICAgICAgICAgICBieSA9ICJwcm9maWxlX2lkIikNCmBgYA0KDQoNCiMgUmVhZGluZyBpbiB0aGUgZGF0YQ0KDQoNClNldCB0aGUgZm9sZGVyLCBhbmQgbG9hZCB0aGUgZmlsZXM6DQpgYGB7cn0NCkxOVG91dHB1dCA8LSBsbnRfcmVhZCh4ID0gIm5ld3NfZGF0YSIpDQpgYGANCg0KVGhpcyBoZWxwcyBsb2FkIHRoZSBtZXRhIGRhdGEsIGZ1bGwgYXJ0aWNsZXMsIGFuZCBpbmRpdmlkdWFsIHBhcmFncmFwaHM6DQpgYGB7cn0NCm1ldGFfZGYgPC0gTE5Ub3V0cHV0QG1ldGENCmFydGljbGVzX2RmIDwtIExOVG91dHB1dEBhcnRpY2xlcw0KcGFyYWdyYXBoc19kZiA8LSBMTlRvdXRwdXRAcGFyYWdyYXBocw0KYGBgDQoNCg==</div>
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIk5leGlzX2RhdGFfaGFuZGxpbmciDQphdXRob3I6ICJBbmEgTWFjYW5vdmljIg0KZGF0ZTogIjIwMjMtMTItMDYiDQotLS0NCg0KYGBge3Igc2V0dXAsIGluY2x1ZGU9RkFMU0V9DQprbml0cjo6b3B0c19jaHVuayRzZXQoZWNobyA9IFRSVUUpDQprbml0cjo6b3B0c19jaHVuayRzZXQoZXZhbCA9IEZBTFNFKQ0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KHdhcm5pbmcgPSBGQUxTRSkNCmtuaXRyOjpvcHRzX2NodW5rJHNldChtZXNzYWdlID0gRkFMU0UpDQpgYGANCg0KTG9hZCB0aGUgcGFja2FnZXM6DQpgYGB7ciBtZXNzYWdlPSAgRiwgd2FybmluZyA9IEZ9DQpsaWJyYXJ5KGdyb3VuZGhvZykNCnBhY2thZ2VzX3RvX2xvYWQgPC0gYygicmVhZHIiLCAiZHBseXIiLCAic3RyaW5nciIsICJ0aWR5ciIsICJ0aWR5dmVyc2UiLA0KICAgICAgICAgICAgICAgICAgICAgICJSUG9zdGdyZXMiLCAibHVicmlkYXRlIiwNCiAgICAgICAgICAgICAgICAgICAgICAiREJJIiwgIlJPREJDIiwgIm9kYmMiKQ0KZ3JvdW5kaG9nLmxpYnJhcnkocGFja2FnZXNfdG9fbG9hZCwgZGF0ZSA9ICIyMDIzLTEyLTAxIikNCmBgYA0KDQpMb2FkIHRoZSBSIHBhY2thZ2UgYnkgSi4gR3J1YmJlciB0aGF0IGNvbnZlbmllbnRseSB0aWRpZXMgdXAgdGhlIExleGlzTmV4aXMgZGF0YToNCmBgYHtyfQ0KIyByZW1vdGVzOjppbnN0YWxsX2dpdGh1YigiSkJHcnViZXIvTGV4aXNOZXhpc1Rvb2xzIikNCmxpYnJhcnkoIkxleGlzTmV4aXNUb29scyIpDQpgYGANCg0KIyBUaWR5IHVwIHByb2Zlc3NvciBkYXRhIGZyb20gTkFSQ0lTDQoNCkxvYWQgdGhlIHByb2Zlc3NvciBwcm9maWxlczoNCmBgYHtyIG1lc3NhZ2UgPSBGLCB3YXJuaW5nID0gRn0NCmxvYWQoInJhd19kYXRhL21lZGlhX3Byb2ZzX3Byb2ZpbGVzLnJkYSIpDQpwcm9mcyA8LSByZWFkX2NzdigicmF3X2RhdGEvZHV0Y2hfcHJvZnNfdXJscy5jc3YiKQ0KDQojIG1lcmdlIHRoZSBwcm9mcyB3aXRoIHRoZWlyIE9SQ0lEcw0KY29sbmFtZXMocHJvZnMpW2MoMSw3KV0gPC0gYygiaWQiLCAicHJvZmlsZV9pZCIpDQoNCnByb2ZzX2Z1bGwgPC0gbWVyZ2UocHJvZnMsDQogICAgICAgICAgICAgICAgICAgIG1ldGFkZlssIGMoMTo0LCAzNjEpXSwNCiAgICAgICAgICAgICAgICAgICAgYnkgPSAicHJvZmlsZV9pZCIpDQpgYGANCg0KQ29ubmVjdCB0byBkYXRhYmFzZToNCmBgYHtyfQ0KIyBkZWZhdWx0IHBvcnQgaGVyZSwgY2hhbmdlIGlmIG5lZWRlZA0KcG9ydCA8LSA1NDMyDQojIHVzZXJuYW1lDQp1c2VyIDwtICIiDQojIHBhc3N3b3JkDQpwYXNzd29yZCA8LSAiIg0KIyBkYXRhYmFzZSBuYW1lDQpkYXRhYmFzZV9uYW1lIDwtICIiDQoNCmNvbiA8LSBSUG9zdGdyZXM6OmRiQ29ubmVjdChSUG9zdGdyZXM6OlBvc3RncmVzKCksDQogICAgICAgICAgICAgICAgIGRibmFtZT0gZGF0YWJhc2VfbmFtZSwNCiAgICAgICAgICAgICAgICAgcG9ydCA9IHBvcnQsDQogICAgICAgICAgICAgICAgIHVzZXIgPSB1c2VyLCANCiAgICAgICAgICAgICAgICAgcGFzc3dvcmQgPSBwYXNzd29yZCkNCg0KYGBgDQoNCiMgRGF0YSBjb3ZlcmFnZQ0KDQojIyBSZWFkaW5nIGluIHRoZSBMZXhpc05leGlzIHJlc3VsdCBjb3VudHMNCg0KYGBge3IgbWVzc2FnZSA9IEYsIHdhcm5pbmcgPSBGfQ0KZm9sZGVyIDwtICIuLi9sZXhpc19jcmF3bC9kb3dubG9hZHMvaGl0cyINCg0KDQpyZXN1bHRfY291bnRfbGlzdCA8LSBsaXN0LmZpbGVzKHBhdGggPSBmb2xkZXIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHBhdHRlcm49IiouY3N2IiwgDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGZ1bGwubmFtZXMgPSBUKSAlPiUgDQogIG1hcF9kZih+cmVhZF9jc3YoLikpDQoNCnJlc3VsdF9jb3VudF9saXN0IDwtIHJlc3VsdF9jb3VudF9saXN0WywgLTFdDQpgYGANCg0KDQojIyBDaGVja2luZyB0aGUgY291bnQgb2YgZG93bmxvYWRlZCBmaWxlcw0KDQpgYGB7cn0NCmZvbGRlciA8LSAiLi4vbGV4aXNfY3Jhd2wvZG93bmxvYWRzL3ppcGZpbGVzIg0KYWxsX2RvY3MgPC0gbG50X3JlYWQoeCA9IGZvbGRlciwgY29udmVydF9kYXRlID0gRikNCm1ldGFfZGF0YSA8LSBhbGxfZG9jc0BtZXRhDQptZXRhX2RhdGEkcHJvZmlsZV9pZCA8LSBzdHJfc3BsaXRfaShtZXRhX2RhdGEkU291cmNlX0ZpbGUsICIvemlwcy8iLCAyKQ0KbWV0YV9kYXRhJHByb2ZpbGVfaWQgPC0gc3RyX3NwbGl0X2kobWV0YV9kYXRhJHByb2ZpbGVfaWQsICJfIiwgMSkNCg0KYXJ0aWNsZXNfb3V0cHV0IDwtIG1ldGFfZGF0YSAlPiUNCiAgZ3JvdXBfYnkocHJvZmlsZV9pZCklPiUNCiAgc3VtbWFyaXNlKHJldHJpZXZlZCA9IG4oKSkNCmBgYA0KDQpNZXJnZToNCmBgYHtyfQ0KcmVzdWx0X2NvdW50X2xpc3QgPC0gbWVyZ2UocmVzdWx0X2NvdW50X2xpc3QsDQogICAgICAgICAgICAgICAgICAgICAgICAgICBhcnRpY2xlc19vdXRwdXQsDQogICAgICAgICAgICAgICAgICAgICAgICAgICBhbGwueCA9IFRSVUUsIGJ5ID0gInByb2ZpbGVfaWQiKQ0KDQpyZXN1bHRfY291bnRfbGlzdCRyZXRyaWV2ZWQgPC0gaWZlbHNlKGlzLm5hKHJlc3VsdF9jb3VudF9saXN0JHJldHJpZXZlZCksDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDAsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJlc3VsdF9jb3VudF9saXN0JHJldHJpZXZlZCkNCg0KcmVzdWx0X2NvdW50X2xpc3Qkc2hhcmVfcmV0cmlldmVkIDwtIHJlc3VsdF9jb3VudF9saXN0JHJldHJpZXZlZCAvIHJlc3VsdF9jb3VudF9saXN0JGhpdHNfaWRlbnRpZmllZCAqIDEwMA0KYGBgDQoNCkdldCBtaXNzaW5nIGFydGljbGVzIGFuZCB0aGVpciBpbmRpY2VzIHRvIGdvIGJhY2sgYW5kIGNvbGxlY3QgdGhlbToNCmBgYHtyfQ0KbWlzc2luZ19pbmRpY2VzIDwtIGZpbHRlcihyZXN1bHRfY291bnRfbGlzdCwgDQogICAgICAgICAgICAgICAgICAgICAgICAgIHNoYXJlX3JldHJpZXZlZCA8IDEwMCkNCg0KbWlzc2luZ19pbmRpY2VzJGZpcnN0X2luZGV4X3BlbmRpbmcgPC0gbWlzc2luZ19pbmRpY2VzJHJldHJpZXZlZCArIDENCm1pc3NpbmdfaW5kaWNlcyRsYXN0X2luZGV4X3BlbmRpbmcgPC0gbWlzc2luZ19pbmRpY2VzJGhpdHNfaWRlbnRpZmllZA0KDQp3cml0ZV9jc3YobWlzc2luZ19pbmRpY2VzLCAiLi4vbGV4aXNfY3Jhd2wvbWlzc2luZ19pbmRpY2VzLmNzdiIpDQpgYGANCg0KDQpUaWR5IHVwIHRoZSBkYXRlczoNCmBgYHtyfQ0KbWV0YV9kYXRhJGRhdGVfZW5nIDwtIHRvbG93ZXIobWV0YV9kYXRhJERhdGUpDQojIHJlcGxhY2UgZHV0Y2ggZGF0ZXMgd2l0aCBlbmdsaXNoIGZvciBlYXNpZXIgY29udmVyc2lvbiBsYXRlciBvbg0KbWV0YV9kYXRhJGRhdGVfZW5nIDwtIHN0cl9yZXBsYWNlKG1ldGFfZGF0YSRkYXRlX2VuZywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiamFudWFyaSIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgImphbnVhcnkiKQ0KbWV0YV9kYXRhJGRhdGVfZW5nIDwtIHN0cl9yZXBsYWNlKG1ldGFfZGF0YSRkYXRlX2VuZywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiZmVicnVhcmkiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJmZWJydWFyeSIpDQptZXRhX2RhdGEkZGF0ZV9lbmcgPC0gc3RyX3JlcGxhY2UobWV0YV9kYXRhJGRhdGVfZW5nLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJtYWFydCIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIm1hcmNoIikNCm1ldGFfZGF0YSRkYXRlX2VuZyA8LSBzdHJfcmVwbGFjZShtZXRhX2RhdGEkZGF0ZV9lbmcsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIm1laSIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIm1heSIpDQptZXRhX2RhdGEkZGF0ZV9lbmcgPC0gc3RyX3JlcGxhY2UobWV0YV9kYXRhJGRhdGVfZW5nLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJtYWkiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJtYXkiKQ0KbWV0YV9kYXRhJGRhdGVfZW5nIDwtIHN0cl9yZXBsYWNlKG1ldGFfZGF0YSRkYXRlX2VuZywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAianVuaSIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgImp1bmUiKQ0KbWV0YV9kYXRhJGRhdGVfZW5nIDwtIHN0cl9yZXBsYWNlKG1ldGFfZGF0YSRkYXRlX2VuZywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAianVsaSIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgImp1bHkiKQ0KbWV0YV9kYXRhJGRhdGVfZW5nIDwtIHN0cl9yZXBsYWNlKG1ldGFfZGF0YSRkYXRlX2VuZywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiYXVndXN0dXMiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJhdWd1c3QiKQ0KbWV0YV9kYXRhJGRhdGVfZW5nIDwtIHN0cl9yZXBsYWNlKG1ldGFfZGF0YSRkYXRlX2VuZywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAib2t0b2JlciIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIm9jdG9iZXIiKQ0KbWV0YV9kYXRhJGRhdGVfZW5nIDwtIHN0cl9yZXBsYWNlKG1ldGFfZGF0YSRkYXRlX2VuZywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiZGV6ZW1iZXIiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJkZWNlbWJlciIpDQoNCiMgY29udmVydCB0aGUgZGF0ZXMNCm1ldGFfZGF0YSRkYXRlX3RpZHkgPC0gbHVicmlkYXRlOjpwYXJzZV9kYXRlX3RpbWUobWV0YV9kYXRhJGRhdGVfZW5nLCAgYygiZG15IiwgIm1kLHkiKSkNCg0KIyBnZXQgdGhlIHllYXINCm1ldGFfZGF0YSR5ZWFyIDwtIHllYXIobWV0YV9kYXRhJGRhdGVfdGlkeSkNCg0KIyBzZWxlY3QgY29sdW1ucyBvZiBpbnRlcmVzdA0KbWV0YV9kYXRhX3NlbCA8LSBtZXRhX2RhdGEgJT4lDQogIHNlbGVjdChJRCwgTmV3c3BhcGVyLCBMZW5ndGg6QXV0aG9yLCBIZWFkbGluZSwgcHJvZmlsZV9pZCwgZGF0ZV90aWR5LCB5ZWFyKQ0KDQpjb2xuYW1lcyhtZXRhX2RhdGFfc2VsKSA8LSB0b2xvd2VyKGNvbG5hbWVzKG1ldGFfZGF0YV9zZWwpKQ0KYGBgDQoNClByZXBhcmUgdGhlIGFydGljbGUgdGV4dHM6DQpgYGB7cn0NCmFydGljbGVfY29udGVudCA8LSBhbGxfZG9jc0BhcnRpY2xlcw0KY29sbmFtZXMoYXJ0aWNsZV9jb250ZW50KSA8LSB0b2xvd2VyKGNvbG5hbWVzKGFydGljbGVfY29udGVudCkpDQpgYGANCg0KQ2xlYW4gdXAgdGhlIG1lbW9yeToNCmBgYHtyfQ0Kcm0oYWxsX2RvY3MpDQpybShtaXNzaW5nX2luZGljZXMpDQpnYygpDQpgYGANCg0KTWVyZ2UgdGhlIG1ldGFkYXRhIGFuZCB0aGUgY29udGVudA0KYGBge3J9DQpuZXdzX21lbnRpb25zIDwtIG1lcmdlKG1ldGFfZGF0YV9zZWwsDQogICAgICAgICAgICAgICAgICAgICAgIGFydGljbGVfY29udGVudCwNCiAgICAgICAgICAgICAgICAgICAgICAgYnkgPSAiaWQiKQ0KDQojIHByb2ZpbGUgSUQgdG8gbWF0Y2ggdGhlIHJlc3QNCm5ld3NfbWVudGlvbnMkcHJvZmlsZV9pZCA8LSBwYXN0ZTAoImh0dHBzOi8vd3d3Lm5hcmNpcy5ubC9wZXJzb24vUmVjb3JkSUQvIiwgbmV3c19tZW50aW9ucyRwcm9maWxlX2lkKQ0KYGBgDQoNCkRlbm90ZSB3aGV0aGVyIGFuIGFydGljbGUgaXMgZnJvbSBhIG5hdGlvbmFsLCByZWdpb25hbCBvciBzcGVjaWFsaXplZCBEdXRjaCBzb3VyY2UsIG9yIHBlcmhhcHMgYSBoaWdoZXItcHJvZmlsZSBpbnRlcm5hdGlvbmFsIHNvdXJjZToNCmBgYHtyfQ0KbmF0aW9uYWxfbmV3c19ubCA8LSBjKA0KICAiRGUgVGVsZWdyYWFmIiwNCiAgIkRlIFRlbGVncmFhZi5ubCIsDQogICJBbGdlbWVlbiBEYWdibGFkIiwNCiAgIkFEL0FsZ2VtZWVuIERhZ2JsYWQubmwiLA0KICAiQUQvQWxnZW1lZW4gRGFnYmxhZCIsDQogICJNZXRybyIsDQogICJNZXRybyAoTkwpIiwNCiAgIkRlIFZvbGtza3JhbnQiLA0KICAiRGUgVm9sa3NrcmFudC5ubCIsDQogICJOUkMgSGFuZGVsc2JsYWQiLA0KICAiVHJvdXciLA0KICAiVHJvdXcubmwiLA0KICAiSGV0IEZpbmFuY2llZWxlIERhZ2JsYWQiLA0KICAiSGV0IEZpbmFuY2llZWxlIERhZ2JsYWQgKEFic3RyYWN0KS9NRCBJbmZvIiwNCiAgIkZELm5sIiwNCiAgIlJlZm9ybWF0b3Jpc2NoIERhZ2JsYWQiLA0KICAiTmVkZXJsYW5kcyBEYWdibGFkIiwNCiAgIk5SQyBOZXh0IiwNCiAgIk5SQyIsDQogICJOUkMuTkVYVCIsDQogICJOUkMubmwiLA0KICAiSGV0IEZpbmFuY2llZWxlIERhZ2JsYWQgKEFic3RyYWN0KS9NRCBJbmZvIg0KKQ0KDQpyZWdpb25hbF9uZXdzX25sIDwtIGMoDQogICJEZSBMaW1idXJnZXIiLA0KICAiR2VsZGVybGFuZGVyIiwNCiAgIkRlIFR3ZW50c2NoZSBDb3VyYW50IFR1YmFudGlhIiwNCiAgIkRlIEdlbGRlcmxhbmRlciIsDQogICJEZSBHZWxkZXJsYW5kZXIubmwiLA0KICAiU3RlbnRvciIsDQogICJOb29yZGhvbGxhbmRzIERhZ2JsYWQiLA0KICAiRGFnYmxhZCB2YW4gaGV0IE5vb3JkZW4iLA0KICAiQnJhYmFudHMgRGFnYmxhZCIsDQogICJCTi9EZVN0ZW0iLA0KICAiQk4gRGUgU3RlbS5ubCIsDQogICJUdWJhbnRpYSIsDQogIA0KICAiVHViYW50aWEubmwiLA0KICAiRWluZGhvdmVucyBEYWdibGFkIiwNCiAgIkJOIERlIFN0ZW0iLA0KICAiTGVldXdhcmRlciBDb3VyYW50IiwNCiAgIkhldCBQYXJvb2wiLA0KICAiSGV0IFBhcm9vbC5ubCIsDQogICJQcm92aW5jaWFsZSBaZWV1d3NlIENvdXJhbnQiLA0KICAiSGFhcmxlbXMgRGFnYmxhZCIsDQogICJMZWlkc2NoIERhZ2JsYWQiLA0KICAiRGUgR29vaS0gZW4gRWVtbGFuZGVyIiwNCiAgIk5pZXV3c2JsYWQgTm9vcmRvb3N0LUZyaWVzbGFuZCIsDQogICJTdGVlbndpamtlciBDb3VyYW50IiwNCiAgIkZyaWVzY2ggRGFnYmxhZCIsDQogICJBRC9IYWFnc2NoZSBDb3VyYW50IiwNCiAgIkFEL1JvdHRlcmRhbXMgRGFnYmxhZCIsDQogICJBRC9VdHJlY2h0cyBOaWV1d3NibGFkIiwNCiAgIk5vb3JkaG9sbGFuZHMgRGFnYmxhZCIsDQogICJBRC9Hcm9lbmUgSGFydCIsDQogICJBRC9EZSBEb3JkdGVuYWFyIiwNCiAgIkFEL0FtZXJzZm9vcnRzZSBDb3VyYW50IiwNCiAgIkFEL1JpdmllcmVubGFuZCIsDQogICJMaW1idXJncyBEYWdibGFkIiwNCiAgIkJyYWJhbnRzIERhZ2JsYWQubmwiLA0KICAiRWluZGhvdmVucyBEYWdibGFkLm5sIiwNCiAgIkRlIFN0ZW50b3IubmwiLA0KICAiRGUgU3RlbnRvciIsDQogICJEZSBTdGVudG9yL1p3b2xzZSBDb3VyYW50IiwNCiAgIkRlIFN0ZW50b3IvR2VsZGVycyBEYWdibGFkIiwNCiAgIkRlIFN0ZW50b3IvWnV0cGhlbnMgRGFnYmxhZCIsDQogICJEZSBTdGVudG9yL05pZXV3IEthbXBlciBEYWdibGFkIiwNCiAgIkRlIFN0ZW50b3IvRGFnYmxhZCBGbGV2b2xhbmQiLA0KICAiRGUgU3RlbnRvci9WZWx1d3MgRGFnYmxhZCIsDQogICJEZSBTdGVudG9yL0RldmVudGVyIERhZ2JsYWQiLA0KICAiRGFnYmxhZCBUdWJhbnRpYS9Ud2VudHNjaGUgQ291cmFudCIsDQogICJkZSBsaW1idXJnZXIubmwiLA0KICAiRGUgU3RlbnRvci9BcGVsZG9vcm5zZSBDb3VyYW50IiwNCiAgIkRBR0JMQUQgVkFOIEhFVCBOT09SREVOIiwNCiAgIkRlIFN0ZW50b3IvU2FsbGFuZHMgRGFnYmxhZCIsDQogICJEZSBTdGVudG9yL0dlbGRlcnMgRGFnYmxhZCIsDQogICJEZSBTdGVudG9yL1p1dHBoZW5zIERhZ2JsYWQiLA0KICAiRGUgU3RlbnRvci9ad29sc2UgQ291cmFudCIsDQogICJEZSBHcm9lbmUgQW1zdGVyZGFtbWVyIiwNCiAgIkRlIFN0ZW50b3IvQXBlbGRvb3Juc2UgQ291cmFudCIsDQogICJEZSBTdGVudG9yL0RhZ2JsYWQgRmxldm9sYW5kIiwNCiAgIkRhZ2JsYWQgdmFuIGhldCBOb29yZGVuLm5sIiwNCiAgIk5vb3JkaG9sbGFuZHMgRGFnYmxhZC5ubCIsDQogICJEZSBTdGVudG9yL0RldmVudGVyIERhZ2JsYWQiLA0KICAiUm90dGVyZGFtcyBEYWdibGFkIiwNCiAgIkZyaWVzY2ggRGFnYmxhZCIsDQogICJIYWFybGVtcyBEYWdibGFkLm5sIiwNCiAgIk1lcHBlbGVyIENvdXJhbnQiLA0KICAiSUptdWlkZXIgQ291cmFudC5ubCIsDQogICJEYWdibGFkIHZvb3IgWnVpZHdlc3QtTmVkZXJsYW5kIiwNCiAgIlp3b2xzZSBDb3VyYW50IiwNCiAgIklqbXVpZGVyIENvdXJhbnQiLA0KICAiTGVpZHNjaCBEYWdibGFkLm5sIiwNCiAgIlV0cmVjaHRzIE5pZXV3c2JsYWQiLA0KICAiSGFhZ3NjaGUgQ291cmFudCIsDQogICJMZWV1d2FyZGVyIENvdXJhbnQubmwiLA0KICAiRGUgU3RlbnRvci9OaWV1dyBLYW1wZXIgRGFnYmxhZCIsDQogICJBbWVyc2Zvb3J0c2UgQ291cmFudCIsDQogICJHb3Vkc2NoZSBDb3VyYW50IiwNCiAgIkZyaWVzY2ggRGFnYmxhZC5ubCIsDQogICJEYWdibGFkIFJpdmllcmVubGFuZCIsDQogICJQWkMubmwiLA0KICAiV29lcmRlbnNlIENvdXJhbnQiLA0KICAiR291ZHNlIHBvc3QiLA0KICAiVHViYW50aWEubmwiLA0KICAibnUubmwiLA0KICAiVm9vcmJ1cmdzZSBDb3VyYW50IiwNCiAgIkRlIFN0YWQgV2FnZW5pbmdlbiIsDQogICJEZSBTdGVtIiwNCiAgIktuYWNrIE1hZ2F6aW5lIiwNCiAgIklKbXVpZGVyIENvdXJhbnQiLA0KICAiRGUgQnJ1ZyBOaWptZWdlbiIsDQogICJkZSBWb2xrc2tyYW50IChBYnN0cmFjdCkgLyBNRCBJbmZvIikNCg0KcHJvZmVzc2lvbmFsX3B1Yl9ubCA8LSBjKA0KICAiRGUgQWNjb3VudGFudCIsDQogICJDb2JvdXciLA0KICAiQm9lcmRlcmlqIiwNCiAgIkxvZ2lzdGllayIsDQogICJQc3ljaG9sb2dpZSBNYWdhemluZSIsDQogICJCb2VyZGVyaWogVmFuZGFhZyIsDQogICJOaWV1d3NibGFkIFRyYW5zcG9ydCIsDQogICJWcmlqIE5lZGVybGFuZCIsDQogICJGb29kICYgQWdyaSBidXNpbmVzcyIsDQogICJQYWtibGFkIiwNCiAgIk5pZXV3c2JsYWQgVHJhbnNwb3J0IiwNCiAgInJlc3RhdXJhbnRvbmxpbmUuY28udWsiLA0KICAiR3JvZW50ZW4gZW4gRnJ1aXQiLA0KICAiUGx1aW12ZWVob3VkZXJpaiIsDQogICJMb2dpc3RpZWsgS3JhbnQiKQ0KDQpoaWdoX3Byb2ZpbGVfaW50IDwtIGMoDQogICJUaGUgVGltZXMgSGlnaGVyIEVkdWNhdGlvbiBTdXBwbGVtZW50IiwNCiAgIkZpbmFuY2lhbCBUaW1lcyAoTG9uZG9uLCBFbmdsYW5kKSIsDQogICJUaGUgTmV3IFlvcmsgVGltZXMiLCANCiAgIkJ1c2luZXNzIFdpcmUiLA0KICAiVGhlIFRpbWVzIChMb25kb24pIiwNCiAgIk1haWxPbmxpbmUiLA0KICAiR3VhcmRpYW4uY29tIiwNCiAgIlRoZSBHdWFyZGlhbiAtIEZpbmFsIEVkaXRpb24iLA0KICAiR3VhcmRpYW4gV2Vla2x5IiwNCiAgIkFzaWFuIE5ld3MgSW50ZXJuYXRpb25hbCAoQU5JKSIsDQogICJBc3NvY2lhdGVkIFByZXNzIEludGVybmF0aW9uYWwiLA0KICAiQXNzb2NpYXRlZCBQcmVzcyBPbmxpbmUiLA0KICAiRlQuY29tIiwNCiAgIlRoZSBUb3JvbnRvIFN0YXIiLA0KICAidGhldGltZXMuY28udWsiLA0KICAiWGluaHVhIEdlbmVyYWwgTmV3cyBTZXJ2aWNlIiwNCiAgIkZULmNvbSBIZWFkbGluZXMiLA0KICAiVGhlIEd1YXJkaWFuIChMb25kb24pIiwNCiAgIlRoZSBJbnRlcm5hdGlvbmFsIEhlcmFsZCBUcmlidW5lIiwNCiAgIlRoZSBHdWFyZGlhbiIsDQogICJDTk4gV2lyZSIsDQogICJ0ZWxlZ3JhcGguY28udWsiLA0KICAiVGhlIERhaWx5IFRlbGVncmFwaCAoTG9uZG9uKSIsDQogICJUaGUgSW5kZXBlbmRlbnQgKFVuaXRlZCBLaW5nZG9tKSIsDQogICJUaGUgSW5kZXBlbmRlbnQgKExvbmRvbikiLA0KICAiVGhlIEd1YXJkaWFuKExvbmRvbikiLA0KICAiSW5kZXBlbmRlbnQuY28udWsiLA0KICAiQ05OLmNvbSIsDQogICJUaGUgU3VuZGF5IFRpbWVzIChMb25kb24pIiwNCiAgIk5FVyBZT1JLIFRJTUVTIikNCg0KIyBnb3Zlcm5tZW50IGFuZCBwcmVzcyByZWxlYXNlcw0KcHJfZ292dCA8LSBjKCJUYXJnZXRlZCBOZXdzIFNlcnZpY2UiLCANCiAgICAgICAgICAgICJVUyBGZWQgTmV3cyIsDQogICAgICAgICAgICAiVVMgT2ZmaWNpYWwgTmV3cyIsDQogICAgICAgICAgICAiUFIgTmV3c3dpcmUiLCANCiAgICAgICAgICAgICJNMiBQcmVzc1dJUkUiLCANCiAgICAgICAgICAgICJQcmVtaXVtIE9mZmljaWFsIE5ld3MiLA0KICAgICAgICAgICAgIkV1cm9wZWFuIFVuaW9uIE5ld3MiLCANCiAgICAgICAgICAgICJUZW5kZXJzSW5mbyIsIA0KICAgICAgICAgICAgIkdsb2JlTmV3c3dpcmUiLA0KICAgICAgICAgICAgIlBSIE5ld3N3aXJlIEV1cm9wZSIsDQogICAgICAgICAgICAiUFIuY29tIiwNCiAgICAgICAgICAgICJFTlAgTmV3c3dpcmUiLA0KICAgICAgICAgICAgIkZpbmFuY2lhbFdpcmUiKQ0KDQojIHVuaXZlcnNpdHkgbmV3c3BhcGVycw0KdW5pX25ld3MgPC0gYygiVW5pdmVyc2l0eSBXaXJlIikNCg0KIyBuZXdzIGJpdGVzDQpuZXdzX2JpdGVzIDwtIGMoIk5ld3MgQml0ZXMgLSBQcml2YXRlIENvbXBhbmllcyIsDQogICAgICAgICAgICAgICAgIk5ld3MgQml0ZXMgLSBQZW9wbGUgaW4gQnVzaW5lc3MiLA0KICAgICAgICAgICAgICAgICJOZXdzIEJpdGVzIC0gQmVuZWx1eDogTmV0aGVybGFuZHMiLA0KICAgICAgICAgICAgICAgICJOZXdzIEJpdGVzIC0gTm9yZGljOiBEZW5tYXJrIiwNCiAgICAgICAgICAgICAgICAiT3pFcXVpdGllcyBOZXdzIEJpdGVzIChBdXN0cmFsaWEpIiwNCiAgICAgICAgICAgICAgICAiQXVzdHJhbGlhbiBDb21wYW55IE5ld3MgQml0ZXMgLSBTdG9jayBSZXBvcnQiLA0KICAgICAgICAgICAgICAgICJOZXdzIEJpdGVzIC0gV2VzdGVybiBFdXJvcGU6IFNwYWluIiwNCiAgICAgICAgICAgICAgICAiTmV3cyBCaXRlcyAtIFdlc3Rlcm4gRXVyb3BlIDogR2VybWFueSIsDQogICAgICAgICAgICAgICAgIk5ld3MgQml0ZXMgLSBXZXN0ZXJuIEV1cm9wZSIsDQogICAgICAgICAgICAgICAgIk5ld3MgQml0ZXMgLSBXZXN0ZXJuIEV1cm9wZTogU3dpdHplcmxhbmQiLA0KICAgICAgICAgICAgICAgICJOZXdzIEJpdGVzIC0gTm9yZGljOiBTd2VkZW4iKQ0KDQojIGlycmVsZXZhbnQgc291cmNlcw0KaXJyZWxldmFudCA8LQkiRkQgKEZhaXIgRGlzY2xvc3VyZSkgV2lyZSINCmBgYA0KDQpSZW1vdmUgc3BhY2VzIGFyb3VuZCAvIGZvciBlYXNpZXIgaWRlbnRpZmljYXRpb246DQpgYGB7cn0NCm5ld3NfbWVudGlvbnMkbmV3c3BhcGVyX3RpZHkgPC0gc3RyX3JlcGxhY2UobmV3c19tZW50aW9ucyRuZXdzcGFwZXIsICIgXFwvICIsICJcXC8iKQ0KYGBgDQoNCg0KRGVub3RlIHdoZXRoZXIgdGhlIGFydGljbGUgYmVsb25ncyB0byBhbnkgb2YgdGhlc2UsIGFuZCB0aGVuIGFsc28gZXhjbHVkZQ0Kb25lIHNvdXJjZSB0aGF0IHdvcmtzIGEgbG90IHdpdGggbmV3c2xldHRlcnMsIGJ1dCBub3QgYWN0dWFsIG5ld3M6DQpgYGB7cn0NCiMgbmF0aW9uYWwgRHV0Y2ggc291cmNlcw0KbmV3c19tZW50aW9ucyRuYXRpb25hbF9ubCA8LSBpZmVsc2UodG9sb3dlcihuZXdzX21lbnRpb25zJG5ld3NwYXBlcl90aWR5KSAlaW4lIHRvbG93ZXIobmF0aW9uYWxfbmV3c19ubCksIDEsIDApDQojIGxvY2FsIER1dGNoIHNvdXJjZXMNCm5ld3NfbWVudGlvbnMkcmVnaW9uYWxfbmwgPC0gaWZlbHNlKHRvbG93ZXIobmV3c19tZW50aW9ucyRuZXdzcGFwZXJfdGlkeSkgJWluJSB0b2xvd2VyKHJlZ2lvbmFsX25ld3NfbmwpLCAxLCAwKQ0KIyBoaWdoZXItcHJvZmlsZSBpbnRlcmFudGlvbmFsIHNvdXJjZXMNCm5ld3NfbWVudGlvbnMkaGlnaF9wcm9mX2ludGwgPC0gaWZlbHNlKHRvbG93ZXIobmV3c19tZW50aW9ucyRuZXdzcGFwZXJfdGlkeSkgJWluJSB0b2xvd2VyKGhpZ2hfcHJvZmlsZV9pbnQpLCAxLCAwKQ0KIyBuZXdzbGV0dGVycyBieSAibmV3cyBiaXRlcyINCm5ld3NfbWVudGlvbnMkbmV3c2xldHRlciA8LSBpZmVsc2UodG9sb3dlcihuZXdzX21lbnRpb25zJG5ld3NwYXBlcl90aWR5KSAlaW4lIHRvbG93ZXIobmV3c19iaXRlcyksIDEsIDApDQojIFBSIGRvY3VtZW50cw0KbmV3c19tZW50aW9ucyRwcl9uZXdzIDwtIGlmZWxzZSh0b2xvd2VyKG5ld3NfbWVudGlvbnMkbmV3c3BhcGVyX3RpZHkpICVpbiUgdG9sb3dlcihwcl9nb3Z0KSwgMSwgMCkNCiMgdW52aWVyc2l0eSBuZXdzcGFwZXJzDQpuZXdzX21lbnRpb25zJHVuaV9uZXdzIDwtIGlmZWxzZSh0b2xvd2VyKG5ld3NfbWVudGlvbnMkbmV3c3BhcGVyX3RpZHkpICVpbiUgdG9sb3dlcih1bmlfbmV3cyksIDEsIDApDQojIGJsb2dzDQpuZXdzX21lbnRpb25zJGJsb2cgPC0gaWZlbHNlKHN0cl9kZXRlY3QodG9sb3dlcihuZXdzX21lbnRpb25zJG5ld3NwYXBlcl90aWR5KSwgImJsb2ciKSwgMSwgMCkNCm5ld3NfbWVudGlvbnMkYmxvZyA8LSBpZmVsc2UoaXMubmEobmV3c19tZW50aW9ucyRibG9nKSwgMCwgbmV3c19tZW50aW9ucyRibG9nKQ0KIyBpcnJlbGV2YW50DQpuZXdzX21lbnRpb25zJGlycmVsZXZhbnQgPC0gaWZlbHNlKHRvbG93ZXIobmV3c19tZW50aW9ucyRuZXdzcGFwZXJfdGlkeSkgJWluJSB0b2xvd2VyKGlycmVsZXZhbnQpLCAxLCAwKQ0KDQojIG5vIHNvdXJjZQ0KbmV3c19tZW50aW9ucyRzb3VyY2VfdW5rbm93biA8LSBpZmVsc2UobmV3c19tZW50aW9ucyRuZXdzcGFwZXJfdGlkeSA9PSAiIiwgMSwgMCkNCm5ld3NfbWVudGlvbnMkc291cmNlX3Vua25vd24gPC0gaWZlbHNlKGlzLm5hKG5ld3NfbWVudGlvbnMkbmV3c3BhcGVyX3RpZHkpLCAxLCBuZXdzX21lbnRpb25zJHNvdXJjZV91bmtub3duKQ0KDQojIGFuZCB0aGUgcmVtYWluZGVyDQpuZXdzX21lbnRpb25zJHNvdXJjZV91bmNsYXNzaWZpZWQgPC0gaWZlbHNlKG5ld3NfbWVudGlvbnMkbmF0aW9uYWxfbmwgPT0gMCAmIG5ld3NfbWVudGlvbnMkcmVnaW9uYWxfbmwgPT0gMCAmDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbmV3c19tZW50aW9ucyRoaWdoX3Byb2ZfaW50bCA9PSAwICYgbmV3c19tZW50aW9ucyRuZXdzbGV0dGVyID09IDAgJg0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIG5ld3NfbWVudGlvbnMkcHJfbmV3cyA9PSAwICYgbmV3c19tZW50aW9ucyR1bmlfbmV3cyA9PSAwICYNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBuZXdzX21lbnRpb25zJGJsb2cgPT0gMCAmDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbmV3c19tZW50aW9ucyRzb3VyY2VfdW5rbm93biA9PSAwLCAxLCAwKQ0KDQojIGdldCBhIGNhdGVnb3JpY2FsIHZhcmlhYmxlDQpuZXdzX21lbnRpb25zJHNvdXJjZV90eXBlIDwtIGlmZWxzZShuZXdzX21lbnRpb25zJG5hdGlvbmFsX25sID09IDEsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAibmF0aW9uYWxfbmwiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaWZlbHNlKG5ld3NfbWVudGlvbnMkcmVnaW9uYWxfbmwgPT0gMSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAicmVnaW9uYWxfbmwiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmZWxzZShuZXdzX21lbnRpb25zJGhpZ2hfcHJvZl9pbnRsID09IDEsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJoaWdoX3Byb2ZfaW50bCIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmZWxzZShuZXdzX21lbnRpb25zJG5ld3NsZXR0ZXIgPT0gMSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJuZXdzbGV0dGVyIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmZWxzZShuZXdzX21lbnRpb25zJHByX25ld3MgPT0gMSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAicHJfbmV3cyIsIA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmZWxzZShuZXdzX21lbnRpb25zJHVuaV9uZXdzID09IDEsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJ1bmlfbmV3cyIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmZWxzZShuZXdzX21lbnRpb25zJGJsb2cgPT0gMSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJibG9nIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmZWxzZShuZXdzX21lbnRpb25zJGlycmVsZXZhbnQgPT0gMSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiaXJyZWxldmFudCIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaWZlbHNlKG5ld3NfbWVudGlvbnMkc291cmNlX3Vua25vd24gPT0gMSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgInVua25vd24iLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAib3RoZXIiKSkpKSkpKSkpDQpgYGANCg0KV3JpdGUgdGhpcyBvdXQgdG8gb3VyIGRhdGFiYXNlOg0KYGBge3J9DQpkYldyaXRlVGFibGUoY29uLCAibGV4aXNfbmV4aXNfbWVudGlvbnMiLCBuZXdzX21lbnRpb25zKQ0KYGBgDQoNCg0KQWRkIGluIHByb2Zlc3NvciBnZW5kZXI6DQpgYGB7cn0NCmdlbmRlcl90YWJsZSA8LSBkYlJlYWRUYWJsZShjb24sICJnZW5kZXJfdGFibGUiKQ0KDQpuZXdzX21lbnRpb25zX2dlbmRlciA8LSBtZXJnZShuZXdzX21lbnRpb25zWywgLTFdLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZ2VuZGVyX3RhYmxlW2MoInByb2ZpbGVfaWQiLCAiaW5mZXJyZWRfZ2VuZGVyIildLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSAicHJvZmlsZV9pZCIpDQpgYGANCg0KDQpEZWR1cGxpY2F0ZSBtZW50aW9ucyB0byByZW1vdmUgbXVsdGlwbGUgcmVnaW9uYWwgbmV3c3BhcGVycyBkaXNjdXNzaW5nIHRoZSBzYW1lDQpwZXJzb246DQpgYGB7cn0NCm5ld3NfbWVudGlvbnNfZ2VuZGVyX2RlZHVwZSA8LSBuZXdzX21lbnRpb25zX2dlbmRlcg0KbmV3c19tZW50aW9uc19nZW5kZXJfZGVkdXBlJGR1cGwgPC0gZHVwbGljYXRlZChuZXdzX21lbnRpb25zX2dlbmRlcltjKCJwcm9maWxlX2lkIiwgImhlYWRsaW5lIiwgImxlbmd0aCIpXSkNCg0KbmV3c19tZW50aW9uc19nZW5kZXJfZGVkdXBlIDwtIG5ld3NfbWVudGlvbnNfZ2VuZGVyX2RlZHVwZSAlPiUNCiAgZmlsdGVyKGR1cGwgPT0gRkFMU0UpJT4lDQogIHNlbGVjdCgtZHVwbCkNCmBgYA0KDQoNCg0KU291cmNlIGJyZWFrZG93biBwZXIgZ2VuZGVyPw0KYGBge3J9DQpicmVha2Rvd24gPC0gbmV3c19tZW50aW9uc19nZW5kZXJfZGVkdXBlICU+JQ0KICBmaWx0ZXIoISBzdHJfcmVtb3ZlKHByb2ZpbGVfaWQsICJodHRwczovL3d3dy5uYXJjaXMubmwvcGVyc29uL1JlY29yZElELyIpICVpbiUgbWlzc2luZ19pbmRpY2VzJHByb2ZpbGVfaWQpJT4lDQogIGdyb3VwX2J5KGluZmVycmVkX2dlbmRlciwgc291cmNlX3R5cGUpJT4lDQogIHN1bW1hcmlzZShuID0gbigpKSU+JQ0KICBwaXZvdF93aWRlcihuYW1lc19mcm9tID0gaW5mZXJyZWRfZ2VuZGVyLCB2YWx1ZXNfZnJvbSA9IG4pDQoNCmJyZWFrZG93biRzaGFyZV9hcnRpY2xlc19tIDwtIHJvdW5kKGJyZWFrZG93biRtIC8gc3VtKGJyZWFrZG93biRtKSwgMykqMTAwDQpicmVha2Rvd24kc2hhcmVfYXJ0aWNsZXNfdyA8LSByb3VuZChicmVha2Rvd24kdyAvIHN1bShicmVha2Rvd24kdyksIDMpKjEwMA0KDQojIGF2ZXJhZ2UgYXJ0aWNsZXMgcGVyIGdlbmRlciANCnByb2ZfY291bnRzIDwtIGZpbHRlcihnZW5kZXJfdGFibGUsDQogICAgICAgICAgICAgICAgICAgICAgcHJvZmlsZV9pZCAlaW4lIHVuaXF1ZShuZXdzX21lbnRpb25zX2dlbmRlcl9kZWR1cGUkcHJvZmlsZV9pZCkpJT4lDQogIGdyb3VwX2J5KGluZmVycmVkX2dlbmRlciklPiUNCiAgc3VtbWFyaXNlKHByb2ZzID0gbigpKSU+JQ0KICBwaXZvdF93aWRlcihuYW1lc19mcm9tID0gaW5mZXJyZWRfZ2VuZGVyLCB2YWx1ZXNfZnJvbSA9IHByb2ZzKQ0KICAgICANCmNvbG5hbWVzKHByb2ZfY291bnRzKSA8LSBwYXN0ZTAoImNvdW50XyIsIGNvbG5hbWVzKHByb2ZfY291bnRzKSkgICAgDQoNCg0KYnJlYWtkb3duJGNvdW50X3Byb2ZfbSA8LSBwcm9mX2NvdW50cyRjb3VudF9tDQpicmVha2Rvd24kY291bnRfcHJvZl93IDwtIHByb2ZfY291bnRzJGNvdW50X3cNCg0KYnJlYWtkb3duJGF2Z19wZXJfbSA8LSAgcm91bmQoYnJlYWtkb3duJG0gLyBicmVha2Rvd24kY291bnRfcHJvZl9tLCAzKQ0KYnJlYWtkb3duJGF2Z19wZXJfdyA8LSAgcm91bmQoYnJlYWtkb3duJHcgLyBicmVha2Rvd24kY291bnRfcHJvZl93LCAzKQ0KDQpicmVha2Rvd24yIDwtIGJyZWFrZG93bg0KYnJlYWtkb3duMiRzaGFyZV93X3Byb2ZzIDwtIHJvdW5kKGJyZWFrZG93bjIkY291bnRfcHJvZl93LyhicmVha2Rvd24yJGNvdW50X3Byb2ZfdyArIGJyZWFrZG93bjIkY291bnRfcHJvZl9tKSwgMykNCmJyZWFrZG93bjIkc2hhcmVfd19tZW50aW9ucyA8LSByb3VuZChicmVha2Rvd24yJHcvKGJyZWFrZG93bjIkdyArIGJyZWFrZG93bjIkbSksIDMpDQpicmVha2Rvd24yIDwtIGJyZWFrZG93bjIgJT4lDQogIHNlbGVjdChzb3VyY2VfdHlwZSwgc2hhcmVfd19wcm9mcywgc2hhcmVfd19tZW50aW9ucykNCg0KYGBgDQoNCkdlbmRlcnM6DQpgYGB7cn0NCnJlc3VsdF9jb3VudF9saXN0IDwtIG1lcmdlKHJlc3VsdF9jb3VudF9saXN0LA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgZ2VuZGVyX3RhYmxlW2MoInByb2ZpbGVfaWQiLCAiaW5mZXJyZWRfZ2VuZGVyIildLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSAicHJvZmlsZV9pZCIpDQoNCmdlbmRlcl9oaXRzIDwtIHJlc3VsdF9jb3VudF9saXN0ICU+JQ0KICBncm91cF9ieShpbmZlcnJlZF9nZW5kZXIpJT4lDQogIHN1bW1hcmlzZShuID0gbigpLA0KICAgICAgICAgICAgYXZnX2hpdHMgPSBtZWFuKGhpdHNfaWRlbnRpZmllZCksDQogICAgICAgICAgICB0b3RhbF9oaXRzID0gc3VtKGhpdHNfaWRlbnRpZmllZCkpDQoNCmdlbmRlcl9oaXRzJHNoYXJlX2hpdHMgPC0gcm91bmQoZ2VuZGVyX2hpdHMkdG90YWxfaGl0cy9zdW0oZ2VuZGVyX2hpdHMkdG90YWxfaGl0cyksIDIpKjEwMA0KDQpnZW5kZXJfaGl0cw0KYGBgDQoNCg0KYGBge3J9DQp6ZXJvZXMgPC0gcmVzdWx0X2NvdW50X2xpc3QgJT4lDQogIGdyb3VwX2J5KGluZmVycmVkX2dlbmRlciklPiUNCiAgc3VtbWFyaXNlKG4gPSBuKCksDQogICAgICAgICAgICB6ZXJvZXMgPSBzdW0oaGl0c19pZGVudGlmaWVkID4gMTMyKSkNCg0KemVyb2VzJHNoYXJlIDwtIHplcm9lcyR6ZXJvZXMvemVyb2VzJG4NCmBgYA0KDQo=</div>
 
 
 </div>

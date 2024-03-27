@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Ana Macanovic" />
+
+<meta name="date" content="2024-01-29" />
+
+<title>Untitled</title>
+
+<script src="site_libs/header-attrs-2.25/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<script src="site_libs/navigation-1.1/sourceembed.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.4.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+<style type="text/css">
+#rmd-source-code {
+  display: none;
+}
+</style>
+
+
+<link rel="stylesheet" href="tweaks.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html"></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a>
+    <span class="fa fa-home"></span>
+     
+  </a>
+</li>
+<li>
+  <a href="index.html">Code homepage</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="glyphicon glyphicon glyphicon glyphicon-list"></span>
+     
+    Scripts
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="SQL_tutorial.html">Intro: SQL tutorial</a>
+    </li>
+    <li>
+      <a href="OpenAlex_Altmetric_data_download.html">1. Open Alex and Altmetric data download</a>
+    </li>
+    <li>
+      <a href="Gender_inference.html">2. Gender inference</a>
+    </li>
+    <li>
+      <a href="Grant_parsing.html">3. Grant parsing</a>
+    </li>
+    <li>
+      <a href="Lexis_nexis_parser.html">4. Lexis data parser</a>
+    </li>
+    <li>
+      <a href="Mention_url_extraction.html">5. Mention URL extraction</a>
+    </li>
+    <li>
+      <a href="Data_descriptives.html">5. Database description and coverage</a>
+    </li>
+    <li>
+      <a href="Panel_data_compilation.html">6. Panel data compilation</a>
+    </li>
+    <li>
+      <a href="exploring_fame.html">7. Share of women in fame plots</a>
+    </li>
+    <li>
+      <a href="Various_plots.html">8. Data plots</a>
+    </li>
+    <li>
+      <a href="Various_regressions.html">9. Regression models</a>
+    </li>
+  </ul>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/amacanovic/dutch_media_profs">
+    <span class="fab fa-github"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+<li role="separator" class="divider"></li>
+<li><a id="rmd-download-source" href="#">Download Rmd</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Untitled</h1>
+<h4 class="author">Ana Macanovic</h4>
+<h4 class="date">2024-01-29</h4>
+
+</div>
+
+
+<p>This script compiles our various data resources into a panel data of
+professors’ publications, citations, mentions, and coauthorships per
+year.</p>
+<p>Load the packages:</p>
+<pre class="r"><code>library(groundhog)
+packages_to_load &lt;- c(&quot;readr&quot;, &quot;dplyr&quot;, &quot;tidyr&quot;, &quot;PerformanceAnalytics&quot;,
+                      &quot;tidyverse&quot;, &quot;RPostgres&quot;, &quot;lubridate&quot;, &quot;psych&quot;,
+                      &quot;digest&quot;, &quot;DBI&quot;, &quot;RODBC&quot;, &quot;odbc&quot;, &quot;gridExtra&quot;,
+                      &quot;panelr&quot;, &quot;skimr&quot;, &quot;foreach&quot;, &quot;vegan&quot;,
+                      &quot;doParallel&quot;)
+groundhog.library(packages_to_load, date = &quot;2023-12-01&quot;)
+
+# load the helper function file
+source(&quot;helper_functions.R&quot;)</code></pre>
+<p>Connect to the database:</p>
+<pre class="r"><code># fill in own credentials
+port &lt;- 
+user &lt;- &quot;&quot;
+password &lt;- &quot;&quot;
+database_name &lt;- &quot;&quot;
+
+con &lt;- RPostgres::dbConnect(RPostgres::Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+
+con # Checks connection is working</code></pre>
+<p>Load the professor profiles:</p>
+<pre class="r"><code>narcis_prof_info &lt;- dbReadTable(con, &quot;narcis_prof_info&quot;)</code></pre>
+<div id="publications-and-citations" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Publications and
+citations</h1>
+<p>Load publication info for all professors:</p>
+<pre class="r"><code># all professors, their pubs, and the citations
+oa_prof_pubs &lt;- dbReadTable(con, &quot;oa_prof_pubs&quot;)
+
+# unique publication info
+oa_pubs_unique &lt;- dbReadTable(con, &quot;oa_prof_pubs_unique&quot;)
+
+#prof - pub matching
+oa_prof_pub_matching &lt;- dbReadTable(con, &quot;oa_prof_pub_match&quot;)
+
+# prof unique pub list 
+oa_prof_pubs_unique &lt;- merge(oa_pubs_unique,
+                             oa_prof_pub_matching[c(&quot;id&quot;, &quot;au_id&quot;, &quot;au_display_name&quot;, &quot;profile_id&quot;)],
+                             all.x = TRUE,
+                             all.y = TRUE,
+                             by = &quot;id&quot;)</code></pre>
+<p>Get single author publications only:</p>
+<pre class="r"><code>coauthor_info &lt;- dbGetQuery(con, &quot;select \&quot;id\&quot;, \&quot;au_id\&quot; FROM oa_coauthor_info;&quot;)
+
+oa_prof_pubs_unique_single_au &lt;- filter(oa_prof_pubs_unique, 
+                                        ! id %in% coauthor_info$id)</code></pre>
+<p>Get yearly publication counts per professor, filtering out everything
+but articles, books, book chapters:</p>
+<pre class="r"><code>prof_year_pubs &lt;- oa_prof_pubs_unique %&gt;% 
+  filter(!is.na(publication_year) &amp; publication_year &gt; 1974 &amp; publication_year &lt;= 2024 &amp; 
+           type %in% c(&quot;article&quot;, &quot;book&quot;, &quot;book-chapter&quot;))%&gt;%
+  group_by(profile_id, publication_year)%&gt;%
+  summarise(count_pubs = n())%&gt;%
+  arrange(profile_id, publication_year)%&gt;%
+  mutate(count_pubs_total = cumsum(count_pubs))%&gt;%
+  arrange(profile_id, publication_year)
+
+# rename for merging
+colnames(prof_year_pubs)[which(colnames(prof_year_pubs) == &quot;publication_year&quot;)] &lt;- &quot;year&quot;</code></pre>
+<p>Now, get their yearly citations (2012-2024):</p>
+<pre class="r"><code>prof_year_citations &lt;- oa_prof_pubs %&gt;% 
+  filter(!is.na(publication_year) &amp; !is.na(counts_by_year_year) &amp; publication_year &gt; 1974 &amp; publication_year &lt;= 2024 &amp;
+           type %in% c(&quot;article&quot;, &quot;book&quot;, &quot;book-chapter&quot;))%&gt;%
+  group_by(profile_id, counts_by_year_year)%&gt;%
+  summarise(cited_by = sum(counts_by_year_cited_by_count))%&gt;%
+  arrange(profile_id, counts_by_year_year) %&gt;%
+  mutate(cited_by_total_oa = cumsum(cited_by))%&gt;%
+  arrange(profile_id, counts_by_year_year)
+
+# rename for merging
+colnames(prof_year_citations)[which(colnames(prof_year_citations) == &quot;counts_by_year_year&quot;)] &lt;- &quot;year&quot;</code></pre>
+<p>Now, we want to know how many citations there were before 2012, so we
+get the totals and then generate a new column getting the pre-2012
+citations + each year’s citations:</p>
+<pre class="r"><code># total citations per prof
+prof_total_citations &lt;- oa_prof_pubs_unique %&gt;%
+  filter(!is.na(publication_year) &amp; publication_year &gt; 1974 &amp; publication_year &lt;= 2024 &amp; 
+           type %in% c(&quot;article&quot;, &quot;book&quot;, &quot;book-chapter&quot;))%&gt;%
+  group_by(profile_id)%&gt;%
+  summarise(cited_by_since_pub_2024 = sum(cited_by_count))
+# rename for merging
+colnames(prof_total_citations)[which(colnames(prof_total_citations) == &quot;publication_year&quot;)] &lt;- &quot;year&quot;
+
+
+# get the citations preceding 2012 by deducting the 2012 citations from the total
+latest_citation &lt;- prof_year_citations %&gt;%
+  group_by(profile_id)%&gt;%
+  slice(which.max(year))
+
+# merge these two, replace NAs
+prof_total_citations &lt;- merge(prof_total_citations,
+                              latest_citation[c(&quot;profile_id&quot;, &quot;cited_by_total_oa&quot;)],
+                              by = &quot;profile_id&quot;,
+                              all.x = TRUE,
+                              all.y = TRUE)
+
+prof_total_citations &lt;- prof_total_citations %&gt;%
+  replace(is.na(.), 0)
+
+# get the citation count for profs before 2012
+prof_total_citations$cited_by_before_2012 &lt;- prof_total_citations$cited_by_since_pub_2024 - prof_total_citations$cited_by_total_oa
+  
+# merge this with citation data
+prof_year_citations &lt;- merge(prof_year_citations,
+                             prof_total_citations[c(&quot;profile_id&quot;, &quot;cited_by_before_2012&quot;)],
+                             all.x = TRUE,
+                             by = &quot;profile_id&quot;)
+
+# get cumulative citations of pre 2012 + the year in question
+prof_year_citations$cited_by_total_all &lt;- prof_year_citations$cited_by_total_oa + prof_year_citations$cited_by_before_2012
+
+
+# combine publication counts and citation counts, filling gaps with NAs
+prof_year_pubs_citations &lt;- merge(prof_year_pubs,
+                                  prof_year_citations,
+                                  all.x = TRUE,
+                                  all.y = TRUE,
+                                  by = c(&quot;profile_id&quot;, &quot;year&quot;))
+
+# fill some NAs for publication counts, but we will not do this for citations
+prof_year_pubs_citations$count_pubs &lt;- ifelse(is.na(prof_year_pubs_citations$count_pubs),
+                                              0,
+                                              prof_year_pubs_citations$count_pubs)
+
+# fill the total gaps down for cumulative publications
+prof_year_pubs_citations &lt;- prof_year_pubs_citations %&gt;%
+  group_by(profile_id)%&gt;%
+  fill(count_pubs_total)
+
+# fill the citations before 2012
+prof_year_pubs_citations &lt;- prof_year_pubs_citations %&gt;%
+  group_by(profile_id)%&gt;%
+  fill(cited_by_before_2012, .direction = &quot;up&quot;)</code></pre>
+<p>For each prof, get the first publication year and merge with the
+rest:</p>
+<pre class="r"><code># get professor entry years
+prof_entry_year &lt;- oa_prof_pubs_unique %&gt;%
+  filter(publication_year &gt; 1974 &amp; publication_year &lt;= 2024 &amp; 
+           type %in% c(&quot;article&quot;, &quot;book&quot;, &quot;book-chapter&quot;))%&gt;%
+  group_by(profile_id)%&gt;%
+  slice(which.min(publication_year))%&gt;%
+  select(profile_id, publication_year)
+
+# rename
+colnames(prof_entry_year)[2] &lt;- &quot;first_pub&quot;
+
+# merge
+prof_year_pubs_citations &lt;- merge(prof_year_pubs_citations,
+                                  prof_entry_year,
+                                  all.x = TRUE,
+                                  by = &quot;profile_id&quot;)
+
+# get indicator of years since first pub
+prof_year_pubs_citations$years_since_first_pub &lt;- prof_year_pubs_citations$year - prof_year_pubs_citations$first_pub</code></pre>
+<p>Merge this with professor gender:</p>
+<pre class="r"><code>prof_gender &lt;- dbReadTable(con, &quot;gender_table&quot;)
+
+prof_year_pubs_citations &lt;- merge(prof_year_pubs_citations,
+                                  prof_gender[c(&quot;profile_id&quot;, &quot;inferred_gender&quot;)],
+                                  all.x = TRUE,
+                                  by = &quot;profile_id&quot;)</code></pre>
+</div>
+<div id="grant-information" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Grant information</h1>
+<p>Get all the grant information:</p>
+<pre class="r"><code>nwo_grants &lt;- dbReadTable(con, &quot;narcis_nwo_grant_info&quot;)
+erc_grants &lt;- dbReadTable(con, &quot;erc_grant_info&quot;)</code></pre>
+<p>Get this into a binary format:</p>
+<pre class="r"><code># for NWO
+nwo_grants$veni &lt;- ifelse(nwo_grants$grant == &quot;veni&quot;, 1, 0)
+nwo_grants$vidi &lt;- ifelse(nwo_grants$grant == &quot;vidi&quot;, 1, 0)
+nwo_grants$vici &lt;- ifelse(nwo_grants$grant == &quot;vici&quot;, 1, 0)
+nwo_grants$spinoza &lt;- ifelse(nwo_grants$grant == &quot;spinoza&quot;, 1, 0)
+nwo_grants$stevin &lt;- ifelse(nwo_grants$grant == &quot;stevin&quot;, 1, 0)
+# select only the necessary columns
+nwo_grants &lt;- nwo_grants %&gt;%
+  select(year:stevin)
+
+# for ERC
+erc_grants$advanced &lt;- ifelse(erc_grants$grant == &quot;Advanced grants&quot;, 1, 0)
+erc_grants$consolidator &lt;- ifelse(erc_grants$grant == &quot;Consolidator grants&quot;, 1, 0)
+erc_grants$starting  &lt;- ifelse(erc_grants$grant == &quot;Starting grants&quot;, 1, 0)
+erc_grants$synergy &lt;- ifelse(erc_grants$grant == &quot;Synergy grants&quot;, 1, 0)
+# select only the necessary columns
+erc_grants &lt;- erc_grants %&gt;%
+  select(profile_id:synergy)</code></pre>
+<p>Combine this with pubs and citations</p>
+<pre class="r"><code>prof_year_pubs_citations_grants &lt;- merge(prof_year_pubs_citations,
+                                         nwo_grants,
+                                         all.x = TRUE,
+                                         by = c(&quot;profile_id&quot;, &quot;year&quot;))
+
+prof_year_pubs_citations_grants &lt;- merge(prof_year_pubs_citations_grants,
+                                         erc_grants,
+                                         all.x = TRUE,
+                                         by = c(&quot;profile_id&quot;, &quot;year&quot;))
+
+# replace NAs
+prof_year_pubs_citations_grants &lt;- prof_year_pubs_citations_grants %&gt;%
+  mutate_at(vars(veni:synergy), ~replace_na(., 0))</code></pre>
+</div>
+<div id="altmetric-attention" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Altmetric
+attention</h1>
+<p>Get all the attention measures we have per paper:</p>
+<pre class="r"><code>attention_news &lt;- dbReadTable(con, &quot;altmetric_pub_att_news&quot;)
+attention_blogs &lt;- dbReadTable(con, &quot;altmetric_pub_att_blogs&quot;)
+
+# merge the papers with their authors
+attention_news_profs &lt;- merge(attention_news,
+                        oa_prof_pub_matching[c(&quot;id&quot;, &quot;profile_id&quot;)],
+                        by = &quot;id&quot;)
+
+# merge the papers with their authors
+attention_blogs_profs &lt;- merge(attention_blogs,
+                        oa_prof_pub_matching[c(&quot;id&quot;, &quot;profile_id&quot;)],
+                        by = &quot;id&quot;)</code></pre>
+<p>Compile the attention per professor per year:</p>
+<pre class="r"><code># get a year from the &quot;posted on&quot; string
+attention_news_profs$year &lt;- year(as_date(attention_news_profs$posted_on))
+attention_blogs_profs$year &lt;- year(as_date(attention_blogs_profs$posted_on))
+
+prof_year_attention_news &lt;- attention_news_profs %&gt;%
+  group_by(profile_id, year)%&gt;%
+  summarise(attn_news_by = n())%&gt;%
+  arrange(profile_id, year) %&gt;%
+  mutate(attn_news_by_total = cumsum(attn_news_by)) %&gt;%
+  arrange(profile_id, year)
+
+
+prof_year_attention_blogs &lt;- attention_blogs_profs %&gt;%
+  group_by(profile_id, year)%&gt;%
+  summarise(attn_blogs_by = n())%&gt;%
+  arrange(profile_id, year) %&gt;%
+  mutate(attn_blogs_by_total = cumsum(attn_blogs_by)) %&gt;%
+  arrange(profile_id, year)</code></pre>
+<p>Merge the attention with the rest:</p>
+<pre class="r"><code>prof_year_p_c_g_a &lt;- merge(prof_year_pubs_citations_grants,
+                           prof_year_attention_news,
+                           by = c(&quot;profile_id&quot;, &quot;year&quot;),
+                           all.x = TRUE)
+
+# fill down
+prof_year_p_c_g_a &lt;- prof_year_p_c_g_a %&gt;%
+  group_by(profile_id)%&gt;%
+  fill(attn_news_by_total)
+
+prof_year_p_c_g_a &lt;- merge(prof_year_p_c_g_a,
+                           prof_year_attention_blogs,
+                           by = c(&quot;profile_id&quot;, &quot;year&quot;),
+                           all.x = TRUE)
+
+prof_year_p_c_g_a &lt;- prof_year_p_c_g_a %&gt;%
+  group_by(profile_id)%&gt;%
+  fill(attn_blogs_by_total)</code></pre>
+<p>Combine this with Twitter attention, which we only obtain using
+ORCIDs (for now).</p>
+<pre class="r"><code>twitter_orcid_attention &lt;- dbGetQuery(con, statement = &quot;select * from altmetric_prof_attention where \&quot;mention_type\&quot;=&#39;tweet&#39;&quot;)
+
+# rename the columns and get cumulatives
+twitter_orcid_attention &lt;- twitter_orcid_attention %&gt;%
+  select(profile_id, year, yearly_count)
+
+colnames(twitter_orcid_attention)[which(colnames(twitter_orcid_attention) == &quot;yearly_count&quot;)] &lt;- &quot;attn_twitter_by&quot;
+
+prof_year_attention_twitter &lt;- twitter_orcid_attention %&gt;%
+  arrange(profile_id, year)%&gt;%
+  group_by(profile_id)%&gt;%
+  mutate(attn_twitter_by_total = cumsum(attn_twitter_by)) %&gt;%
+  arrange(profile_id, year)
+
+prof_year_p_c_g_a &lt;- merge(prof_year_p_c_g_a,
+                           prof_year_attention_twitter,
+                           by = c(&quot;profile_id&quot;, &quot;year&quot;),
+                           all.x = TRUE)
+
+prof_year_p_c_g_a &lt;- prof_year_p_c_g_a %&gt;%
+  group_by(profile_id)%&gt;%
+  fill(attn_twitter_by_total)</code></pre>
+<p>As Atlmetric data goes back to 2011, set attention to 0 if year &gt;=
+2011, leave as NA otherwise:</p>
+<pre class="r"><code>prof_year_p_c_g_a$attn_blogs_by &lt;- ifelse((is.na(prof_year_p_c_g_a$attn_blogs_by) &amp; prof_year_p_c_g_a$year &gt;=  2011),
+                                            0,
+                                            prof_year_p_c_g_a$attn_blogs_by)
+
+prof_year_p_c_g_a$attn_blogs_by_total &lt;- ifelse((is.na(prof_year_p_c_g_a$attn_blogs_by_total) &amp; prof_year_p_c_g_a$year &gt;=  2011),
+                                            0,
+                                            prof_year_p_c_g_a$attn_blogs_by_total)
+
+prof_year_p_c_g_a$attn_news_by &lt;- ifelse((is.na(prof_year_p_c_g_a$attn_news_by) &amp; prof_year_p_c_g_a$year &gt;=  2011),
+                                            0,
+                                            prof_year_p_c_g_a$attn_news_by)
+
+prof_year_p_c_g_a$attn_news_by_total &lt;- ifelse((is.na(prof_year_p_c_g_a$attn_news_by_total) &amp; prof_year_p_c_g_a$year &gt;=  2011),
+                                            0,
+                                            prof_year_p_c_g_a$attn_news_by_total)
+
+prof_year_p_c_g_a$attn_twitter_by &lt;- ifelse((is.na(prof_year_p_c_g_a$attn_twitter_by) &amp; prof_year_p_c_g_a$year &gt;=  2011),
+                                            0,
+                                            prof_year_p_c_g_a$attn_twitter_by)
+
+prof_year_p_c_g_a$attn_twitter_by_total &lt;- ifelse((is.na(prof_year_p_c_g_a$attn_twitter_by_total) &amp; prof_year_p_c_g_a$year &gt;=  2011),
+                                            0,
+                                            prof_year_p_c_g_a$attn_twitter_by_total)</code></pre>
+<div id="main-field" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Main field</h2>
+<p>Get each professor’s main field in a given year based on their
+papers, and get their overall specialization.</p>
+<p>First, fethcing the topics:</p>
+<pre class="r"><code>oa_pubs_topics &lt;- dbReadTable(con, &quot;oa_pubs_topics&quot;)
+
+oa_pubs_topics &lt;- merge(oa_prof_pub_matching,
+                        oa_pubs_topics,
+                        by = &quot;id&quot;,
+                        all.x = TRUE)
+
+oa_pubs_topics &lt;- merge(oa_pubs_topics,
+                        oa_pubs_unique[c(&quot;id&quot;, &quot;publication_year&quot;)],
+                        by = &quot;id&quot;)</code></pre>
+<p>Professor’s topic diversity per year:</p>
+<pre class="r"><code>oa_pubs_topics2 &lt;- oa_pubs_topics
+oa_pubs_topics2$field_display_name &lt;- as.factor(oa_pubs_topics2$field_display_name)
+
+prof_year_field &lt;- oa_pubs_topics2 %&gt;%
+  group_by(profile_id, publication_year, field_display_name) %&gt;%
+  summarise(n = n())%&gt;%
+  filter(!is.na(field_display_name))
+  pivot_wider(names_from = field_display_name, values_from = n)%&gt;%
+  replace(is.na(.), 0)
+  
+
+div_indices &lt;- diversity(prof_year_field[, -c(1:2)], index = &quot;shannon&quot;)
+
+prof_year_field_div &lt;- cbind.data.frame(prof_year_field[, c(1:2)],
+                                        yearly_diversity = div_indices)
+
+prof_year_field_div$yarly_evennes &lt;- prof_year_field_div$yearly_diversity/log(27)</code></pre>
+<p>Fields and subfields per prof per year and in total</p>
+<pre class="r"><code>prof_year_field &lt;- oa_pubs_topics %&gt;%
+  group_by(profile_id, publication_year, field_display_name) %&gt;%
+  summarise(n = n())%&gt;%
+  slice_max(n, with_ties = FALSE)%&gt;%
+  select(-n)
+
+colnames(prof_year_field)[c(2,3)] &lt;- c(&quot;year&quot;,&quot;yearly_field&quot; )
+
+prof_total_field &lt;- oa_pubs_topics %&gt;%
+  group_by(profile_id, field_display_name) %&gt;%
+  summarise(n = n())%&gt;%
+  slice_max(n, with_ties = FALSE)%&gt;%
+  select(-n)
+
+colnames(prof_total_field)[2] &lt;- c(&quot;overall_field&quot; )
+
+
+prof_year_subfield &lt;- oa_pubs_topics %&gt;%
+  group_by(profile_id, publication_year, subfield_display_name) %&gt;%
+  summarise(n = n())%&gt;%
+  slice_max(n, with_ties = FALSE)%&gt;%
+  select(-n)
+
+colnames(prof_year_subfield)[c(2,3)] &lt;- c(&quot;year&quot;,&quot;yearly_subfield&quot;) 
+
+
+prof_total_subfield &lt;- oa_pubs_topics %&gt;%
+  group_by(profile_id, subfield_display_name) %&gt;%
+  summarise(n = n())%&gt;%
+  slice_max(n, with_ties = FALSE)%&gt;%
+  select(-n)
+
+colnames(prof_total_subfield)[2] &lt;- c(&quot;overall_subfield&quot; )
+
+# merge profs and their fields
+prof_year_p_c_g_a_t &lt;- merge(prof_year_p_c_g_a,
+                             prof_year_field[c(&quot;profile_id&quot;, &quot;yearly_field&quot;, &quot;year&quot;)],
+                             by = c(&quot;profile_id&quot;, &quot;year&quot;),
+                             all.x = TRUE,
+                             all.y = FALSE) 
+
+prof_year_p_c_g_a_t &lt;- merge(prof_year_p_c_g_a_t,
+                             prof_year_subfield[c(&quot;profile_id&quot;, &quot;yearly_subfield&quot;, &quot;year&quot;)],
+                             by = c(&quot;profile_id&quot;, &quot;year&quot;),
+                             all.x = TRUE,
+                             all.y = FALSE) 
+
+prof_year_p_c_g_a_t &lt;- merge(prof_year_p_c_g_a_t,
+                             prof_total_field[c(&quot;profile_id&quot;, &quot;overall_field&quot;)],
+                             by = c(&quot;profile_id&quot;),
+                             all.x = TRUE,
+                             all.y = FALSE) 
+
+prof_year_p_c_g_a_t &lt;- merge(prof_year_p_c_g_a_t,
+                             prof_total_subfield[c(&quot;profile_id&quot;, &quot;overall_subfield&quot;)],
+                             by = c(&quot;profile_id&quot;),
+                             all.x = TRUE,
+                             all.y = FALSE) </code></pre>
+<p>Remove duplicates, if any:</p>
+<pre class="r"><code>prof_year_p_c_g_a_t$dupl &lt;- duplicated(prof_year_p_c_g_a_t[c(&quot;profile_id&quot;, &quot;year&quot;)])
+
+prof_year_p_c_g_a_t &lt;- prof_year_p_c_g_a_t %&gt;%
+  filter(dupl == FALSE)%&gt;%
+  select(-dupl)</code></pre>
+<pre class="r"><code>write_csv(prof_year_p_c_g_a_t, &quot;panel_datasets/prof_year_p_c_g_a_t_11_3.csv&quot;)</code></pre>
+<p>Remove some redundant objects:</p>
+<pre class="r"><code>rm(oa_prof_pubs)
+rm(oa_pubs_topics)
+rm(oa_pubs_unique)
+gc()</code></pre>
+<p>Get the lagged variables.</p>
+<p>Add placeholder variables for lagged sales and revenues:</p>
+<pre class="r"><code>prof_year_p_c_g_a_t_l &lt;- prof_year_p_c_g_a_t
+
+prof_year_p_c_g_a_t_l$count_pubs_l &lt;- prof_year_p_c_g_a_t_l$count_pubs
+prof_year_p_c_g_a_t_l$count_pubs_total_l &lt;- prof_year_p_c_g_a_t_l$count_pubs_total
+prof_year_p_c_g_a_t_l$cited_by_l &lt;- prof_year_p_c_g_a_t_l$cited_by
+prof_year_p_c_g_a_t_l$cited_by_total_oa_l &lt;- prof_year_p_c_g_a_t_l$cited_by_total_oa
+prof_year_p_c_g_a_t_l$cited_by_total_all_l &lt;- prof_year_p_c_g_a_t_l$cited_by_total_all
+prof_year_p_c_g_a_t_l$attn_news_by_l &lt;- prof_year_p_c_g_a_t_l$attn_news_by
+prof_year_p_c_g_a_t_l$attn_news_by_total_l &lt;- prof_year_p_c_g_a_t_l$attn_news_by_total
+prof_year_p_c_g_a_t_l$attn_blogs_by_l &lt;- prof_year_p_c_g_a_t_l$attn_blogs_by
+prof_year_p_c_g_a_t_l$attn_blogs_by_total_l &lt;- prof_year_p_c_g_a_t_l$attn_blogs_by_total
+prof_year_p_c_g_a_t_l$attn_twitter_by_l &lt;- prof_year_p_c_g_a_t_l$attn_twitter_by
+prof_year_p_c_g_a_t_l$attn_twitter_by_total_l &lt;- prof_year_p_c_g_a_t_l$attn_twitter_by_total
+
+prof_year_p_c_g_a_t_l$veni_l &lt;- prof_year_p_c_g_a_t_l$veni
+prof_year_p_c_g_a_t_l$vidi_l &lt;- prof_year_p_c_g_a_t_l$vidi
+prof_year_p_c_g_a_t_l$vici_l &lt;- prof_year_p_c_g_a_t_l$vici
+prof_year_p_c_g_a_t_l$stevin_l &lt;- prof_year_p_c_g_a_t_l$stevin
+prof_year_p_c_g_a_t_l$spinoza_l &lt;- prof_year_p_c_g_a_t_l$spinoza
+
+prof_year_p_c_g_a_t_l$advanced_l &lt;- prof_year_p_c_g_a_t_l$advanced
+prof_year_p_c_g_a_t_l$consolidator_l &lt;- prof_year_p_c_g_a_t_l$consolidator
+prof_year_p_c_g_a_t_l$starting_l &lt;- prof_year_p_c_g_a_t_l$starting
+prof_year_p_c_g_a_t_l$synergy_l &lt;- prof_year_p_c_g_a_t_l$synergy</code></pre>
+<p>Rearrange the variables:</p>
+<pre class="r"><code>lag_rearrange &lt;- c(&quot;profile_id&quot;, &quot;year&quot;, &quot;inferred_gender&quot;,
+                   &quot;first_pub&quot;, &quot;years_since_first_pub&quot;,
+                   &quot;yearly_field&quot;, &quot;yearly_subfield&quot;,    
+                   &quot;overall_field&quot;, &quot;overall_subfield&quot;,
+                   &quot;count_pubs&quot;, &quot;count_pubs_l&quot;,  
+                   &quot;count_pubs_total&quot;, &quot;count_pubs_total_l&quot;,
+                   &quot;cited_by&quot;, &quot;cited_by_l&quot;,
+                   &quot;cited_by_total_oa&quot;, &quot;cited_by_total_oa_l&quot;, 
+                   &quot;cited_by_before_2012&quot;,
+                   &quot;cited_by_total_all&quot;, &quot;cited_by_total_all_l&quot;,
+                   &quot;attn_news_by&quot;, &quot;attn_news_by_l&quot;,
+                   &quot;attn_news_by_total&quot;, &quot;attn_news_by_total_l&quot;,
+                   &quot;attn_blogs_by&quot;, &quot;attn_blogs_by_l&quot;,
+                   &quot;attn_blogs_by_total&quot;, &quot;attn_blogs_by_total_l&quot;, 
+                   &quot;attn_twitter_by&quot;, &quot;attn_twitter_by_l&quot;,
+                   &quot;attn_twitter_by_total&quot;, &quot;attn_twitter_by_total_l&quot;,
+                   &quot;veni&quot;, &quot;veni_l&quot;,
+                   &quot;vidi&quot;, &quot;vidi_l&quot;,
+                   &quot;vici&quot;, &quot;vici_l&quot;,
+                   &quot;stevin&quot;, &quot;stevin_l&quot;,
+                   &quot;spinoza&quot;, &quot;spinoza_l&quot;,
+                   &quot;starting&quot;, &quot;starting_l&quot;,
+                   &quot;advanced&quot;, &quot;advanced_l&quot;, 
+                   &quot;consolidator&quot;, &quot;consolidator_l&quot;,
+                   &quot;synergy&quot;, &quot;synergy_l&quot;
+                   )
+
+prof_year_p_c_g_a_t_l &lt;- prof_year_p_c_g_a_t_l[lag_rearrange]</code></pre>
+<p>Lag the relevant variables:</p>
+<pre class="r"><code>prof_year_p_c_g_a_t_l &lt;- prof_year_p_c_g_a_t_l %&gt;%
+  arrange(year) %&gt;%
+  group_by(profile_id) %&gt;%
+  mutate_at(vars(contains(&#39;_l&#39;)), lag)%&gt;%
+  arrange(profile_id, year)</code></pre>
+<pre class="r"><code>write_csv(prof_year_p_c_g_a_t_l, &quot;panel_datasets/prof_year_p_c_g_a_t_l_11_3.csv&quot;)</code></pre>
+</div>
+</div>
+<div id="lexis-data" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Lexis data</h1>
+<p>Load the lexis articles, filter out the irrelevant ones and drop the
+regional publication duplicates:</p>
+<pre class="r"><code>lexis_data &lt;- dbReadTable(con, &quot;lexis_nexis_mentions&quot;)
+
+lexis_data_filt &lt;- filter(lexis_data,
+                          source_type != &quot;irrelevant&quot;)
+
+lexis_data_filt$dupl &lt;- duplicated(lexis_data_filt[c(&quot;profile_id&quot;, &quot;headline&quot;, &quot;length&quot;)])
+
+lexis_data_filt &lt;- lexis_data_filt %&gt;%
+  filter(dupl == FALSE)%&gt;%
+  select(-dupl)</code></pre>
+<p>Now, aggregate professor mentions per year and per source, wherever
+relevant:</p>
+<pre class="r"><code># combine sources for easier handling:
+lexis_data_filt$source_coarse &lt;- ifelse(! lexis_data_filt$source_type %in% c(&quot;national_nl&quot;, &quot;regional_nl&quot;, &quot;high_prof_intl&quot;),
+                                        &quot;other&quot;,
+                                        lexis_data_filt$source_type)
+
+prof_lexis_year &lt;- lexis_data_filt %&gt;%
+  filter(!is.na(year) &amp; year &gt;= 1974 &amp; year &lt;= 2024)%&gt;%
+  arrange(profile_id, year)%&gt;%
+  group_by(profile_id, year, source_coarse)%&gt;%
+  summarise(n = n())%&gt;%
+  replace(is.na(.), 0)%&gt;%
+  arrange(profile_id, year,source_coarse)%&gt;%
+  group_by(profile_id, source_coarse)%&gt;%
+  mutate(cumsum = cumsum(n))%&gt;%
+  pivot_wider(names_from = source_coarse, values_from = c(n, cumsum))%&gt;%
+  fill(cumsum_national_nl:cumsum_high_prof_intl)%&gt;%
+  replace(is.na(.), 0)
+
+# tidy up the columns
+colnames(prof_lexis_year)[3:10] &lt;- c(&quot;lexis_national&quot;, &quot;lexis_regional&quot;, &quot;lexis_other&quot;,
+                                     &quot;lexis_intl&quot;, &quot;lexis_national_total&quot;, 
+                                     &quot;lexis_regional_total&quot;, &quot;lexis_other_total&quot;,
+                                     &quot;lexis_intl_total&quot;)
+
+# add total counts
+prof_lexis_year$lexis_all &lt;- prof_lexis_year$lexis_national + prof_lexis_year$lexis_regional +
+  prof_lexis_year$lexis_other + prof_lexis_year$lexis_intl
+
+prof_lexis_year$lexis_all_total &lt;- prof_lexis_year$lexis_national_total + prof_lexis_year$lexis_regional_total +
+  prof_lexis_year$lexis_other_total + prof_lexis_year$lexis_intl_total
+
+# rearrange a bit
+prof_lexis_year &lt;- prof_lexis_year[c(&quot;profile_id&quot;, &quot;year&quot;,
+                                     &quot;lexis_national&quot;, &quot;lexis_regional&quot;, &quot;lexis_other&quot;,
+                                     &quot;lexis_intl&quot;, &quot;lexis_all&quot;,
+                                     &quot;lexis_national_total&quot;, 
+                                     &quot;lexis_regional_total&quot;, &quot;lexis_other_total&quot;,
+                                     &quot;lexis_intl_total&quot;, &quot;lexis_all_total&quot;)]</code></pre>
+<p>Pad lexis data with the professor panel:</p>
+<pre class="r"><code># get all observations in the panel
+prof_lexis_year_pad &lt;- merge(prof_lexis_year,
+                             prof_year_p_c_g_a_t_l[c(&quot;profile_id&quot;, &quot;year&quot;)],
+                             all.y= TRUE,
+                             all.x = TRUE)
+
+# fill down on totals and replace NAs with zeroes
+prof_lexis_year_pad &lt;- prof_lexis_year_pad %&gt;%
+  group_by(profile_id)%&gt;%
+  fill(lexis_national_total:lexis_all_total, .direction = &quot;down&quot;)%&gt;%
+  mutate(across(contains(&#39;lexis&#39;), replace_na, 0))
+
+# get the first lab
+prof_lexis_year_pad_lag &lt;- prof_lexis_year_pad %&gt;%
+  arrange(year) %&gt;%
+  group_by(profile_id) %&gt;%
+  mutate_at(vars(contains(&#39;lexis&#39;)), lag)%&gt;%
+  arrange(profile_id, year)
+
+colnames(prof_lexis_year_pad_lag)[-c(1:2)] &lt;- paste0(colnames(prof_lexis_year_pad_lag)[-c(1:2)], &quot;_l&quot;)</code></pre>
+<p>Combine the two:</p>
+<pre class="r"><code>prof_lexis_year_all &lt;- merge(prof_lexis_year_pad,
+                             prof_lexis_year_pad_lag,
+                             by = c(&quot;profile_id&quot;, &quot;year&quot;))</code></pre>
+<p>Combine our professor panel with lexis data:</p>
+<pre class="r"><code>prof_year_p_c_g_a_t_l_l &lt;- merge(prof_year_p_c_g_a_t_l,
+                                 prof_lexis_year_all,
+                                 by = c(&quot;profile_id&quot;, &quot;year&quot;),
+                                 all.x = TRUE)</code></pre>
+<p>Write this out:</p>
+<pre class="r"><code>write_csv(prof_year_p_c_g_a_t_l_l, &quot;panel_datasets/prof_year_p_c_g_a_t_l_l_20_3.csv&quot;)</code></pre>
+</div>
+<div id="coauthor-data" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Coauthor data</h1>
+<p>Fetch all coauthor data, including full info, their inferred gender,
+and citation counts.</p>
+<pre class="r"><code>oa_coauthor_info &lt;- dbReadTable(con, &quot;oa_coauthor_info&quot;)
+oa_coauthor_info_name &lt;- dbReadTable(con, &quot;oa_coauthor_name_list&quot;)
+coauthor_gender &lt;- dbReadTable(con, &quot;coauthor_name_gender&quot;)
+# add professor gender names, as these are specific for the 
+# Dutch context and might help further
+prof_gender_names &lt;- dbReadTable(con, &quot;gender_table&quot;)%&gt;%
+  distinct(first, .keep_all = TRUE)%&gt;%
+  select(first, inferred_gender)
+oa_coauthor_info_full &lt;- dbReadTable(con, &quot;oa_coauthor_info_full&quot;)</code></pre>
+<p>Match name gender inference with coauthor names:</p>
+<pre class="r"><code>colnames(coauthor_gender)[2] &lt;- &quot;first&quot;
+coauthor_gender &lt;- coauthor_gender %&gt;%
+  filter(first != &quot;&quot;)%&gt;%
+  select(first, gender)
+
+# recode the variable
+coauthor_gender$gender &lt;- ifelse(coauthor_gender$gender == &quot;male&quot;, &quot;m&quot;,
+                                 ifelse(coauthor_gender$gender == &quot;female&quot;, &quot;w&quot;, coauthor_gender$gender))
+
+colnames(prof_gender_names)[2] &lt;- &quot;gender&quot;
+
+# combine
+all_names &lt;- rbind(coauthor_gender,
+                   prof_gender_names)%&gt;%
+  distinct(first, .keep_all = TRUE)
+
+
+# filter out &quot;and&quot; which seems to just be a mistake
+oa_coauthor_info_name &lt;- oa_coauthor_info_name %&gt;%
+  filter(! tolower(first) %in% c(&quot;van&quot;, &quot;and&quot;, &quot;den&quot;))
+
+oa_coauthor_info_name$first &lt;- tolower(oa_coauthor_info_name$first)
+
+coauthor_name_gender &lt;- merge(oa_coauthor_info_name,
+                              all_names,
+                              by = &quot;first&quot;,
+                              all.x = TRUE,
+                              all.y = FALSE)
+
+coauthor_name_gender &lt;- coauthor_name_gender %&gt;%
+  select(id, gender)%&gt;%
+  filter(!is.na(gender))</code></pre>
+<p>Remove redundant items:</p>
+<pre class="r"><code>#rm(oa_coauthor_info)
+gc()</code></pre>
+<p>For each coauthor, get their cumulative citation counts:</p>
+<pre class="r"><code>coauthor_pubs_cits_cumulative &lt;- oa_coauthor_info_full %&gt;%
+  select(id:display_name, works_count:counts_by_year_cited_by_count)%&gt;%
+  group_by(id)%&gt;%
+  arrange(counts_by_year_year)%&gt;%
+  mutate(counts_by_year_works_count_total = cumsum(counts_by_year_works_count),
+         counts_by_year_cited_by_count_total = cumsum(counts_by_year_cited_by_count)) %&gt;%
+  arrange(id, counts_by_year_year)
+
+# rename some columns
+colnames(coauthor_pubs_cits_cumulative)[which(colnames(coauthor_pubs_cits_cumulative)==&quot;counts_by_year_year&quot;)] &lt;- &quot;year&quot;
+colnames(coauthor_pubs_cits_cumulative)[which(colnames(coauthor_pubs_cits_cumulative)==&quot;counts_by_year_works_count&quot;)] &lt;- &quot;count_pubs&quot;
+colnames(coauthor_pubs_cits_cumulative)[which(colnames(coauthor_pubs_cits_cumulative)==&quot;works_count&quot;)] &lt;- &quot;count_pubs_total&quot;
+colnames(coauthor_pubs_cits_cumulative)[which(colnames(coauthor_pubs_cits_cumulative)==&quot;counts_by_year_works_count_total&quot;)] &lt;- &quot;count_pubs_total_oa&quot;
+colnames(coauthor_pubs_cits_cumulative)[which(colnames(coauthor_pubs_cits_cumulative)==&quot;counts_by_year_cited_by_count&quot;)] &lt;- &quot;cited_by&quot;
+colnames(coauthor_pubs_cits_cumulative)[which(colnames(coauthor_pubs_cits_cumulative)==&quot;cited_by_count&quot;)] &lt;- &quot;cited_by_total&quot;
+colnames(coauthor_pubs_cits_cumulative)[which(colnames(coauthor_pubs_cits_cumulative)==&quot;counts_by_year_cited_by_count_total&quot;)] &lt;- &quot;cited_by_total_oa&quot;
+
+# citations prior to 2012
+latest_citation_coauthor &lt;- coauthor_pubs_cits_cumulative %&gt;%
+  group_by(id)%&gt;%
+  slice(which.max(year))
+latest_citation_coauthor$cited_by_before_2012 &lt;- latest_citation_coauthor$cited_by_total - latest_citation_coauthor$cited_by_total_oa
+latest_citation_coauthor$count_pubs_before_2012 &lt;- latest_citation_coauthor$count_pubs_total - latest_citation_coauthor$count_pubs_total_oa
+# replace by 0 if negative (OA issue ticket opened)
+latest_citation_coauthor$cited_by_before_2012 &lt;- ifelse(latest_citation_coauthor$cited_by_before_2012&lt;0,
+                                                        0,
+                                                        latest_citation_coauthor$cited_by_before_2012)
+
+latest_citation_coauthor$count_pubs_before_2012 &lt;- ifelse(latest_citation_coauthor$count_pubs_before_2012&lt;0,
+                                                        0,
+                                                        latest_citation_coauthor$count_pubs_before_2012)
+
+# merge with the rest
+coauthor_pubs_cits_cumulative &lt;- merge(coauthor_pubs_cits_cumulative,
+                         latest_citation_coauthor[c(&quot;id&quot;, &quot;cited_by_before_2012&quot;, &quot;count_pubs_before_2012&quot;)],
+                         by = &quot;id&quot;,
+                         all.x = TRUE)
+
+coauthor_pubs_cits_cumulative$cited_by_total_all &lt;- coauthor_pubs_cits_cumulative$cited_by_before_2012 + coauthor_pubs_cits_cumulative$cited_by_total_oa
+coauthor_pubs_cits_cumulative$count_pubs_total_all &lt;- coauthor_pubs_cits_cumulative$count_pubs_before_2012 + coauthor_pubs_cits_cumulative$count_pubs_total_oa
+
+coauthor_year_p_c &lt;- coauthor_pubs_cits_cumulative %&gt;%
+  arrange(id, year)%&gt;%
+  select(-display_name, -count_pubs_total, -cited_by_total)</code></pre>
+<p>Get their attention:</p>
+<pre class="r"><code>coauthor_attention &lt;- dbReadTable(con, &quot;altmetric_coauthor_attention&quot;)
+
+selected_attention &lt;- coauthor_attention %&gt;%
+  filter(., mention_type %in% c(&quot;msm&quot;, &quot;blog&quot;, &quot;tweet&quot;))</code></pre>
+<p>Cumulatives:</p>
+<pre class="r"><code>coauthor_attention_table &lt;- selected_attention %&gt;%
+  pivot_wider(names_from = mention_type, values_from = yearly_count, values_fill = 0)
+
+coauthor_attention_table &lt;- coauthor_attention_table %&gt;%
+  group_by(id)%&gt;%
+  arrange(year)%&gt;%
+  mutate(msm_total = cumsum(msm),
+         blog_total = cumsum(blog),
+         tweet_total = cumsum(tweet)) %&gt;%
+  arrange(id, year)
+
+# rename some columns
+colnames(coauthor_attention_table)[which(colnames(coauthor_attention_table)==&quot;msm&quot;)] &lt;- &quot;coa_attn_news_by&quot;
+colnames(coauthor_attention_table)[which(colnames(coauthor_attention_table)==&quot;msm_total&quot;)] &lt;- &quot;coa_attn_news_by_total&quot;
+colnames(coauthor_attention_table)[which(colnames(coauthor_attention_table)==&quot;blog&quot;)] &lt;- &quot;coa_attn_blog_by&quot;
+colnames(coauthor_attention_table)[which(colnames(coauthor_attention_table)==&quot;blog_total&quot;)] &lt;- &quot;coa_attn_blog_by_total&quot;
+colnames(coauthor_attention_table)[which(colnames(coauthor_attention_table)==&quot;tweet&quot;)] &lt;- &quot;coa_attn_twitter_by&quot;
+colnames(coauthor_attention_table)[which(colnames(coauthor_attention_table)==&quot;tweet_total&quot;)] &lt;- &quot;coa_attn_twitter_by_total&quot;</code></pre>
+<p>Combine citations and attention. Set mentions to 0 if we have
+coauthors’ ORCID and there are no mentions; if we don’t have their
+ORCID, set mentions to NA:</p>
+<pre class="r"><code>coauthor_year_p_c_a &lt;- merge(coauthor_year_p_c,
+                             coauthor_attention_table,
+                             by = c(&quot;id&quot;, &quot;year&quot;),
+                             all.x = TRUE)
+
+coauthor_orcids &lt;- oa_coauthor_info_full %&gt;%
+  distinct(id, .keep_all = TRUE)%&gt;%
+  select(id, orcid)
+
+
+coauthor_year_p_c_a &lt;- merge(coauthor_year_p_c_a,
+                             coauthor_orcids,
+                             all.x = TRUE,
+                             by = &quot;id&quot;)
+
+# fill the attention by profile ID
+coauthor_year_p_c_a2 &lt;- coauthor_year_p_c_a %&gt;%
+  group_by(id)%&gt;%
+  fill(coa_attn_news_by_total, coa_attn_blog_by_total, coa_attn_twitter_by_total)
+
+coauthor_year_p_c_a2$coa_attn_news_by &lt;- ifelse((is.na(coauthor_year_p_c_a2$coa_attn_news_by) &amp; !is.na(coauthor_year_p_c_a2$orcid)),
+                                               0,
+                                               coauthor_year_p_c_a2$coa_attn_news_by)
+coauthor_year_p_c_a2$coa_attn_news_by_total &lt;- ifelse((is.na(coauthor_year_p_c_a2$coa_attn_news_by_total) &amp; !is.na(coauthor_year_p_c_a2$orcid)),
+                                               0,
+                                               coauthor_year_p_c_a2$coa_attn_news_by_total)
+
+coauthor_year_p_c_a2$coa_attn_blog_by &lt;- ifelse((is.na(coauthor_year_p_c_a2$coa_attn_blog_by) &amp; !is.na(coauthor_year_p_c_a2$orcid)),
+                                               0,
+                                               coauthor_year_p_c_a2$coa_attn_blog_by)
+coauthor_year_p_c_a2$coa_attn_blog_by_total &lt;- ifelse((is.na(coauthor_year_p_c_a2$coa_attn_blog_by_total) &amp; !is.na(coauthor_year_p_c_a2$orcid)),
+                                               0,
+                                               coauthor_year_p_c_a2$coa_attn_blog_by_total)
+
+coauthor_year_p_c_a2$coa_attn_twitter_by &lt;- ifelse((is.na(coauthor_year_p_c_a2$coa_attn_twitter_by) &amp; !is.na(coauthor_year_p_c_a2$orcid)),
+                                               0,
+                                               coauthor_year_p_c_a2$coa_attn_twitter_by)
+coauthor_year_p_c_a2$coa_attn_twitter_by_total &lt;- ifelse((is.na(coauthor_year_p_c_a2$coa_attn_twitter_by_total) &amp; !is.na(coauthor_year_p_c_a2$orcid)),
+                                               0,
+                                               coauthor_year_p_c_a2$coa_attn_twitter_by_total)</code></pre>
+<p>Append gender:</p>
+<pre class="r"><code>colnames(coauthor_name_gender)[1] &lt;- &quot;id&quot;
+
+coauthor_year_p_c_a_g &lt;- merge(coauthor_year_p_c_a2,
+                               coauthor_name_gender,
+                               by = &quot;id&quot;,
+                               all.x = TRUE)
+
+coauthor_year_p_c_a_g &lt;- coauthor_year_p_c_a_g%&gt;%
+  arrange(id, year)
+
+write_csv(coauthor_year_p_c_a_g, &quot;panel_datasets/coauthor_year_p_c_a_g_11_3.csv&quot;)</code></pre>
+<p>Filter out coauthor observations without year:</p>
+<pre class="r"><code>coauthor_year_p_c_a_g &lt;- filter(coauthor_year_p_c_a_g, 
+                                !is.na(year))%&gt;%
+  select(-dupl)</code></pre>
+<p>Marge coauthors with inferred gender:</p>
+<pre class="r"><code>colnames(coauthor_name_gender) &lt;- c(&quot;au_id&quot;, &quot;inferred_gender&quot;)
+oa_coauthor_info_gender &lt;- merge(oa_coauthor_info,
+                                 coauthor_name_gender,
+                                 all.x = TRUE,
+                                 by = &quot;au_id&quot;)
+
+oa_coauthor_info_gender$inferred_gender &lt;- ifelse(is.na(oa_coauthor_info_gender$inferred_gender),
+                                                  &quot;unknown&quot;,
+                                                  oa_coauthor_info_gender$inferred_gender)</code></pre>
+<p>Clean the memory a bit:</p>
+<pre class="r"><code>rm(oa_coauthor_info)
+rm(coauthor_name_gender)
+rm(coauthor_gender)
+rm(all_names)
+gc()</code></pre>
+<p>For each author, match their coauthors from that year:</p>
+<pre class="r"><code>oa_coauthor_matching &lt;- dbReadTable(con, &quot;oa_coauthor_matching&quot;)
+oa_coauthor_matching &lt;- oa_coauthor_matching[c(&quot;id&quot;, &quot;au_id&quot;, &quot;profile_id&quot;, &quot;publication_year&quot;)]
+
+profile_ids &lt;- unique(prof_year_p_c_g_a_t_l_l$profile_id)</code></pre>
+<p>Now, compile coauthor data for each professor:</p>
+<pre class="r"><code>prof_panel_combined &lt;- as.data.frame(matrix(NA, nrow = 0, ncol = 118))
+
+for (i in 1:length(profile_ids)){
+  prof_output &lt;- NA
+  try(
+    prof_output &lt;- coauthor_data_compiler(profile_id = profile_ids[i],
+                                          prof_panel = prof_year_p_c_g_a_t_l_l,
+                                          prof_coauthor_matching = oa_coauthor_matching,
+                                          prof_coauthor_panel = coauthor_year_p_c_a_g,
+                                          prof_coauthor_info_w_gender = oa_coauthor_info_gender))
+
+ 
+  if (!all(is.na(prof_output))){
+    
+    prof_panel_combined &lt;- rbind.data.frame(prof_panel_combined,
+                                            prof_output)
+  }
+  print(paste(&quot;done with &quot;, i , &quot; out of&quot;, length(profile_ids)))
+}</code></pre>
+</div>
+
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIlVudGl0bGVkIg0KYXV0aG9yOiAiQW5hIE1hY2Fub3ZpYyINCmRhdGU6ICIyMDI0LTAxLTI5Ig0Kb3V0cHV0OiBodG1sX2RvY3VtZW50DQotLS0NCg0KVGhpcyBzY3JpcHQgY29tcGlsZXMgb3VyIHZhcmlvdXMgZGF0YSByZXNvdXJjZXMgaW50byBhIHBhbmVsIGRhdGEgb2YgcHJvZmVzc29ycycNCnB1YmxpY2F0aW9ucywgY2l0YXRpb25zLCBtZW50aW9ucywgYW5kIGNvYXV0aG9yc2hpcHMgcGVyIHllYXIuDQoNCmBgYHtyIGluY2x1ZGU9RkFMU0V9DQprbml0cjo6b3B0c19jaHVuayRzZXQoZWNobyA9IFRSVUUpDQprbml0cjo6b3B0c19jaHVuayRzZXQoZXZhbCA9IEZBTFNFKQ0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KHdhcm5pbmcgPSBGQUxTRSkNCmtuaXRyOjpvcHRzX2NodW5rJHNldChtZXNzYWdlID0gRkFMU0UpDQpgYGANCg0KTG9hZCB0aGUgcGFja2FnZXM6DQpgYGB7ciBtZXNzYWdlPSAgRiwgd2FybmluZyA9IEYsIGV2YWwgPSBUfQ0KbGlicmFyeShncm91bmRob2cpDQpwYWNrYWdlc190b19sb2FkIDwtIGMoInJlYWRyIiwgImRwbHlyIiwgInRpZHlyIiwgIlBlcmZvcm1hbmNlQW5hbHl0aWNzIiwNCiAgICAgICAgICAgICAgICAgICAgICAidGlkeXZlcnNlIiwgIlJQb3N0Z3JlcyIsICJsdWJyaWRhdGUiLCAicHN5Y2giLA0KICAgICAgICAgICAgICAgICAgICAgICJkaWdlc3QiLCAiREJJIiwgIlJPREJDIiwgIm9kYmMiLCAiZ3JpZEV4dHJhIiwNCiAgICAgICAgICAgICAgICAgICAgICAicGFuZWxyIiwgInNraW1yIiwgImZvcmVhY2giLCAidmVnYW4iLA0KICAgICAgICAgICAgICAgICAgICAgICJkb1BhcmFsbGVsIikNCmdyb3VuZGhvZy5saWJyYXJ5KHBhY2thZ2VzX3RvX2xvYWQsIGRhdGUgPSAiMjAyMy0xMi0wMSIpDQoNCiMgbG9hZCB0aGUgaGVscGVyIGZ1bmN0aW9uIGZpbGUNCnNvdXJjZSgiaGVscGVyX2Z1bmN0aW9ucy5SIikNCmBgYA0KDQpDb25uZWN0IHRvIHRoZSBkYXRhYmFzZToNCmBgYHtyfQ0KIyBmaWxsIGluIG93biBjcmVkZW50aWFscw0KcG9ydCA8LSANCnVzZXIgPC0gIiINCnBhc3N3b3JkIDwtICIiDQpkYXRhYmFzZV9uYW1lIDwtICIiDQoNCmNvbiA8LSBSUG9zdGdyZXM6OmRiQ29ubmVjdChSUG9zdGdyZXM6OlBvc3RncmVzKCksDQogICAgICAgICAgICAgICAgIGRibmFtZT0gZGF0YWJhc2VfbmFtZSwNCiAgICAgICAgICAgICAgICAgcG9ydCA9IHBvcnQsDQogICAgICAgICAgICAgICAgIHVzZXIgPSB1c2VyLCANCiAgICAgICAgICAgICAgICAgcGFzc3dvcmQgPSBwYXNzd29yZCkNCg0KY29uICMgQ2hlY2tzIGNvbm5lY3Rpb24gaXMgd29ya2luZw0KYGBgDQoNCg0KTG9hZCB0aGUgcHJvZmVzc29yIHByb2ZpbGVzOg0KYGBge3IgbWVzc2FnZSA9IEYsIHdhcm5pbmcgPSBGfQ0KbmFyY2lzX3Byb2ZfaW5mbyA8LSBkYlJlYWRUYWJsZShjb24sICJuYXJjaXNfcHJvZl9pbmZvIikNCmBgYA0KDQojIFB1YmxpY2F0aW9ucyBhbmQgY2l0YXRpb25zDQoNCkxvYWQgcHVibGljYXRpb24gaW5mbyBmb3IgYWxsIHByb2Zlc3NvcnM6DQpgYGB7cn0NCiMgYWxsIHByb2Zlc3NvcnMsIHRoZWlyIHB1YnMsIGFuZCB0aGUgY2l0YXRpb25zDQpvYV9wcm9mX3B1YnMgPC0gZGJSZWFkVGFibGUoY29uLCAib2FfcHJvZl9wdWJzIikNCg0KIyB1bmlxdWUgcHVibGljYXRpb24gaW5mbw0Kb2FfcHVic191bmlxdWUgPC0gZGJSZWFkVGFibGUoY29uLCAib2FfcHJvZl9wdWJzX3VuaXF1ZSIpDQoNCiNwcm9mIC0gcHViIG1hdGNoaW5nDQpvYV9wcm9mX3B1Yl9tYXRjaGluZyA8LSBkYlJlYWRUYWJsZShjb24sICJvYV9wcm9mX3B1Yl9tYXRjaCIpDQoNCiMgcHJvZiB1bmlxdWUgcHViIGxpc3QgDQpvYV9wcm9mX3B1YnNfdW5pcXVlIDwtIG1lcmdlKG9hX3B1YnNfdW5pcXVlLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICBvYV9wcm9mX3B1Yl9tYXRjaGluZ1tjKCJpZCIsICJhdV9pZCIsICJhdV9kaXNwbGF5X25hbWUiLCAicHJvZmlsZV9pZCIpXSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICBhbGwueSA9IFRSVUUsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIGJ5ID0gImlkIikNCmBgYA0KDQpHZXQgc2luZ2xlIGF1dGhvciBwdWJsaWNhdGlvbnMgb25seToNCmBgYHtyfQ0KY29hdXRob3JfaW5mbyA8LSBkYkdldFF1ZXJ5KGNvbiwgInNlbGVjdCBcImlkXCIsIFwiYXVfaWRcIiBGUk9NIG9hX2NvYXV0aG9yX2luZm87IikNCg0Kb2FfcHJvZl9wdWJzX3VuaXF1ZV9zaW5nbGVfYXUgPC0gZmlsdGVyKG9hX3Byb2ZfcHVic191bmlxdWUsIA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICEgaWQgJWluJSBjb2F1dGhvcl9pbmZvJGlkKQ0KYGBgDQoNCg0KR2V0IHllYXJseSBwdWJsaWNhdGlvbiBjb3VudHMgcGVyIHByb2Zlc3NvciwgZmlsdGVyaW5nIG91dCBldmVyeXRoaW5nIGJ1dCBhcnRpY2xlcywNCmJvb2tzLCBib29rIGNoYXB0ZXJzOg0KYGBge3J9DQpwcm9mX3llYXJfcHVicyA8LSBvYV9wcm9mX3B1YnNfdW5pcXVlICU+JSANCiAgZmlsdGVyKCFpcy5uYShwdWJsaWNhdGlvbl95ZWFyKSAmIHB1YmxpY2F0aW9uX3llYXIgPiAxOTc0ICYgcHVibGljYXRpb25feWVhciA8PSAyMDI0ICYgDQogICAgICAgICAgIHR5cGUgJWluJSBjKCJhcnRpY2xlIiwgImJvb2siLCAiYm9vay1jaGFwdGVyIikpJT4lDQogIGdyb3VwX2J5KHByb2ZpbGVfaWQsIHB1YmxpY2F0aW9uX3llYXIpJT4lDQogIHN1bW1hcmlzZShjb3VudF9wdWJzID0gbigpKSU+JQ0KICBhcnJhbmdlKHByb2ZpbGVfaWQsIHB1YmxpY2F0aW9uX3llYXIpJT4lDQogIG11dGF0ZShjb3VudF9wdWJzX3RvdGFsID0gY3Vtc3VtKGNvdW50X3B1YnMpKSU+JQ0KICBhcnJhbmdlKHByb2ZpbGVfaWQsIHB1YmxpY2F0aW9uX3llYXIpDQoNCiMgcmVuYW1lIGZvciBtZXJnaW5nDQpjb2xuYW1lcyhwcm9mX3llYXJfcHVicylbd2hpY2goY29sbmFtZXMocHJvZl95ZWFyX3B1YnMpID09ICJwdWJsaWNhdGlvbl95ZWFyIildIDwtICJ5ZWFyIg0KYGBgDQpOb3csIGdldCB0aGVpciB5ZWFybHkgY2l0YXRpb25zICgyMDEyLTIwMjQpOg0KYGBge3J9DQpwcm9mX3llYXJfY2l0YXRpb25zIDwtIG9hX3Byb2ZfcHVicyAlPiUgDQogIGZpbHRlcighaXMubmEocHVibGljYXRpb25feWVhcikgJiAhaXMubmEoY291bnRzX2J5X3llYXJfeWVhcikgJiBwdWJsaWNhdGlvbl95ZWFyID4gMTk3NCAmIHB1YmxpY2F0aW9uX3llYXIgPD0gMjAyNCAmDQogICAgICAgICAgIHR5cGUgJWluJSBjKCJhcnRpY2xlIiwgImJvb2siLCAiYm9vay1jaGFwdGVyIikpJT4lDQogIGdyb3VwX2J5KHByb2ZpbGVfaWQsIGNvdW50c19ieV95ZWFyX3llYXIpJT4lDQogIHN1bW1hcmlzZShjaXRlZF9ieSA9IHN1bShjb3VudHNfYnlfeWVhcl9jaXRlZF9ieV9jb3VudCkpJT4lDQogIGFycmFuZ2UocHJvZmlsZV9pZCwgY291bnRzX2J5X3llYXJfeWVhcikgJT4lDQogIG11dGF0ZShjaXRlZF9ieV90b3RhbF9vYSA9IGN1bXN1bShjaXRlZF9ieSkpJT4lDQogIGFycmFuZ2UocHJvZmlsZV9pZCwgY291bnRzX2J5X3llYXJfeWVhcikNCg0KIyByZW5hbWUgZm9yIG1lcmdpbmcNCmNvbG5hbWVzKHByb2ZfeWVhcl9jaXRhdGlvbnMpW3doaWNoKGNvbG5hbWVzKHByb2ZfeWVhcl9jaXRhdGlvbnMpID09ICJjb3VudHNfYnlfeWVhcl95ZWFyIildIDwtICJ5ZWFyIg0KYGBgDQoNCk5vdywgd2Ugd2FudCB0byBrbm93IGhvdyBtYW55IGNpdGF0aW9ucyB0aGVyZSB3ZXJlIGJlZm9yZSAyMDEyLCBzbyB3ZSBnZXQgdGhlIHRvdGFscw0KYW5kIHRoZW4gZ2VuZXJhdGUgYSBuZXcgY29sdW1uIGdldHRpbmcgdGhlIHByZS0yMDEyIGNpdGF0aW9ucyArIGVhY2ggeWVhcidzIGNpdGF0aW9uczoNCmBgYHtyfQ0KIyB0b3RhbCBjaXRhdGlvbnMgcGVyIHByb2YNCnByb2ZfdG90YWxfY2l0YXRpb25zIDwtIG9hX3Byb2ZfcHVic191bmlxdWUgJT4lDQogIGZpbHRlcighaXMubmEocHVibGljYXRpb25feWVhcikgJiBwdWJsaWNhdGlvbl95ZWFyID4gMTk3NCAmIHB1YmxpY2F0aW9uX3llYXIgPD0gMjAyNCAmIA0KICAgICAgICAgICB0eXBlICVpbiUgYygiYXJ0aWNsZSIsICJib29rIiwgImJvb2stY2hhcHRlciIpKSU+JQ0KICBncm91cF9ieShwcm9maWxlX2lkKSU+JQ0KICBzdW1tYXJpc2UoY2l0ZWRfYnlfc2luY2VfcHViXzIwMjQgPSBzdW0oY2l0ZWRfYnlfY291bnQpKQ0KIyByZW5hbWUgZm9yIG1lcmdpbmcNCmNvbG5hbWVzKHByb2ZfdG90YWxfY2l0YXRpb25zKVt3aGljaChjb2xuYW1lcyhwcm9mX3RvdGFsX2NpdGF0aW9ucykgPT0gInB1YmxpY2F0aW9uX3llYXIiKV0gPC0gInllYXIiDQoNCg0KIyBnZXQgdGhlIGNpdGF0aW9ucyBwcmVjZWRpbmcgMjAxMiBieSBkZWR1Y3RpbmcgdGhlIDIwMTIgY2l0YXRpb25zIGZyb20gdGhlIHRvdGFsDQpsYXRlc3RfY2l0YXRpb24gPC0gcHJvZl95ZWFyX2NpdGF0aW9ucyAlPiUNCiAgZ3JvdXBfYnkocHJvZmlsZV9pZCklPiUNCiAgc2xpY2Uod2hpY2gubWF4KHllYXIpKQ0KDQojIG1lcmdlIHRoZXNlIHR3bywgcmVwbGFjZSBOQXMNCnByb2ZfdG90YWxfY2l0YXRpb25zIDwtIG1lcmdlKHByb2ZfdG90YWxfY2l0YXRpb25zLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbGF0ZXN0X2NpdGF0aW9uW2MoInByb2ZpbGVfaWQiLCAiY2l0ZWRfYnlfdG90YWxfb2EiKV0sDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICBieSA9ICJwcm9maWxlX2lkIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFsbC54ID0gVFJVRSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFsbC55ID0gVFJVRSkNCg0KcHJvZl90b3RhbF9jaXRhdGlvbnMgPC0gcHJvZl90b3RhbF9jaXRhdGlvbnMgJT4lDQogIHJlcGxhY2UoaXMubmEoLiksIDApDQoNCiMgZ2V0IHRoZSBjaXRhdGlvbiBjb3VudCBmb3IgcHJvZnMgYmVmb3JlIDIwMTINCnByb2ZfdG90YWxfY2l0YXRpb25zJGNpdGVkX2J5X2JlZm9yZV8yMDEyIDwtIHByb2ZfdG90YWxfY2l0YXRpb25zJGNpdGVkX2J5X3NpbmNlX3B1Yl8yMDI0IC0gcHJvZl90b3RhbF9jaXRhdGlvbnMkY2l0ZWRfYnlfdG90YWxfb2ENCiAgDQojIG1lcmdlIHRoaXMgd2l0aCBjaXRhdGlvbiBkYXRhDQpwcm9mX3llYXJfY2l0YXRpb25zIDwtIG1lcmdlKHByb2ZfeWVhcl9jaXRhdGlvbnMsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2ZfdG90YWxfY2l0YXRpb25zW2MoInByb2ZpbGVfaWQiLCAiY2l0ZWRfYnlfYmVmb3JlXzIwMTIiKV0sDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFsbC54ID0gVFJVRSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSAicHJvZmlsZV9pZCIpDQoNCiMgZ2V0IGN1bXVsYXRpdmUgY2l0YXRpb25zIG9mIHByZSAyMDEyICsgdGhlIHllYXIgaW4gcXVlc3Rpb24NCnByb2ZfeWVhcl9jaXRhdGlvbnMkY2l0ZWRfYnlfdG90YWxfYWxsIDwtIHByb2ZfeWVhcl9jaXRhdGlvbnMkY2l0ZWRfYnlfdG90YWxfb2EgKyBwcm9mX3llYXJfY2l0YXRpb25zJGNpdGVkX2J5X2JlZm9yZV8yMDEyDQoNCg0KIyBjb21iaW5lIHB1YmxpY2F0aW9uIGNvdW50cyBhbmQgY2l0YXRpb24gY291bnRzLCBmaWxsaW5nIGdhcHMgd2l0aCBOQXMNCnByb2ZfeWVhcl9wdWJzX2NpdGF0aW9ucyA8LSBtZXJnZShwcm9mX3llYXJfcHVicywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwcm9mX3llYXJfY2l0YXRpb25zLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFsbC54ID0gVFJVRSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBhbGwueSA9IFRSVUUsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSBjKCJwcm9maWxlX2lkIiwgInllYXIiKSkNCg0KIyBmaWxsIHNvbWUgTkFzIGZvciBwdWJsaWNhdGlvbiBjb3VudHMsIGJ1dCB3ZSB3aWxsIG5vdCBkbyB0aGlzIGZvciBjaXRhdGlvbnMNCnByb2ZfeWVhcl9wdWJzX2NpdGF0aW9ucyRjb3VudF9wdWJzIDwtIGlmZWxzZShpcy5uYShwcm9mX3llYXJfcHVic19jaXRhdGlvbnMkY291bnRfcHVicyksDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwcm9mX3llYXJfcHVic19jaXRhdGlvbnMkY291bnRfcHVicykNCg0KIyBmaWxsIHRoZSB0b3RhbCBnYXBzIGRvd24gZm9yIGN1bXVsYXRpdmUgcHVibGljYXRpb25zDQpwcm9mX3llYXJfcHVic19jaXRhdGlvbnMgPC0gcHJvZl95ZWFyX3B1YnNfY2l0YXRpb25zICU+JQ0KICBncm91cF9ieShwcm9maWxlX2lkKSU+JQ0KICBmaWxsKGNvdW50X3B1YnNfdG90YWwpDQoNCiMgZmlsbCB0aGUgY2l0YXRpb25zIGJlZm9yZSAyMDEyDQpwcm9mX3llYXJfcHVic19jaXRhdGlvbnMgPC0gcHJvZl95ZWFyX3B1YnNfY2l0YXRpb25zICU+JQ0KICBncm91cF9ieShwcm9maWxlX2lkKSU+JQ0KICBmaWxsKGNpdGVkX2J5X2JlZm9yZV8yMDEyLCAuZGlyZWN0aW9uID0gInVwIikNCg0KYGBgDQoNCkZvciBlYWNoIHByb2YsIGdldCB0aGUgZmlyc3QgcHVibGljYXRpb24geWVhciBhbmQgbWVyZ2Ugd2l0aCB0aGUgcmVzdDoNCmBgYHtyfQ0KIyBnZXQgcHJvZmVzc29yIGVudHJ5IHllYXJzDQpwcm9mX2VudHJ5X3llYXIgPC0gb2FfcHJvZl9wdWJzX3VuaXF1ZSAlPiUNCiAgZmlsdGVyKHB1YmxpY2F0aW9uX3llYXIgPiAxOTc0ICYgcHVibGljYXRpb25feWVhciA8PSAyMDI0ICYgDQogICAgICAgICAgIHR5cGUgJWluJSBjKCJhcnRpY2xlIiwgImJvb2siLCAiYm9vay1jaGFwdGVyIikpJT4lDQogIGdyb3VwX2J5KHByb2ZpbGVfaWQpJT4lDQogIHNsaWNlKHdoaWNoLm1pbihwdWJsaWNhdGlvbl95ZWFyKSklPiUNCiAgc2VsZWN0KHByb2ZpbGVfaWQsIHB1YmxpY2F0aW9uX3llYXIpDQoNCiMgcmVuYW1lDQpjb2xuYW1lcyhwcm9mX2VudHJ5X3llYXIpWzJdIDwtICJmaXJzdF9wdWIiDQoNCiMgbWVyZ2UNCnByb2ZfeWVhcl9wdWJzX2NpdGF0aW9ucyA8LSBtZXJnZShwcm9mX3llYXJfcHVic19jaXRhdGlvbnMsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJvZl9lbnRyeV95ZWFyLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFsbC54ID0gVFJVRSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBieSA9ICJwcm9maWxlX2lkIikNCg0KIyBnZXQgaW5kaWNhdG9yIG9mIHllYXJzIHNpbmNlIGZpcnN0IHB1Yg0KcHJvZl95ZWFyX3B1YnNfY2l0YXRpb25zJHllYXJzX3NpbmNlX2ZpcnN0X3B1YiA8LSBwcm9mX3llYXJfcHVic19jaXRhdGlvbnMkeWVhciAtIHByb2ZfeWVhcl9wdWJzX2NpdGF0aW9ucyRmaXJzdF9wdWINCmBgYA0KDQpNZXJnZSB0aGlzIHdpdGggcHJvZmVzc29yIGdlbmRlcjoNCmBgYHtyfQ0KcHJvZl9nZW5kZXIgPC0gZGJSZWFkVGFibGUoY29uLCAiZ2VuZGVyX3RhYmxlIikNCg0KcHJvZl95ZWFyX3B1YnNfY2l0YXRpb25zIDwtIG1lcmdlKHByb2ZfeWVhcl9wdWJzX2NpdGF0aW9ucywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwcm9mX2dlbmRlcltjKCJwcm9maWxlX2lkIiwgImluZmVycmVkX2dlbmRlciIpXSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBhbGwueCA9IFRSVUUsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSAicHJvZmlsZV9pZCIpDQpgYGANCg0KIyBHcmFudCBpbmZvcm1hdGlvbg0KDQpHZXQgYWxsIHRoZSBncmFudCBpbmZvcm1hdGlvbjoNCmBgYHtyfQ0KbndvX2dyYW50cyA8LSBkYlJlYWRUYWJsZShjb24sICJuYXJjaXNfbndvX2dyYW50X2luZm8iKQ0KZXJjX2dyYW50cyA8LSBkYlJlYWRUYWJsZShjb24sICJlcmNfZ3JhbnRfaW5mbyIpDQpgYGANCg0KR2V0IHRoaXMgaW50byBhIGJpbmFyeSBmb3JtYXQ6DQpgYGB7cn0NCiMgZm9yIE5XTw0KbndvX2dyYW50cyR2ZW5pIDwtIGlmZWxzZShud29fZ3JhbnRzJGdyYW50ID09ICJ2ZW5pIiwgMSwgMCkNCm53b19ncmFudHMkdmlkaSA8LSBpZmVsc2UobndvX2dyYW50cyRncmFudCA9PSAidmlkaSIsIDEsIDApDQpud29fZ3JhbnRzJHZpY2kgPC0gaWZlbHNlKG53b19ncmFudHMkZ3JhbnQgPT0gInZpY2kiLCAxLCAwKQ0KbndvX2dyYW50cyRzcGlub3phIDwtIGlmZWxzZShud29fZ3JhbnRzJGdyYW50ID09ICJzcGlub3phIiwgMSwgMCkNCm53b19ncmFudHMkc3RldmluIDwtIGlmZWxzZShud29fZ3JhbnRzJGdyYW50ID09ICJzdGV2aW4iLCAxLCAwKQ0KIyBzZWxlY3Qgb25seSB0aGUgbmVjZXNzYXJ5IGNvbHVtbnMNCm53b19ncmFudHMgPC0gbndvX2dyYW50cyAlPiUNCiAgc2VsZWN0KHllYXI6c3RldmluKQ0KDQojIGZvciBFUkMNCmVyY19ncmFudHMkYWR2YW5jZWQgPC0gaWZlbHNlKGVyY19ncmFudHMkZ3JhbnQgPT0gIkFkdmFuY2VkIGdyYW50cyIsIDEsIDApDQplcmNfZ3JhbnRzJGNvbnNvbGlkYXRvciA8LSBpZmVsc2UoZXJjX2dyYW50cyRncmFudCA9PSAiQ29uc29saWRhdG9yIGdyYW50cyIsIDEsIDApDQplcmNfZ3JhbnRzJHN0YXJ0aW5nICA8LSBpZmVsc2UoZXJjX2dyYW50cyRncmFudCA9PSAiU3RhcnRpbmcgZ3JhbnRzIiwgMSwgMCkNCmVyY19ncmFudHMkc3luZXJneSA8LSBpZmVsc2UoZXJjX2dyYW50cyRncmFudCA9PSAiU3luZXJneSBncmFudHMiLCAxLCAwKQ0KIyBzZWxlY3Qgb25seSB0aGUgbmVjZXNzYXJ5IGNvbHVtbnMNCmVyY19ncmFudHMgPC0gZXJjX2dyYW50cyAlPiUNCiAgc2VsZWN0KHByb2ZpbGVfaWQ6c3luZXJneSkNCmBgYA0KDQoNCkNvbWJpbmUgdGhpcyB3aXRoIHB1YnMgYW5kIGNpdGF0aW9ucw0KYGBge3J9DQpwcm9mX3llYXJfcHVic19jaXRhdGlvbnNfZ3JhbnRzIDwtIG1lcmdlKHByb2ZfeWVhcl9wdWJzX2NpdGF0aW9ucywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbndvX2dyYW50cywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBieSA9IGMoInByb2ZpbGVfaWQiLCAieWVhciIpKQ0KDQpwcm9mX3llYXJfcHVic19jaXRhdGlvbnNfZ3JhbnRzIDwtIG1lcmdlKHByb2ZfeWVhcl9wdWJzX2NpdGF0aW9uc19ncmFudHMsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGVyY19ncmFudHMsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFsbC54ID0gVFJVRSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSBjKCJwcm9maWxlX2lkIiwgInllYXIiKSkNCg0KIyByZXBsYWNlIE5Bcw0KcHJvZl95ZWFyX3B1YnNfY2l0YXRpb25zX2dyYW50cyA8LSBwcm9mX3llYXJfcHVic19jaXRhdGlvbnNfZ3JhbnRzICU+JQ0KICBtdXRhdGVfYXQodmFycyh2ZW5pOnN5bmVyZ3kpLCB+cmVwbGFjZV9uYSguLCAwKSkNCmBgYA0KDQoNCiMgQWx0bWV0cmljIGF0dGVudGlvbg0KDQpHZXQgYWxsIHRoZSBhdHRlbnRpb24gbWVhc3VyZXMgd2UgaGF2ZSBwZXIgcGFwZXI6DQpgYGB7cn0NCmF0dGVudGlvbl9uZXdzIDwtIGRiUmVhZFRhYmxlKGNvbiwgImFsdG1ldHJpY19wdWJfYXR0X25ld3MiKQ0KYXR0ZW50aW9uX2Jsb2dzIDwtIGRiUmVhZFRhYmxlKGNvbiwgImFsdG1ldHJpY19wdWJfYXR0X2Jsb2dzIikNCg0KIyBtZXJnZSB0aGUgcGFwZXJzIHdpdGggdGhlaXIgYXV0aG9ycw0KYXR0ZW50aW9uX25ld3NfcHJvZnMgPC0gbWVyZ2UoYXR0ZW50aW9uX25ld3MsDQogICAgICAgICAgICAgICAgICAgICAgICBvYV9wcm9mX3B1Yl9tYXRjaGluZ1tjKCJpZCIsICJwcm9maWxlX2lkIildLA0KICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSAiaWQiKQ0KDQojIG1lcmdlIHRoZSBwYXBlcnMgd2l0aCB0aGVpciBhdXRob3JzDQphdHRlbnRpb25fYmxvZ3NfcHJvZnMgPC0gbWVyZ2UoYXR0ZW50aW9uX2Jsb2dzLA0KICAgICAgICAgICAgICAgICAgICAgICAgb2FfcHJvZl9wdWJfbWF0Y2hpbmdbYygiaWQiLCAicHJvZmlsZV9pZCIpXSwNCiAgICAgICAgICAgICAgICAgICAgICAgIGJ5ID0gImlkIikNCmBgYA0KDQpDb21waWxlIHRoZSBhdHRlbnRpb24gcGVyIHByb2Zlc3NvciBwZXIgeWVhcjoNCmBgYHtyfQ0KIyBnZXQgYSB5ZWFyIGZyb20gdGhlICJwb3N0ZWQgb24iIHN0cmluZw0KYXR0ZW50aW9uX25ld3NfcHJvZnMkeWVhciA8LSB5ZWFyKGFzX2RhdGUoYXR0ZW50aW9uX25ld3NfcHJvZnMkcG9zdGVkX29uKSkNCmF0dGVudGlvbl9ibG9nc19wcm9mcyR5ZWFyIDwtIHllYXIoYXNfZGF0ZShhdHRlbnRpb25fYmxvZ3NfcHJvZnMkcG9zdGVkX29uKSkNCg0KcHJvZl95ZWFyX2F0dGVudGlvbl9uZXdzIDwtIGF0dGVudGlvbl9uZXdzX3Byb2ZzICU+JQ0KICBncm91cF9ieShwcm9maWxlX2lkLCB5ZWFyKSU+JQ0KICBzdW1tYXJpc2UoYXR0bl9uZXdzX2J5ID0gbigpKSU+JQ0KICBhcnJhbmdlKHByb2ZpbGVfaWQsIHllYXIpICU+JQ0KICBtdXRhdGUoYXR0bl9uZXdzX2J5X3RvdGFsID0gY3Vtc3VtKGF0dG5fbmV3c19ieSkpICU+JQ0KICBhcnJhbmdlKHByb2ZpbGVfaWQsIHllYXIpDQoNCg0KcHJvZl95ZWFyX2F0dGVudGlvbl9ibG9ncyA8LSBhdHRlbnRpb25fYmxvZ3NfcHJvZnMgJT4lDQogIGdyb3VwX2J5KHByb2ZpbGVfaWQsIHllYXIpJT4lDQogIHN1bW1hcmlzZShhdHRuX2Jsb2dzX2J5ID0gbigpKSU+JQ0KICBhcnJhbmdlKHByb2ZpbGVfaWQsIHllYXIpICU+JQ0KICBtdXRhdGUoYXR0bl9ibG9nc19ieV90b3RhbCA9IGN1bXN1bShhdHRuX2Jsb2dzX2J5KSkgJT4lDQogIGFycmFuZ2UocHJvZmlsZV9pZCwgeWVhcikNCmBgYA0KTWVyZ2UgdGhlIGF0dGVudGlvbiB3aXRoIHRoZSByZXN0OiANCmBgYHtyfQ0KcHJvZl95ZWFyX3BfY19nX2EgPC0gbWVyZ2UocHJvZl95ZWFyX3B1YnNfY2l0YXRpb25zX2dyYW50cywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2ZfeWVhcl9hdHRlbnRpb25fbmV3cywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgIGJ5ID0gYygicHJvZmlsZV9pZCIsICJ5ZWFyIiksDQogICAgICAgICAgICAgICAgICAgICAgICAgICBhbGwueCA9IFRSVUUpDQoNCiMgZmlsbCBkb3duDQpwcm9mX3llYXJfcF9jX2dfYSA8LSBwcm9mX3llYXJfcF9jX2dfYSAlPiUNCiAgZ3JvdXBfYnkocHJvZmlsZV9pZCklPiUNCiAgZmlsbChhdHRuX25ld3NfYnlfdG90YWwpDQoNCnByb2ZfeWVhcl9wX2NfZ19hIDwtIG1lcmdlKHByb2ZfeWVhcl9wX2NfZ19hLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJvZl95ZWFyX2F0dGVudGlvbl9ibG9ncywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgIGJ5ID0gYygicHJvZmlsZV9pZCIsICJ5ZWFyIiksDQogICAgICAgICAgICAgICAgICAgICAgICAgICBhbGwueCA9IFRSVUUpDQoNCnByb2ZfeWVhcl9wX2NfZ19hIDwtIHByb2ZfeWVhcl9wX2NfZ19hICU+JQ0KICBncm91cF9ieShwcm9maWxlX2lkKSU+JQ0KICBmaWxsKGF0dG5fYmxvZ3NfYnlfdG90YWwpDQpgYGANCg0KQ29tYmluZSB0aGlzIHdpdGggVHdpdHRlciBhdHRlbnRpb24sIHdoaWNoIHdlIG9ubHkgb2J0YWluIHVzaW5nIE9SQ0lEcyAoZm9yIG5vdykuDQpgYGB7cn0NCnR3aXR0ZXJfb3JjaWRfYXR0ZW50aW9uIDwtIGRiR2V0UXVlcnkoY29uLCBzdGF0ZW1lbnQgPSAic2VsZWN0ICogZnJvbSBhbHRtZXRyaWNfcHJvZl9hdHRlbnRpb24gd2hlcmUgXCJtZW50aW9uX3R5cGVcIj0ndHdlZXQnIikNCg0KIyByZW5hbWUgdGhlIGNvbHVtbnMgYW5kIGdldCBjdW11bGF0aXZlcw0KdHdpdHRlcl9vcmNpZF9hdHRlbnRpb24gPC0gdHdpdHRlcl9vcmNpZF9hdHRlbnRpb24gJT4lDQogIHNlbGVjdChwcm9maWxlX2lkLCB5ZWFyLCB5ZWFybHlfY291bnQpDQoNCmNvbG5hbWVzKHR3aXR0ZXJfb3JjaWRfYXR0ZW50aW9uKVt3aGljaChjb2xuYW1lcyh0d2l0dGVyX29yY2lkX2F0dGVudGlvbikgPT0gInllYXJseV9jb3VudCIpXSA8LSAiYXR0bl90d2l0dGVyX2J5Ig0KDQpwcm9mX3llYXJfYXR0ZW50aW9uX3R3aXR0ZXIgPC0gdHdpdHRlcl9vcmNpZF9hdHRlbnRpb24gJT4lDQogIGFycmFuZ2UocHJvZmlsZV9pZCwgeWVhciklPiUNCiAgZ3JvdXBfYnkocHJvZmlsZV9pZCklPiUNCiAgbXV0YXRlKGF0dG5fdHdpdHRlcl9ieV90b3RhbCA9IGN1bXN1bShhdHRuX3R3aXR0ZXJfYnkpKSAlPiUNCiAgYXJyYW5nZShwcm9maWxlX2lkLCB5ZWFyKQ0KDQpwcm9mX3llYXJfcF9jX2dfYSA8LSBtZXJnZShwcm9mX3llYXJfcF9jX2dfYSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2ZfeWVhcl9hdHRlbnRpb25fdHdpdHRlciwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgIGJ5ID0gYygicHJvZmlsZV9pZCIsICJ5ZWFyIiksDQogICAgICAgICAgICAgICAgICAgICAgICAgICBhbGwueCA9IFRSVUUpDQoNCnByb2ZfeWVhcl9wX2NfZ19hIDwtIHByb2ZfeWVhcl9wX2NfZ19hICU+JQ0KICBncm91cF9ieShwcm9maWxlX2lkKSU+JQ0KICBmaWxsKGF0dG5fdHdpdHRlcl9ieV90b3RhbCkNCmBgYA0KDQpBcyBBdGxtZXRyaWMgZGF0YSBnb2VzIGJhY2sgdG8gMjAxMSwgc2V0IGF0dGVudGlvbiB0byAwIGlmIHllYXIgPj0gMjAxMSwgbGVhdmUgYXMgTkENCm90aGVyd2lzZToNCmBgYHtyfQ0KcHJvZl95ZWFyX3BfY19nX2EkYXR0bl9ibG9nc19ieSA8LSBpZmVsc2UoKGlzLm5hKHByb2ZfeWVhcl9wX2NfZ19hJGF0dG5fYmxvZ3NfYnkpICYgcHJvZl95ZWFyX3BfY19nX2EkeWVhciA+PSAgMjAxMSksDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDAsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2ZfeWVhcl9wX2NfZ19hJGF0dG5fYmxvZ3NfYnkpDQoNCnByb2ZfeWVhcl9wX2NfZ19hJGF0dG5fYmxvZ3NfYnlfdG90YWwgPC0gaWZlbHNlKChpcy5uYShwcm9mX3llYXJfcF9jX2dfYSRhdHRuX2Jsb2dzX2J5X3RvdGFsKSAmIHByb2ZfeWVhcl9wX2NfZ19hJHllYXIgPj0gIDIwMTEpLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAwLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwcm9mX3llYXJfcF9jX2dfYSRhdHRuX2Jsb2dzX2J5X3RvdGFsKQ0KDQpwcm9mX3llYXJfcF9jX2dfYSRhdHRuX25ld3NfYnkgPC0gaWZlbHNlKChpcy5uYShwcm9mX3llYXJfcF9jX2dfYSRhdHRuX25ld3NfYnkpICYgcHJvZl95ZWFyX3BfY19nX2EkeWVhciA+PSAgMjAxMSksDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDAsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2ZfeWVhcl9wX2NfZ19hJGF0dG5fbmV3c19ieSkNCg0KcHJvZl95ZWFyX3BfY19nX2EkYXR0bl9uZXdzX2J5X3RvdGFsIDwtIGlmZWxzZSgoaXMubmEocHJvZl95ZWFyX3BfY19nX2EkYXR0bl9uZXdzX2J5X3RvdGFsKSAmIHByb2ZfeWVhcl9wX2NfZ19hJHllYXIgPj0gIDIwMTEpLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAwLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwcm9mX3llYXJfcF9jX2dfYSRhdHRuX25ld3NfYnlfdG90YWwpDQoNCnByb2ZfeWVhcl9wX2NfZ19hJGF0dG5fdHdpdHRlcl9ieSA8LSBpZmVsc2UoKGlzLm5hKHByb2ZfeWVhcl9wX2NfZ19hJGF0dG5fdHdpdHRlcl9ieSkgJiBwcm9mX3llYXJfcF9jX2dfYSR5ZWFyID49ICAyMDExKSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJvZl95ZWFyX3BfY19nX2EkYXR0bl90d2l0dGVyX2J5KQ0KDQpwcm9mX3llYXJfcF9jX2dfYSRhdHRuX3R3aXR0ZXJfYnlfdG90YWwgPC0gaWZlbHNlKChpcy5uYShwcm9mX3llYXJfcF9jX2dfYSRhdHRuX3R3aXR0ZXJfYnlfdG90YWwpICYgcHJvZl95ZWFyX3BfY19nX2EkeWVhciA+PSAgMjAxMSksDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDAsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2ZfeWVhcl9wX2NfZ19hJGF0dG5fdHdpdHRlcl9ieV90b3RhbCkNCmBgYA0KDQoNCiMjIE1haW4gZmllbGQNCkdldCBlYWNoIHByb2Zlc3NvcidzIG1haW4gZmllbGQgaW4gYSBnaXZlbiB5ZWFyIGJhc2VkIG9uIHRoZWlyIHBhcGVycywgYW5kIGdldCANCnRoZWlyIG92ZXJhbGwgc3BlY2lhbGl6YXRpb24uDQoNCkZpcnN0LCBmZXRoY2luZyB0aGUgdG9waWNzOiANCmBgYHtyfQ0Kb2FfcHVic190b3BpY3MgPC0gZGJSZWFkVGFibGUoY29uLCAib2FfcHVic190b3BpY3MiKQ0KDQpvYV9wdWJzX3RvcGljcyA8LSBtZXJnZShvYV9wcm9mX3B1Yl9tYXRjaGluZywNCiAgICAgICAgICAgICAgICAgICAgICAgIG9hX3B1YnNfdG9waWNzLA0KICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSAiaWQiLA0KICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFKQ0KDQpvYV9wdWJzX3RvcGljcyA8LSBtZXJnZShvYV9wdWJzX3RvcGljcywNCiAgICAgICAgICAgICAgICAgICAgICAgIG9hX3B1YnNfdW5pcXVlW2MoImlkIiwgInB1YmxpY2F0aW9uX3llYXIiKV0sDQogICAgICAgICAgICAgICAgICAgICAgICBieSA9ICJpZCIpDQpgYGANCg0KUHJvZmVzc29yJ3MgdG9waWMgZGl2ZXJzaXR5IHBlciB5ZWFyOg0KYGBge3J9DQpvYV9wdWJzX3RvcGljczIgPC0gb2FfcHVic190b3BpY3MNCm9hX3B1YnNfdG9waWNzMiRmaWVsZF9kaXNwbGF5X25hbWUgPC0gYXMuZmFjdG9yKG9hX3B1YnNfdG9waWNzMiRmaWVsZF9kaXNwbGF5X25hbWUpDQoNCnByb2ZfeWVhcl9maWVsZCA8LSBvYV9wdWJzX3RvcGljczIgJT4lDQogIGdyb3VwX2J5KHByb2ZpbGVfaWQsIHB1YmxpY2F0aW9uX3llYXIsIGZpZWxkX2Rpc3BsYXlfbmFtZSkgJT4lDQogIHN1bW1hcmlzZShuID0gbigpKSU+JQ0KICBmaWx0ZXIoIWlzLm5hKGZpZWxkX2Rpc3BsYXlfbmFtZSkpDQogIHBpdm90X3dpZGVyKG5hbWVzX2Zyb20gPSBmaWVsZF9kaXNwbGF5X25hbWUsIHZhbHVlc19mcm9tID0gbiklPiUNCiAgcmVwbGFjZShpcy5uYSguKSwgMCkNCiAgDQoNCmRpdl9pbmRpY2VzIDwtIGRpdmVyc2l0eShwcm9mX3llYXJfZmllbGRbLCAtYygxOjIpXSwgaW5kZXggPSAic2hhbm5vbiIpDQoNCnByb2ZfeWVhcl9maWVsZF9kaXYgPC0gY2JpbmQuZGF0YS5mcmFtZShwcm9mX3llYXJfZmllbGRbLCBjKDE6MildLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHllYXJseV9kaXZlcnNpdHkgPSBkaXZfaW5kaWNlcykNCg0KcHJvZl95ZWFyX2ZpZWxkX2RpdiR5YXJseV9ldmVubmVzIDwtIHByb2ZfeWVhcl9maWVsZF9kaXYkeWVhcmx5X2RpdmVyc2l0eS9sb2coMjcpDQpgYGANCg0KDQoNCkZpZWxkcyBhbmQgc3ViZmllbGRzIHBlciBwcm9mIHBlciB5ZWFyIGFuZCBpbiB0b3RhbA0KYGBge3J9DQpwcm9mX3llYXJfZmllbGQgPC0gb2FfcHVic190b3BpY3MgJT4lDQogIGdyb3VwX2J5KHByb2ZpbGVfaWQsIHB1YmxpY2F0aW9uX3llYXIsIGZpZWxkX2Rpc3BsYXlfbmFtZSkgJT4lDQogIHN1bW1hcmlzZShuID0gbigpKSU+JQ0KICBzbGljZV9tYXgobiwgd2l0aF90aWVzID0gRkFMU0UpJT4lDQogIHNlbGVjdCgtbikNCg0KY29sbmFtZXMocHJvZl95ZWFyX2ZpZWxkKVtjKDIsMyldIDwtIGMoInllYXIiLCJ5ZWFybHlfZmllbGQiICkNCg0KcHJvZl90b3RhbF9maWVsZCA8LSBvYV9wdWJzX3RvcGljcyAlPiUNCiAgZ3JvdXBfYnkocHJvZmlsZV9pZCwgZmllbGRfZGlzcGxheV9uYW1lKSAlPiUNCiAgc3VtbWFyaXNlKG4gPSBuKCkpJT4lDQogIHNsaWNlX21heChuLCB3aXRoX3RpZXMgPSBGQUxTRSklPiUNCiAgc2VsZWN0KC1uKQ0KDQpjb2xuYW1lcyhwcm9mX3RvdGFsX2ZpZWxkKVsyXSA8LSBjKCJvdmVyYWxsX2ZpZWxkIiApDQoNCg0KcHJvZl95ZWFyX3N1YmZpZWxkIDwtIG9hX3B1YnNfdG9waWNzICU+JQ0KICBncm91cF9ieShwcm9maWxlX2lkLCBwdWJsaWNhdGlvbl95ZWFyLCBzdWJmaWVsZF9kaXNwbGF5X25hbWUpICU+JQ0KICBzdW1tYXJpc2UobiA9IG4oKSklPiUNCiAgc2xpY2VfbWF4KG4sIHdpdGhfdGllcyA9IEZBTFNFKSU+JQ0KICBzZWxlY3QoLW4pDQoNCmNvbG5hbWVzKHByb2ZfeWVhcl9zdWJmaWVsZClbYygyLDMpXSA8LSBjKCJ5ZWFyIiwieWVhcmx5X3N1YmZpZWxkIikgDQoNCg0KcHJvZl90b3RhbF9zdWJmaWVsZCA8LSBvYV9wdWJzX3RvcGljcyAlPiUNCiAgZ3JvdXBfYnkocHJvZmlsZV9pZCwgc3ViZmllbGRfZGlzcGxheV9uYW1lKSAlPiUNCiAgc3VtbWFyaXNlKG4gPSBuKCkpJT4lDQogIHNsaWNlX21heChuLCB3aXRoX3RpZXMgPSBGQUxTRSklPiUNCiAgc2VsZWN0KC1uKQ0KDQpjb2xuYW1lcyhwcm9mX3RvdGFsX3N1YmZpZWxkKVsyXSA8LSBjKCJvdmVyYWxsX3N1YmZpZWxkIiApDQoNCiMgbWVyZ2UgcHJvZnMgYW5kIHRoZWlyIGZpZWxkcw0KcHJvZl95ZWFyX3BfY19nX2FfdCA8LSBtZXJnZShwcm9mX3llYXJfcF9jX2dfYSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJvZl95ZWFyX2ZpZWxkW2MoInByb2ZpbGVfaWQiLCAieWVhcmx5X2ZpZWxkIiwgInllYXIiKV0sDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIGJ5ID0gYygicHJvZmlsZV9pZCIsICJ5ZWFyIiksDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFsbC54ID0gVFJVRSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnkgPSBGQUxTRSkgDQoNCnByb2ZfeWVhcl9wX2NfZ19hX3QgPC0gbWVyZ2UocHJvZl95ZWFyX3BfY19nX2FfdCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJvZl95ZWFyX3N1YmZpZWxkW2MoInByb2ZpbGVfaWQiLCAieWVhcmx5X3N1YmZpZWxkIiwgInllYXIiKV0sDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIGJ5ID0gYygicHJvZmlsZV9pZCIsICJ5ZWFyIiksDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFsbC54ID0gVFJVRSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnkgPSBGQUxTRSkgDQoNCnByb2ZfeWVhcl9wX2NfZ19hX3QgPC0gbWVyZ2UocHJvZl95ZWFyX3BfY19nX2FfdCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJvZl90b3RhbF9maWVsZFtjKCJwcm9maWxlX2lkIiwgIm92ZXJhbGxfZmllbGQiKV0sDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIGJ5ID0gYygicHJvZmlsZV9pZCIpLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICBhbGwueCA9IFRSVUUsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFsbC55ID0gRkFMU0UpIA0KDQpwcm9mX3llYXJfcF9jX2dfYV90IDwtIG1lcmdlKHByb2ZfeWVhcl9wX2NfZ19hX3QsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2ZfdG90YWxfc3ViZmllbGRbYygicHJvZmlsZV9pZCIsICJvdmVyYWxsX3N1YmZpZWxkIildLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICBieSA9IGMoInByb2ZpbGVfaWQiKSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICBhbGwueSA9IEZBTFNFKSANCmBgYA0KDQpSZW1vdmUgZHVwbGljYXRlcywgaWYgYW55Og0KYGBge3J9DQpwcm9mX3llYXJfcF9jX2dfYV90JGR1cGwgPC0gZHVwbGljYXRlZChwcm9mX3llYXJfcF9jX2dfYV90W2MoInByb2ZpbGVfaWQiLCAieWVhciIpXSkNCg0KcHJvZl95ZWFyX3BfY19nX2FfdCA8LSBwcm9mX3llYXJfcF9jX2dfYV90ICU+JQ0KICBmaWx0ZXIoZHVwbCA9PSBGQUxTRSklPiUNCiAgc2VsZWN0KC1kdXBsKQ0KYGBgDQoNCmBgYHtyfQ0Kd3JpdGVfY3N2KHByb2ZfeWVhcl9wX2NfZ19hX3QsICJwYW5lbF9kYXRhc2V0cy9wcm9mX3llYXJfcF9jX2dfYV90XzExXzMuY3N2IikNCmBgYA0KDQoNClJlbW92ZSBzb21lIHJlZHVuZGFudCBvYmplY3RzOg0KYGBge3J9DQpybShvYV9wcm9mX3B1YnMpDQpybShvYV9wdWJzX3RvcGljcykNCnJtKG9hX3B1YnNfdW5pcXVlKQ0KZ2MoKQ0KYGBgDQoNCkdldCB0aGUgbGFnZ2VkIHZhcmlhYmxlcy4NCg0KQWRkIHBsYWNlaG9sZGVyIHZhcmlhYmxlcyBmb3IgbGFnZ2VkIHNhbGVzIGFuZCByZXZlbnVlczoNCmBgYHtyfQ0KcHJvZl95ZWFyX3BfY19nX2FfdF9sIDwtIHByb2ZfeWVhcl9wX2NfZ19hX3QNCg0KcHJvZl95ZWFyX3BfY19nX2FfdF9sJGNvdW50X3B1YnNfbCA8LSBwcm9mX3llYXJfcF9jX2dfYV90X2wkY291bnRfcHVicw0KcHJvZl95ZWFyX3BfY19nX2FfdF9sJGNvdW50X3B1YnNfdG90YWxfbCA8LSBwcm9mX3llYXJfcF9jX2dfYV90X2wkY291bnRfcHVic190b3RhbA0KcHJvZl95ZWFyX3BfY19nX2FfdF9sJGNpdGVkX2J5X2wgPC0gcHJvZl95ZWFyX3BfY19nX2FfdF9sJGNpdGVkX2J5DQpwcm9mX3llYXJfcF9jX2dfYV90X2wkY2l0ZWRfYnlfdG90YWxfb2FfbCA8LSBwcm9mX3llYXJfcF9jX2dfYV90X2wkY2l0ZWRfYnlfdG90YWxfb2ENCnByb2ZfeWVhcl9wX2NfZ19hX3RfbCRjaXRlZF9ieV90b3RhbF9hbGxfbCA8LSBwcm9mX3llYXJfcF9jX2dfYV90X2wkY2l0ZWRfYnlfdG90YWxfYWxsDQpwcm9mX3llYXJfcF9jX2dfYV90X2wkYXR0bl9uZXdzX2J5X2wgPC0gcHJvZl95ZWFyX3BfY19nX2FfdF9sJGF0dG5fbmV3c19ieQ0KcHJvZl95ZWFyX3BfY19nX2FfdF9sJGF0dG5fbmV3c19ieV90b3RhbF9sIDwtIHByb2ZfeWVhcl9wX2NfZ19hX3RfbCRhdHRuX25ld3NfYnlfdG90YWwNCnByb2ZfeWVhcl9wX2NfZ19hX3RfbCRhdHRuX2Jsb2dzX2J5X2wgPC0gcHJvZl95ZWFyX3BfY19nX2FfdF9sJGF0dG5fYmxvZ3NfYnkNCnByb2ZfeWVhcl9wX2NfZ19hX3RfbCRhdHRuX2Jsb2dzX2J5X3RvdGFsX2wgPC0gcHJvZl95ZWFyX3BfY19nX2FfdF9sJGF0dG5fYmxvZ3NfYnlfdG90YWwNCnByb2ZfeWVhcl9wX2NfZ19hX3RfbCRhdHRuX3R3aXR0ZXJfYnlfbCA8LSBwcm9mX3llYXJfcF9jX2dfYV90X2wkYXR0bl90d2l0dGVyX2J5DQpwcm9mX3llYXJfcF9jX2dfYV90X2wkYXR0bl90d2l0dGVyX2J5X3RvdGFsX2wgPC0gcHJvZl95ZWFyX3BfY19nX2FfdF9sJGF0dG5fdHdpdHRlcl9ieV90b3RhbA0KDQpwcm9mX3llYXJfcF9jX2dfYV90X2wkdmVuaV9sIDwtIHByb2ZfeWVhcl9wX2NfZ19hX3RfbCR2ZW5pDQpwcm9mX3llYXJfcF9jX2dfYV90X2wkdmlkaV9sIDwtIHByb2ZfeWVhcl9wX2NfZ19hX3RfbCR2aWRpDQpwcm9mX3llYXJfcF9jX2dfYV90X2wkdmljaV9sIDwtIHByb2ZfeWVhcl9wX2NfZ19hX3RfbCR2aWNpDQpwcm9mX3llYXJfcF9jX2dfYV90X2wkc3RldmluX2wgPC0gcHJvZl95ZWFyX3BfY19nX2FfdF9sJHN0ZXZpbg0KcHJvZl95ZWFyX3BfY19nX2FfdF9sJHNwaW5vemFfbCA8LSBwcm9mX3llYXJfcF9jX2dfYV90X2wkc3Bpbm96YQ0KDQpwcm9mX3llYXJfcF9jX2dfYV90X2wkYWR2YW5jZWRfbCA8LSBwcm9mX3llYXJfcF9jX2dfYV90X2wkYWR2YW5jZWQNCnByb2ZfeWVhcl9wX2NfZ19hX3RfbCRjb25zb2xpZGF0b3JfbCA8LSBwcm9mX3llYXJfcF9jX2dfYV90X2wkY29uc29saWRhdG9yDQpwcm9mX3llYXJfcF9jX2dfYV90X2wkc3RhcnRpbmdfbCA8LSBwcm9mX3llYXJfcF9jX2dfYV90X2wkc3RhcnRpbmcNCnByb2ZfeWVhcl9wX2NfZ19hX3RfbCRzeW5lcmd5X2wgPC0gcHJvZl95ZWFyX3BfY19nX2FfdF9sJHN5bmVyZ3kNCmBgYA0KDQpSZWFycmFuZ2UgdGhlIHZhcmlhYmxlczoNCmBgYHtyfQ0KbGFnX3JlYXJyYW5nZSA8LSBjKCJwcm9maWxlX2lkIiwgInllYXIiLCAiaW5mZXJyZWRfZ2VuZGVyIiwNCiAgICAgICAgICAgICAgICAgICAiZmlyc3RfcHViIiwgInllYXJzX3NpbmNlX2ZpcnN0X3B1YiIsDQogICAgICAgICAgICAgICAgICAgInllYXJseV9maWVsZCIsICJ5ZWFybHlfc3ViZmllbGQiLCAgICANCiAgICAgICAgICAgICAgICAgICAib3ZlcmFsbF9maWVsZCIsICJvdmVyYWxsX3N1YmZpZWxkIiwNCiAgICAgICAgICAgICAgICAgICAiY291bnRfcHVicyIsICJjb3VudF9wdWJzX2wiLCAgDQogICAgICAgICAgICAgICAgICAgImNvdW50X3B1YnNfdG90YWwiLCAiY291bnRfcHVic190b3RhbF9sIiwNCiAgICAgICAgICAgICAgICAgICAiY2l0ZWRfYnkiLCAiY2l0ZWRfYnlfbCIsDQogICAgICAgICAgICAgICAgICAgImNpdGVkX2J5X3RvdGFsX29hIiwgImNpdGVkX2J5X3RvdGFsX29hX2wiLCANCiAgICAgICAgICAgICAgICAgICAiY2l0ZWRfYnlfYmVmb3JlXzIwMTIiLA0KICAgICAgICAgICAgICAgICAgICJjaXRlZF9ieV90b3RhbF9hbGwiLCAiY2l0ZWRfYnlfdG90YWxfYWxsX2wiLA0KICAgICAgICAgICAgICAgICAgICJhdHRuX25ld3NfYnkiLCAiYXR0bl9uZXdzX2J5X2wiLA0KICAgICAgICAgICAgICAgICAgICJhdHRuX25ld3NfYnlfdG90YWwiLCAiYXR0bl9uZXdzX2J5X3RvdGFsX2wiLA0KICAgICAgICAgICAgICAgICAgICJhdHRuX2Jsb2dzX2J5IiwgImF0dG5fYmxvZ3NfYnlfbCIsDQogICAgICAgICAgICAgICAgICAgImF0dG5fYmxvZ3NfYnlfdG90YWwiLCAiYXR0bl9ibG9nc19ieV90b3RhbF9sIiwgDQogICAgICAgICAgICAgICAgICAgImF0dG5fdHdpdHRlcl9ieSIsICJhdHRuX3R3aXR0ZXJfYnlfbCIsDQogICAgICAgICAgICAgICAgICAgImF0dG5fdHdpdHRlcl9ieV90b3RhbCIsICJhdHRuX3R3aXR0ZXJfYnlfdG90YWxfbCIsDQogICAgICAgICAgICAgICAgICAgInZlbmkiLCAidmVuaV9sIiwNCiAgICAgICAgICAgICAgICAgICAidmlkaSIsICJ2aWRpX2wiLA0KICAgICAgICAgICAgICAgICAgICJ2aWNpIiwgInZpY2lfbCIsDQogICAgICAgICAgICAgICAgICAgInN0ZXZpbiIsICJzdGV2aW5fbCIsDQogICAgICAgICAgICAgICAgICAgInNwaW5vemEiLCAic3Bpbm96YV9sIiwNCiAgICAgICAgICAgICAgICAgICAic3RhcnRpbmciLCAic3RhcnRpbmdfbCIsDQogICAgICAgICAgICAgICAgICAgImFkdmFuY2VkIiwgImFkdmFuY2VkX2wiLCANCiAgICAgICAgICAgICAgICAgICAiY29uc29saWRhdG9yIiwgImNvbnNvbGlkYXRvcl9sIiwNCiAgICAgICAgICAgICAgICAgICAic3luZXJneSIsICJzeW5lcmd5X2wiDQogICAgICAgICAgICAgICAgICAgKQ0KDQpwcm9mX3llYXJfcF9jX2dfYV90X2wgPC0gcHJvZl95ZWFyX3BfY19nX2FfdF9sW2xhZ19yZWFycmFuZ2VdDQpgYGANCg0KTGFnIHRoZSByZWxldmFudCB2YXJpYWJsZXM6DQpgYGB7cn0NCnByb2ZfeWVhcl9wX2NfZ19hX3RfbCA8LSBwcm9mX3llYXJfcF9jX2dfYV90X2wgJT4lDQogIGFycmFuZ2UoeWVhcikgJT4lDQogIGdyb3VwX2J5KHByb2ZpbGVfaWQpICU+JQ0KICBtdXRhdGVfYXQodmFycyhjb250YWlucygnX2wnKSksIGxhZyklPiUNCiAgYXJyYW5nZShwcm9maWxlX2lkLCB5ZWFyKQ0KYGBgDQoNCmBgYHtyfQ0Kd3JpdGVfY3N2KHByb2ZfeWVhcl9wX2NfZ19hX3RfbCwgInBhbmVsX2RhdGFzZXRzL3Byb2ZfeWVhcl9wX2NfZ19hX3RfbF8xMV8zLmNzdiIpDQpgYGANCg0KDQojIExleGlzIGRhdGENCg0KTG9hZCB0aGUgbGV4aXMgYXJ0aWNsZXMsIGZpbHRlciBvdXQgdGhlIGlycmVsZXZhbnQgb25lcyBhbmQgZHJvcCB0aGUgcmVnaW9uYWwNCnB1YmxpY2F0aW9uIGR1cGxpY2F0ZXM6DQpgYGB7cn0NCmxleGlzX2RhdGEgPC0gZGJSZWFkVGFibGUoY29uLCAibGV4aXNfbmV4aXNfbWVudGlvbnMiKQ0KDQpsZXhpc19kYXRhX2ZpbHQgPC0gZmlsdGVyKGxleGlzX2RhdGEsDQogICAgICAgICAgICAgICAgICAgICAgICAgIHNvdXJjZV90eXBlICE9ICJpcnJlbGV2YW50IikNCg0KbGV4aXNfZGF0YV9maWx0JGR1cGwgPC0gZHVwbGljYXRlZChsZXhpc19kYXRhX2ZpbHRbYygicHJvZmlsZV9pZCIsICJoZWFkbGluZSIsICJsZW5ndGgiKV0pDQoNCmxleGlzX2RhdGFfZmlsdCA8LSBsZXhpc19kYXRhX2ZpbHQgJT4lDQogIGZpbHRlcihkdXBsID09IEZBTFNFKSU+JQ0KICBzZWxlY3QoLWR1cGwpDQpgYGANCg0KTm93LCBhZ2dyZWdhdGUgcHJvZmVzc29yIG1lbnRpb25zIHBlciB5ZWFyIGFuZCBwZXIgc291cmNlLCB3aGVyZXZlciByZWxldmFudDoNCmBgYHtyfQ0KIyBjb21iaW5lIHNvdXJjZXMgZm9yIGVhc2llciBoYW5kbGluZzoNCmxleGlzX2RhdGFfZmlsdCRzb3VyY2VfY29hcnNlIDwtIGlmZWxzZSghIGxleGlzX2RhdGFfZmlsdCRzb3VyY2VfdHlwZSAlaW4lIGMoIm5hdGlvbmFsX25sIiwgInJlZ2lvbmFsX25sIiwgImhpZ2hfcHJvZl9pbnRsIiksDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIm90aGVyIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBsZXhpc19kYXRhX2ZpbHQkc291cmNlX3R5cGUpDQoNCnByb2ZfbGV4aXNfeWVhciA8LSBsZXhpc19kYXRhX2ZpbHQgJT4lDQogIGZpbHRlcighaXMubmEoeWVhcikgJiB5ZWFyID49IDE5NzQgJiB5ZWFyIDw9IDIwMjQpJT4lDQogIGFycmFuZ2UocHJvZmlsZV9pZCwgeWVhciklPiUNCiAgZ3JvdXBfYnkocHJvZmlsZV9pZCwgeWVhciwgc291cmNlX2NvYXJzZSklPiUNCiAgc3VtbWFyaXNlKG4gPSBuKCkpJT4lDQogIHJlcGxhY2UoaXMubmEoLiksIDApJT4lDQogIGFycmFuZ2UocHJvZmlsZV9pZCwgeWVhcixzb3VyY2VfY29hcnNlKSU+JQ0KICBncm91cF9ieShwcm9maWxlX2lkLCBzb3VyY2VfY29hcnNlKSU+JQ0KICBtdXRhdGUoY3Vtc3VtID0gY3Vtc3VtKG4pKSU+JQ0KICBwaXZvdF93aWRlcihuYW1lc19mcm9tID0gc291cmNlX2NvYXJzZSwgdmFsdWVzX2Zyb20gPSBjKG4sIGN1bXN1bSkpJT4lDQogIGZpbGwoY3Vtc3VtX25hdGlvbmFsX25sOmN1bXN1bV9oaWdoX3Byb2ZfaW50bCklPiUNCiAgcmVwbGFjZShpcy5uYSguKSwgMCkNCg0KIyB0aWR5IHVwIHRoZSBjb2x1bW5zDQpjb2xuYW1lcyhwcm9mX2xleGlzX3llYXIpWzM6MTBdIDwtIGMoImxleGlzX25hdGlvbmFsIiwgImxleGlzX3JlZ2lvbmFsIiwgImxleGlzX290aGVyIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAibGV4aXNfaW50bCIsICJsZXhpc19uYXRpb25hbF90b3RhbCIsIA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJsZXhpc19yZWdpb25hbF90b3RhbCIsICJsZXhpc19vdGhlcl90b3RhbCIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgImxleGlzX2ludGxfdG90YWwiKQ0KDQojIGFkZCB0b3RhbCBjb3VudHMNCnByb2ZfbGV4aXNfeWVhciRsZXhpc19hbGwgPC0gcHJvZl9sZXhpc195ZWFyJGxleGlzX25hdGlvbmFsICsgcHJvZl9sZXhpc195ZWFyJGxleGlzX3JlZ2lvbmFsICsNCiAgcHJvZl9sZXhpc195ZWFyJGxleGlzX290aGVyICsgcHJvZl9sZXhpc195ZWFyJGxleGlzX2ludGwNCg0KcHJvZl9sZXhpc195ZWFyJGxleGlzX2FsbF90b3RhbCA8LSBwcm9mX2xleGlzX3llYXIkbGV4aXNfbmF0aW9uYWxfdG90YWwgKyBwcm9mX2xleGlzX3llYXIkbGV4aXNfcmVnaW9uYWxfdG90YWwgKw0KICBwcm9mX2xleGlzX3llYXIkbGV4aXNfb3RoZXJfdG90YWwgKyBwcm9mX2xleGlzX3llYXIkbGV4aXNfaW50bF90b3RhbA0KDQojIHJlYXJyYW5nZSBhIGJpdA0KcHJvZl9sZXhpc195ZWFyIDwtIHByb2ZfbGV4aXNfeWVhcltjKCJwcm9maWxlX2lkIiwgInllYXIiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJsZXhpc19uYXRpb25hbCIsICJsZXhpc19yZWdpb25hbCIsICJsZXhpc19vdGhlciIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgImxleGlzX2ludGwiLCAibGV4aXNfYWxsIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAibGV4aXNfbmF0aW9uYWxfdG90YWwiLCANCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAibGV4aXNfcmVnaW9uYWxfdG90YWwiLCAibGV4aXNfb3RoZXJfdG90YWwiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJsZXhpc19pbnRsX3RvdGFsIiwgImxleGlzX2FsbF90b3RhbCIpXQ0KYGBgDQoNClBhZCBsZXhpcyBkYXRhIHdpdGggdGhlIHByb2Zlc3NvciBwYW5lbDoNCmBgYHtyfQ0KIyBnZXQgYWxsIG9ic2VydmF0aW9ucyBpbiB0aGUgcGFuZWwNCnByb2ZfbGV4aXNfeWVhcl9wYWQgPC0gbWVyZ2UocHJvZl9sZXhpc195ZWFyLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwcm9mX3llYXJfcF9jX2dfYV90X2xbYygicHJvZmlsZV9pZCIsICJ5ZWFyIildLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICBhbGwueT0gVFJVRSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFKQ0KDQojIGZpbGwgZG93biBvbiB0b3RhbHMgYW5kIHJlcGxhY2UgTkFzIHdpdGggemVyb2VzDQpwcm9mX2xleGlzX3llYXJfcGFkIDwtIHByb2ZfbGV4aXNfeWVhcl9wYWQgJT4lDQogIGdyb3VwX2J5KHByb2ZpbGVfaWQpJT4lDQogIGZpbGwobGV4aXNfbmF0aW9uYWxfdG90YWw6bGV4aXNfYWxsX3RvdGFsLCAuZGlyZWN0aW9uID0gImRvd24iKSU+JQ0KICBtdXRhdGUoYWNyb3NzKGNvbnRhaW5zKCdsZXhpcycpLCByZXBsYWNlX25hLCAwKSkNCg0KIyBnZXQgdGhlIGZpcnN0IGxhYg0KcHJvZl9sZXhpc195ZWFyX3BhZF9sYWcgPC0gcHJvZl9sZXhpc195ZWFyX3BhZCAlPiUNCiAgYXJyYW5nZSh5ZWFyKSAlPiUNCiAgZ3JvdXBfYnkocHJvZmlsZV9pZCkgJT4lDQogIG11dGF0ZV9hdCh2YXJzKGNvbnRhaW5zKCdsZXhpcycpKSwgbGFnKSU+JQ0KICBhcnJhbmdlKHByb2ZpbGVfaWQsIHllYXIpDQoNCmNvbG5hbWVzKHByb2ZfbGV4aXNfeWVhcl9wYWRfbGFnKVstYygxOjIpXSA8LSBwYXN0ZTAoY29sbmFtZXMocHJvZl9sZXhpc195ZWFyX3BhZF9sYWcpWy1jKDE6MildLCAiX2wiKQ0KYGBgDQoNCkNvbWJpbmUgdGhlIHR3bzoNCmBgYHtyfQ0KcHJvZl9sZXhpc195ZWFyX2FsbCA8LSBtZXJnZShwcm9mX2xleGlzX3llYXJfcGFkLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwcm9mX2xleGlzX3llYXJfcGFkX2xhZywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSBjKCJwcm9maWxlX2lkIiwgInllYXIiKSkNCmBgYA0KDQoNCkNvbWJpbmUgb3VyIHByb2Zlc3NvciBwYW5lbCB3aXRoIGxleGlzIGRhdGE6DQpgYGB7cn0NCnByb2ZfeWVhcl9wX2NfZ19hX3RfbF9sIDwtIG1lcmdlKHByb2ZfeWVhcl9wX2NfZ19hX3RfbCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2ZfbGV4aXNfeWVhcl9hbGwsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBieSA9IGMoInByb2ZpbGVfaWQiLCAieWVhciIpLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFKQ0KYGBgDQoNCldyaXRlIHRoaXMgb3V0Og0KYGBge3J9DQp3cml0ZV9jc3YocHJvZl95ZWFyX3BfY19nX2FfdF9sX2wsICJwYW5lbF9kYXRhc2V0cy9wcm9mX3llYXJfcF9jX2dfYV90X2xfbF8yMF8zLmNzdiIpDQpgYGANCg0KIyBDb2F1dGhvciBkYXRhDQoNCkZldGNoIGFsbCBjb2F1dGhvciBkYXRhLCBpbmNsdWRpbmcgZnVsbCBpbmZvLCB0aGVpciBpbmZlcnJlZCBnZW5kZXIsIGFuZCBjaXRhdGlvbiBjb3VudHMuDQpgYGB7cn0NCm9hX2NvYXV0aG9yX2luZm8gPC0gZGJSZWFkVGFibGUoY29uLCAib2FfY29hdXRob3JfaW5mbyIpDQpvYV9jb2F1dGhvcl9pbmZvX25hbWUgPC0gZGJSZWFkVGFibGUoY29uLCAib2FfY29hdXRob3JfbmFtZV9saXN0IikNCmNvYXV0aG9yX2dlbmRlciA8LSBkYlJlYWRUYWJsZShjb24sICJjb2F1dGhvcl9uYW1lX2dlbmRlciIpDQojIGFkZCBwcm9mZXNzb3IgZ2VuZGVyIG5hbWVzLCBhcyB0aGVzZSBhcmUgc3BlY2lmaWMgZm9yIHRoZSANCiMgRHV0Y2ggY29udGV4dCBhbmQgbWlnaHQgaGVscCBmdXJ0aGVyDQpwcm9mX2dlbmRlcl9uYW1lcyA8LSBkYlJlYWRUYWJsZShjb24sICJnZW5kZXJfdGFibGUiKSU+JQ0KICBkaXN0aW5jdChmaXJzdCwgLmtlZXBfYWxsID0gVFJVRSklPiUNCiAgc2VsZWN0KGZpcnN0LCBpbmZlcnJlZF9nZW5kZXIpDQpvYV9jb2F1dGhvcl9pbmZvX2Z1bGwgPC0gZGJSZWFkVGFibGUoY29uLCAib2FfY29hdXRob3JfaW5mb19mdWxsIikNCmBgYA0KDQpNYXRjaCBuYW1lIGdlbmRlciBpbmZlcmVuY2Ugd2l0aCBjb2F1dGhvciBuYW1lczoNCmBgYHtyfQ0KY29sbmFtZXMoY29hdXRob3JfZ2VuZGVyKVsyXSA8LSAiZmlyc3QiDQpjb2F1dGhvcl9nZW5kZXIgPC0gY29hdXRob3JfZ2VuZGVyICU+JQ0KICBmaWx0ZXIoZmlyc3QgIT0gIiIpJT4lDQogIHNlbGVjdChmaXJzdCwgZ2VuZGVyKQ0KDQojIHJlY29kZSB0aGUgdmFyaWFibGUNCmNvYXV0aG9yX2dlbmRlciRnZW5kZXIgPC0gaWZlbHNlKGNvYXV0aG9yX2dlbmRlciRnZW5kZXIgPT0gIm1hbGUiLCAibSIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBpZmVsc2UoY29hdXRob3JfZ2VuZGVyJGdlbmRlciA9PSAiZmVtYWxlIiwgInciLCBjb2F1dGhvcl9nZW5kZXIkZ2VuZGVyKSkNCg0KY29sbmFtZXMocHJvZl9nZW5kZXJfbmFtZXMpWzJdIDwtICJnZW5kZXIiDQoNCiMgY29tYmluZQ0KYWxsX25hbWVzIDwtIHJiaW5kKGNvYXV0aG9yX2dlbmRlciwNCiAgICAgICAgICAgICAgICAgICBwcm9mX2dlbmRlcl9uYW1lcyklPiUNCiAgZGlzdGluY3QoZmlyc3QsIC5rZWVwX2FsbCA9IFRSVUUpDQoNCg0KIyBmaWx0ZXIgb3V0ICJhbmQiIHdoaWNoIHNlZW1zIHRvIGp1c3QgYmUgYSBtaXN0YWtlDQpvYV9jb2F1dGhvcl9pbmZvX25hbWUgPC0gb2FfY29hdXRob3JfaW5mb19uYW1lICU+JQ0KICBmaWx0ZXIoISB0b2xvd2VyKGZpcnN0KSAlaW4lIGMoInZhbiIsICJhbmQiLCAiZGVuIikpDQoNCm9hX2NvYXV0aG9yX2luZm9fbmFtZSRmaXJzdCA8LSB0b2xvd2VyKG9hX2NvYXV0aG9yX2luZm9fbmFtZSRmaXJzdCkNCg0KY29hdXRob3JfbmFtZV9nZW5kZXIgPC0gbWVyZ2Uob2FfY29hdXRob3JfaW5mb19uYW1lLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWxsX25hbWVzLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSAiZmlyc3QiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnkgPSBGQUxTRSkNCg0KY29hdXRob3JfbmFtZV9nZW5kZXIgPC0gY29hdXRob3JfbmFtZV9nZW5kZXIgJT4lDQogIHNlbGVjdChpZCwgZ2VuZGVyKSU+JQ0KICBmaWx0ZXIoIWlzLm5hKGdlbmRlcikpDQoNCmBgYA0KDQpSZW1vdmUgcmVkdW5kYW50IGl0ZW1zOg0KYGBge3J9DQojcm0ob2FfY29hdXRob3JfaW5mbykNCmdjKCkNCmBgYA0KDQpGb3IgZWFjaCBjb2F1dGhvciwgZ2V0IHRoZWlyIGN1bXVsYXRpdmUgY2l0YXRpb24gY291bnRzOg0KYGBge3J9DQpjb2F1dGhvcl9wdWJzX2NpdHNfY3VtdWxhdGl2ZSA8LSBvYV9jb2F1dGhvcl9pbmZvX2Z1bGwgJT4lDQogIHNlbGVjdChpZDpkaXNwbGF5X25hbWUsIHdvcmtzX2NvdW50OmNvdW50c19ieV95ZWFyX2NpdGVkX2J5X2NvdW50KSU+JQ0KICBncm91cF9ieShpZCklPiUNCiAgYXJyYW5nZShjb3VudHNfYnlfeWVhcl95ZWFyKSU+JQ0KICBtdXRhdGUoY291bnRzX2J5X3llYXJfd29ya3NfY291bnRfdG90YWwgPSBjdW1zdW0oY291bnRzX2J5X3llYXJfd29ya3NfY291bnQpLA0KICAgICAgICAgY291bnRzX2J5X3llYXJfY2l0ZWRfYnlfY291bnRfdG90YWwgPSBjdW1zdW0oY291bnRzX2J5X3llYXJfY2l0ZWRfYnlfY291bnQpKSAlPiUNCiAgYXJyYW5nZShpZCwgY291bnRzX2J5X3llYXJfeWVhcikNCg0KIyByZW5hbWUgc29tZSBjb2x1bW5zDQpjb2xuYW1lcyhjb2F1dGhvcl9wdWJzX2NpdHNfY3VtdWxhdGl2ZSlbd2hpY2goY29sbmFtZXMoY29hdXRob3JfcHVic19jaXRzX2N1bXVsYXRpdmUpPT0iY291bnRzX2J5X3llYXJfeWVhciIpXSA8LSAieWVhciINCmNvbG5hbWVzKGNvYXV0aG9yX3B1YnNfY2l0c19jdW11bGF0aXZlKVt3aGljaChjb2xuYW1lcyhjb2F1dGhvcl9wdWJzX2NpdHNfY3VtdWxhdGl2ZSk9PSJjb3VudHNfYnlfeWVhcl93b3Jrc19jb3VudCIpXSA8LSAiY291bnRfcHVicyINCmNvbG5hbWVzKGNvYXV0aG9yX3B1YnNfY2l0c19jdW11bGF0aXZlKVt3aGljaChjb2xuYW1lcyhjb2F1dGhvcl9wdWJzX2NpdHNfY3VtdWxhdGl2ZSk9PSJ3b3Jrc19jb3VudCIpXSA8LSAiY291bnRfcHVic190b3RhbCINCmNvbG5hbWVzKGNvYXV0aG9yX3B1YnNfY2l0c19jdW11bGF0aXZlKVt3aGljaChjb2xuYW1lcyhjb2F1dGhvcl9wdWJzX2NpdHNfY3VtdWxhdGl2ZSk9PSJjb3VudHNfYnlfeWVhcl93b3Jrc19jb3VudF90b3RhbCIpXSA8LSAiY291bnRfcHVic190b3RhbF9vYSINCmNvbG5hbWVzKGNvYXV0aG9yX3B1YnNfY2l0c19jdW11bGF0aXZlKVt3aGljaChjb2xuYW1lcyhjb2F1dGhvcl9wdWJzX2NpdHNfY3VtdWxhdGl2ZSk9PSJjb3VudHNfYnlfeWVhcl9jaXRlZF9ieV9jb3VudCIpXSA8LSAiY2l0ZWRfYnkiDQpjb2xuYW1lcyhjb2F1dGhvcl9wdWJzX2NpdHNfY3VtdWxhdGl2ZSlbd2hpY2goY29sbmFtZXMoY29hdXRob3JfcHVic19jaXRzX2N1bXVsYXRpdmUpPT0iY2l0ZWRfYnlfY291bnQiKV0gPC0gImNpdGVkX2J5X3RvdGFsIg0KY29sbmFtZXMoY29hdXRob3JfcHVic19jaXRzX2N1bXVsYXRpdmUpW3doaWNoKGNvbG5hbWVzKGNvYXV0aG9yX3B1YnNfY2l0c19jdW11bGF0aXZlKT09ImNvdW50c19ieV95ZWFyX2NpdGVkX2J5X2NvdW50X3RvdGFsIildIDwtICJjaXRlZF9ieV90b3RhbF9vYSINCg0KIyBjaXRhdGlvbnMgcHJpb3IgdG8gMjAxMg0KbGF0ZXN0X2NpdGF0aW9uX2NvYXV0aG9yIDwtIGNvYXV0aG9yX3B1YnNfY2l0c19jdW11bGF0aXZlICU+JQ0KICBncm91cF9ieShpZCklPiUNCiAgc2xpY2Uod2hpY2gubWF4KHllYXIpKQ0KbGF0ZXN0X2NpdGF0aW9uX2NvYXV0aG9yJGNpdGVkX2J5X2JlZm9yZV8yMDEyIDwtIGxhdGVzdF9jaXRhdGlvbl9jb2F1dGhvciRjaXRlZF9ieV90b3RhbCAtIGxhdGVzdF9jaXRhdGlvbl9jb2F1dGhvciRjaXRlZF9ieV90b3RhbF9vYQ0KbGF0ZXN0X2NpdGF0aW9uX2NvYXV0aG9yJGNvdW50X3B1YnNfYmVmb3JlXzIwMTIgPC0gbGF0ZXN0X2NpdGF0aW9uX2NvYXV0aG9yJGNvdW50X3B1YnNfdG90YWwgLSBsYXRlc3RfY2l0YXRpb25fY29hdXRob3IkY291bnRfcHVic190b3RhbF9vYQ0KIyByZXBsYWNlIGJ5IDAgaWYgbmVnYXRpdmUgKE9BIGlzc3VlIHRpY2tldCBvcGVuZWQpDQpsYXRlc3RfY2l0YXRpb25fY29hdXRob3IkY2l0ZWRfYnlfYmVmb3JlXzIwMTIgPC0gaWZlbHNlKGxhdGVzdF9jaXRhdGlvbl9jb2F1dGhvciRjaXRlZF9ieV9iZWZvcmVfMjAxMjwwLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAwLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBsYXRlc3RfY2l0YXRpb25fY29hdXRob3IkY2l0ZWRfYnlfYmVmb3JlXzIwMTIpDQoNCmxhdGVzdF9jaXRhdGlvbl9jb2F1dGhvciRjb3VudF9wdWJzX2JlZm9yZV8yMDEyIDwtIGlmZWxzZShsYXRlc3RfY2l0YXRpb25fY29hdXRob3IkY291bnRfcHVic19iZWZvcmVfMjAxMjwwLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAwLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBsYXRlc3RfY2l0YXRpb25fY29hdXRob3IkY291bnRfcHVic19iZWZvcmVfMjAxMikNCg0KIyBtZXJnZSB3aXRoIHRoZSByZXN0DQpjb2F1dGhvcl9wdWJzX2NpdHNfY3VtdWxhdGl2ZSA8LSBtZXJnZShjb2F1dGhvcl9wdWJzX2NpdHNfY3VtdWxhdGl2ZSwNCiAgICAgICAgICAgICAgICAgICAgICAgICBsYXRlc3RfY2l0YXRpb25fY29hdXRob3JbYygiaWQiLCAiY2l0ZWRfYnlfYmVmb3JlXzIwMTIiLCAiY291bnRfcHVic19iZWZvcmVfMjAxMiIpXSwNCiAgICAgICAgICAgICAgICAgICAgICAgICBieSA9ICJpZCIsDQogICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFKQ0KDQpjb2F1dGhvcl9wdWJzX2NpdHNfY3VtdWxhdGl2ZSRjaXRlZF9ieV90b3RhbF9hbGwgPC0gY29hdXRob3JfcHVic19jaXRzX2N1bXVsYXRpdmUkY2l0ZWRfYnlfYmVmb3JlXzIwMTIgKyBjb2F1dGhvcl9wdWJzX2NpdHNfY3VtdWxhdGl2ZSRjaXRlZF9ieV90b3RhbF9vYQ0KY29hdXRob3JfcHVic19jaXRzX2N1bXVsYXRpdmUkY291bnRfcHVic190b3RhbF9hbGwgPC0gY29hdXRob3JfcHVic19jaXRzX2N1bXVsYXRpdmUkY291bnRfcHVic19iZWZvcmVfMjAxMiArIGNvYXV0aG9yX3B1YnNfY2l0c19jdW11bGF0aXZlJGNvdW50X3B1YnNfdG90YWxfb2ENCg0KY29hdXRob3JfeWVhcl9wX2MgPC0gY29hdXRob3JfcHVic19jaXRzX2N1bXVsYXRpdmUgJT4lDQogIGFycmFuZ2UoaWQsIHllYXIpJT4lDQogIHNlbGVjdCgtZGlzcGxheV9uYW1lLCAtY291bnRfcHVic190b3RhbCwgLWNpdGVkX2J5X3RvdGFsKQ0KYGBgDQoNCkdldCB0aGVpciBhdHRlbnRpb246DQpgYGB7cn0NCmNvYXV0aG9yX2F0dGVudGlvbiA8LSBkYlJlYWRUYWJsZShjb24sICJhbHRtZXRyaWNfY29hdXRob3JfYXR0ZW50aW9uIikNCg0Kc2VsZWN0ZWRfYXR0ZW50aW9uIDwtIGNvYXV0aG9yX2F0dGVudGlvbiAlPiUNCiAgZmlsdGVyKC4sIG1lbnRpb25fdHlwZSAlaW4lIGMoIm1zbSIsICJibG9nIiwgInR3ZWV0IikpDQpgYGANCg0KQ3VtdWxhdGl2ZXM6DQpgYGB7cn0NCmNvYXV0aG9yX2F0dGVudGlvbl90YWJsZSA8LSBzZWxlY3RlZF9hdHRlbnRpb24gJT4lDQogIHBpdm90X3dpZGVyKG5hbWVzX2Zyb20gPSBtZW50aW9uX3R5cGUsIHZhbHVlc19mcm9tID0geWVhcmx5X2NvdW50LCB2YWx1ZXNfZmlsbCA9IDApDQoNCmNvYXV0aG9yX2F0dGVudGlvbl90YWJsZSA8LSBjb2F1dGhvcl9hdHRlbnRpb25fdGFibGUgJT4lDQogIGdyb3VwX2J5KGlkKSU+JQ0KICBhcnJhbmdlKHllYXIpJT4lDQogIG11dGF0ZShtc21fdG90YWwgPSBjdW1zdW0obXNtKSwNCiAgICAgICAgIGJsb2dfdG90YWwgPSBjdW1zdW0oYmxvZyksDQogICAgICAgICB0d2VldF90b3RhbCA9IGN1bXN1bSh0d2VldCkpICU+JQ0KICBhcnJhbmdlKGlkLCB5ZWFyKQ0KDQojIHJlbmFtZSBzb21lIGNvbHVtbnMNCmNvbG5hbWVzKGNvYXV0aG9yX2F0dGVudGlvbl90YWJsZSlbd2hpY2goY29sbmFtZXMoY29hdXRob3JfYXR0ZW50aW9uX3RhYmxlKT09Im1zbSIpXSA8LSAiY29hX2F0dG5fbmV3c19ieSINCmNvbG5hbWVzKGNvYXV0aG9yX2F0dGVudGlvbl90YWJsZSlbd2hpY2goY29sbmFtZXMoY29hdXRob3JfYXR0ZW50aW9uX3RhYmxlKT09Im1zbV90b3RhbCIpXSA8LSAiY29hX2F0dG5fbmV3c19ieV90b3RhbCINCmNvbG5hbWVzKGNvYXV0aG9yX2F0dGVudGlvbl90YWJsZSlbd2hpY2goY29sbmFtZXMoY29hdXRob3JfYXR0ZW50aW9uX3RhYmxlKT09ImJsb2ciKV0gPC0gImNvYV9hdHRuX2Jsb2dfYnkiDQpjb2xuYW1lcyhjb2F1dGhvcl9hdHRlbnRpb25fdGFibGUpW3doaWNoKGNvbG5hbWVzKGNvYXV0aG9yX2F0dGVudGlvbl90YWJsZSk9PSJibG9nX3RvdGFsIildIDwtICJjb2FfYXR0bl9ibG9nX2J5X3RvdGFsIg0KY29sbmFtZXMoY29hdXRob3JfYXR0ZW50aW9uX3RhYmxlKVt3aGljaChjb2xuYW1lcyhjb2F1dGhvcl9hdHRlbnRpb25fdGFibGUpPT0idHdlZXQiKV0gPC0gImNvYV9hdHRuX3R3aXR0ZXJfYnkiDQpjb2xuYW1lcyhjb2F1dGhvcl9hdHRlbnRpb25fdGFibGUpW3doaWNoKGNvbG5hbWVzKGNvYXV0aG9yX2F0dGVudGlvbl90YWJsZSk9PSJ0d2VldF90b3RhbCIpXSA8LSAiY29hX2F0dG5fdHdpdHRlcl9ieV90b3RhbCINCmBgYA0KDQpDb21iaW5lIGNpdGF0aW9ucyBhbmQgYXR0ZW50aW9uLiBTZXQgbWVudGlvbnMgdG8gMCBpZiB3ZSBoYXZlIGNvYXV0aG9ycycgT1JDSUQgDQphbmQgdGhlcmUgYXJlIG5vIG1lbnRpb25zOyBpZiB3ZSBkb24ndCBoYXZlIHRoZWlyIE9SQ0lELCBzZXQgbWVudGlvbnMgdG8gTkE6DQpgYGB7cn0NCmNvYXV0aG9yX3llYXJfcF9jX2EgPC0gbWVyZ2UoY29hdXRob3JfeWVhcl9wX2MsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNvYXV0aG9yX2F0dGVudGlvbl90YWJsZSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSBjKCJpZCIsICJ5ZWFyIiksDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFsbC54ID0gVFJVRSkNCg0KY29hdXRob3Jfb3JjaWRzIDwtIG9hX2NvYXV0aG9yX2luZm9fZnVsbCAlPiUNCiAgZGlzdGluY3QoaWQsIC5rZWVwX2FsbCA9IFRSVUUpJT4lDQogIHNlbGVjdChpZCwgb3JjaWQpDQoNCg0KY29hdXRob3JfeWVhcl9wX2NfYSA8LSBtZXJnZShjb2F1dGhvcl95ZWFyX3BfY19hLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb2F1dGhvcl9vcmNpZHMsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFsbC54ID0gVFJVRSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSAiaWQiKQ0KDQojIGZpbGwgdGhlIGF0dGVudGlvbiBieSBwcm9maWxlIElEDQpjb2F1dGhvcl95ZWFyX3BfY19hMiA8LSBjb2F1dGhvcl95ZWFyX3BfY19hICU+JQ0KICBncm91cF9ieShpZCklPiUNCiAgZmlsbChjb2FfYXR0bl9uZXdzX2J5X3RvdGFsLCBjb2FfYXR0bl9ibG9nX2J5X3RvdGFsLCBjb2FfYXR0bl90d2l0dGVyX2J5X3RvdGFsKQ0KDQpjb2F1dGhvcl95ZWFyX3BfY19hMiRjb2FfYXR0bl9uZXdzX2J5IDwtIGlmZWxzZSgoaXMubmEoY29hdXRob3JfeWVhcl9wX2NfYTIkY29hX2F0dG5fbmV3c19ieSkgJiAhaXMubmEoY29hdXRob3JfeWVhcl9wX2NfYTIkb3JjaWQpKSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY29hdXRob3JfeWVhcl9wX2NfYTIkY29hX2F0dG5fbmV3c19ieSkNCmNvYXV0aG9yX3llYXJfcF9jX2EyJGNvYV9hdHRuX25ld3NfYnlfdG90YWwgPC0gaWZlbHNlKChpcy5uYShjb2F1dGhvcl95ZWFyX3BfY19hMiRjb2FfYXR0bl9uZXdzX2J5X3RvdGFsKSAmICFpcy5uYShjb2F1dGhvcl95ZWFyX3BfY19hMiRvcmNpZCkpLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAwLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb2F1dGhvcl95ZWFyX3BfY19hMiRjb2FfYXR0bl9uZXdzX2J5X3RvdGFsKQ0KDQpjb2F1dGhvcl95ZWFyX3BfY19hMiRjb2FfYXR0bl9ibG9nX2J5IDwtIGlmZWxzZSgoaXMubmEoY29hdXRob3JfeWVhcl9wX2NfYTIkY29hX2F0dG5fYmxvZ19ieSkgJiAhaXMubmEoY29hdXRob3JfeWVhcl9wX2NfYTIkb3JjaWQpKSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY29hdXRob3JfeWVhcl9wX2NfYTIkY29hX2F0dG5fYmxvZ19ieSkNCmNvYXV0aG9yX3llYXJfcF9jX2EyJGNvYV9hdHRuX2Jsb2dfYnlfdG90YWwgPC0gaWZlbHNlKChpcy5uYShjb2F1dGhvcl95ZWFyX3BfY19hMiRjb2FfYXR0bl9ibG9nX2J5X3RvdGFsKSAmICFpcy5uYShjb2F1dGhvcl95ZWFyX3BfY19hMiRvcmNpZCkpLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAwLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb2F1dGhvcl95ZWFyX3BfY19hMiRjb2FfYXR0bl9ibG9nX2J5X3RvdGFsKQ0KDQpjb2F1dGhvcl95ZWFyX3BfY19hMiRjb2FfYXR0bl90d2l0dGVyX2J5IDwtIGlmZWxzZSgoaXMubmEoY29hdXRob3JfeWVhcl9wX2NfYTIkY29hX2F0dG5fdHdpdHRlcl9ieSkgJiAhaXMubmEoY29hdXRob3JfeWVhcl9wX2NfYTIkb3JjaWQpKSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY29hdXRob3JfeWVhcl9wX2NfYTIkY29hX2F0dG5fdHdpdHRlcl9ieSkNCmNvYXV0aG9yX3llYXJfcF9jX2EyJGNvYV9hdHRuX3R3aXR0ZXJfYnlfdG90YWwgPC0gaWZlbHNlKChpcy5uYShjb2F1dGhvcl95ZWFyX3BfY19hMiRjb2FfYXR0bl90d2l0dGVyX2J5X3RvdGFsKSAmICFpcy5uYShjb2F1dGhvcl95ZWFyX3BfY19hMiRvcmNpZCkpLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAwLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb2F1dGhvcl95ZWFyX3BfY19hMiRjb2FfYXR0bl90d2l0dGVyX2J5X3RvdGFsKQ0KYGBgDQoNCkFwcGVuZCBnZW5kZXI6DQpgYGB7cn0NCmNvbG5hbWVzKGNvYXV0aG9yX25hbWVfZ2VuZGVyKVsxXSA8LSAiaWQiDQoNCmNvYXV0aG9yX3llYXJfcF9jX2FfZyA8LSBtZXJnZShjb2F1dGhvcl95ZWFyX3BfY19hMiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb2F1dGhvcl9uYW1lX2dlbmRlciwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBieSA9ICJpZCIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFKQ0KDQpjb2F1dGhvcl95ZWFyX3BfY19hX2cgPC0gY29hdXRob3JfeWVhcl9wX2NfYV9nJT4lDQogIGFycmFuZ2UoaWQsIHllYXIpDQoNCndyaXRlX2Nzdihjb2F1dGhvcl95ZWFyX3BfY19hX2csICJwYW5lbF9kYXRhc2V0cy9jb2F1dGhvcl95ZWFyX3BfY19hX2dfMTFfMy5jc3YiKQ0KYGBgDQoNCkZpbHRlciBvdXQgY29hdXRob3Igb2JzZXJ2YXRpb25zIHdpdGhvdXQgeWVhcjoNCmBgYHtyfQ0KY29hdXRob3JfeWVhcl9wX2NfYV9nIDwtIGZpbHRlcihjb2F1dGhvcl95ZWFyX3BfY19hX2csIA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAhaXMubmEoeWVhcikpJT4lDQogIHNlbGVjdCgtZHVwbCkNCmBgYA0KDQpNYXJnZSBjb2F1dGhvcnMgd2l0aCBpbmZlcnJlZCBnZW5kZXI6DQpgYGB7cn0NCmNvbG5hbWVzKGNvYXV0aG9yX25hbWVfZ2VuZGVyKSA8LSBjKCJhdV9pZCIsICJpbmZlcnJlZF9nZW5kZXIiKQ0Kb2FfY29hdXRob3JfaW5mb19nZW5kZXIgPC0gbWVyZ2Uob2FfY29hdXRob3JfaW5mbywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNvYXV0aG9yX25hbWVfZ2VuZGVyLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSAiYXVfaWQiKQ0KDQpvYV9jb2F1dGhvcl9pbmZvX2dlbmRlciRpbmZlcnJlZF9nZW5kZXIgPC0gaWZlbHNlKGlzLm5hKG9hX2NvYXV0aG9yX2luZm9fZ2VuZGVyJGluZmVycmVkX2dlbmRlciksDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJ1bmtub3duIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgb2FfY29hdXRob3JfaW5mb19nZW5kZXIkaW5mZXJyZWRfZ2VuZGVyKQ0KYGBgDQoNCkNsZWFuIHRoZSBtZW1vcnkgYSBiaXQ6DQpgYGB7cn0NCnJtKG9hX2NvYXV0aG9yX2luZm8pDQpybShjb2F1dGhvcl9uYW1lX2dlbmRlcikNCnJtKGNvYXV0aG9yX2dlbmRlcikNCnJtKGFsbF9uYW1lcykNCmdjKCkNCmBgYA0KDQoNCkZvciBlYWNoIGF1dGhvciwgbWF0Y2ggdGhlaXIgY29hdXRob3JzIGZyb20gdGhhdCB5ZWFyOg0KYGBge3J9DQpvYV9jb2F1dGhvcl9tYXRjaGluZyA8LSBkYlJlYWRUYWJsZShjb24sICJvYV9jb2F1dGhvcl9tYXRjaGluZyIpDQpvYV9jb2F1dGhvcl9tYXRjaGluZyA8LSBvYV9jb2F1dGhvcl9tYXRjaGluZ1tjKCJpZCIsICJhdV9pZCIsICJwcm9maWxlX2lkIiwgInB1YmxpY2F0aW9uX3llYXIiKV0NCg0KcHJvZmlsZV9pZHMgPC0gdW5pcXVlKHByb2ZfeWVhcl9wX2NfZ19hX3RfbF9sJHByb2ZpbGVfaWQpDQpgYGANCg0KTm93LCBjb21waWxlIGNvYXV0aG9yIGRhdGEgZm9yIGVhY2ggcHJvZmVzc29yOg0KYGBge3Igd2FybmluZyA9IEYsIG1lc3NhZ2UgPSBGfQ0KcHJvZl9wYW5lbF9jb21iaW5lZCA8LSBhcy5kYXRhLmZyYW1lKG1hdHJpeChOQSwgbnJvdyA9IDAsIG5jb2wgPSAxMTgpKQ0KDQpmb3IgKGkgaW4gMTpsZW5ndGgocHJvZmlsZV9pZHMpKXsNCiAgcHJvZl9vdXRwdXQgPC0gTkENCiAgdHJ5KA0KICAgIHByb2Zfb3V0cHV0IDwtIGNvYXV0aG9yX2RhdGFfY29tcGlsZXIocHJvZmlsZV9pZCA9IHByb2ZpbGVfaWRzW2ldLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJvZl9wYW5lbCA9IHByb2ZfeWVhcl9wX2NfZ19hX3RfbF9sLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJvZl9jb2F1dGhvcl9tYXRjaGluZyA9IG9hX2NvYXV0aG9yX21hdGNoaW5nLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJvZl9jb2F1dGhvcl9wYW5lbCA9IGNvYXV0aG9yX3llYXJfcF9jX2FfZywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2ZfY29hdXRob3JfaW5mb193X2dlbmRlciA9IG9hX2NvYXV0aG9yX2luZm9fZ2VuZGVyKSkNCg0KIA0KICBpZiAoIWFsbChpcy5uYShwcm9mX291dHB1dCkpKXsNCiAgICANCiAgICBwcm9mX3BhbmVsX2NvbWJpbmVkIDwtIHJiaW5kLmRhdGEuZnJhbWUocHJvZl9wYW5lbF9jb21iaW5lZCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJvZl9vdXRwdXQpDQogIH0NCiAgcHJpbnQocGFzdGUoImRvbmUgd2l0aCAiLCBpICwgIiBvdXQgb2YiLCBsZW5ndGgocHJvZmlsZV9pZHMpKSkNCn0NCmBgYA0KDQo=</div>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeSourceEmbed("Panel_data_compilation.Rmd");
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

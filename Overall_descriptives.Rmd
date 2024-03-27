@@ -8,10 +8,10 @@ Get an overview of our dataset at the professor level.
 
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-#knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(eval = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
-knitr::opts_chunk$set(cache = TRUE, cache.lazy = FALSE)
+knitr::opts_chunk$set(cache = FALSE, cache.lazy = FALSE)
 ```
 
 Loding the packages, and connecting to the database first. 

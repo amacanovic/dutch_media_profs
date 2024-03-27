@@ -263,6 +263,8 @@ prof_mention_extracted_data_clean <- filter(prof_mention_extracted_data_clean,
                                             ! content %in% filter_out_strings)
 ```
 
+
+## Identify journalist names
 Now, to identify people's names, use the database of US and Dutch first names.
 
 1. US data - top 1000 baby names provided by the Social Security [website](https://www.ssa.gov/oact/babynames/limits.html)
@@ -429,5 +431,3 @@ full_mention_data_names <- filter(full_mention_data_names,
 dbWriteTable(con, "pub_att_news_author_names", full_mention_data_names, row.names=FALSE, append=TRUE) 
 
 ```
-
-

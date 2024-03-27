@@ -1,0 +1,21 @@
+Variable,Dim,Mean,SD,Min,Max,Observations
+___________,_________,NA,NA,NA,NA,NA
+count_pubs,overall,8.21,12.09,0,2054,N = 185917
+NA,between,NA,6.17,0.07,100.12,n = 6797
+NA,within,NA,10.29,-90.91,1997.96,T = 27.35
+___________,_________,NA,NA,NA,NA,NA
+cited_by,overall,472.48,918.69,1,26622,N = 81084
+NA,between,NA,801.81,1,19466.08,n = 6621
+NA,within,NA,417.5,-16852.29,19304.71,T = 12.25
+___________,_________,NA,NA,NA,NA,NA
+attn_news_by,overall,6.56,33.18,0,2030,N = 89718
+NA,between,NA,17.66,0,338.86,n = 6775
+NA,within,NA,27.74,-332.3,1711.27,T = 13.24
+___________,_________,NA,NA,NA,NA,NA
+attn_blogs_by,overall,1.31,4.41,0,185,N = 91605
+NA,between,NA,2.83,0,54.44,n = 6775
+NA,within,NA,3.17,-52.13,155.44,T = 13.52
+___________,_________,NA,NA,NA,NA,NA
+attn_twitter_by,overall,37.37,245.57,0,23386,N = 89625
+NA,between,NA,135.65,0,3528.21,n = 6775
+NA,within,NA,202.3,-3481.85,19895.15,T = 13.23

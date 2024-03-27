@@ -6,22 +6,22 @@ remaining <- filter(relevant_oa_pubs, !id %in% twitter_mentions$id)
 # last tw id is this one
 which(remaining$id == "https://openalex.org/W3127941377")
 
-remaining2 <- remaining[which(remaining$id == "https://openalex.org/W3127941377"):nrow(remaining),]
+remaining2 <- remaining[which(remaining$id == "https://openalex.org/W2982102540"):nrow(remaining),]
 # pending for twitter IDs
 dbWriteTable(con, "remaining_oa_pubs_for_twitter_id", remaining2)
 
-# done with 400
+# done with 549
 # batch size
 batch_size <- 1000
 # vector of indices to loop through
-batches <- seq(from=1, to=nrow(remaining), by=batch_size)
+batches <- seq(from=1, to=nrow(remaining2), by=batch_size)
 # to be able to subset, also add the final index+1
-batches <- c(batches, length(remaining)+1)
+batches <- c(batches, length(remaining2)+1)
 
 # per batch
-for (i in 401:length(batches)){
+for (i in 550:length(batches)){
   # get the list
-  batch_pubs <- remaining[batches[i]:(batches[i+1]-1),]
+  batch_pubs <- remaining2[batches[i]:(batches[i+1]-1),]
   
   tweet_info_full <- NA
   

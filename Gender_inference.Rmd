@@ -481,24 +481,78 @@ for (i in 1:length(names)){
 dbWriteTable(con, "coauthor_name_gender", coauthor_name_gender , row.names=FALSE, append=TRUE)
 ```
 
-What is the share?
-```{r}
-
-```
-
 
 # Journalists from Mentions data
 Get the journalist names where applicable:
+
+First, check which names we already have in our NARCIS
+and coauthor lists:
 ```{r}
-mentions_full_text <- dbReadTable(con, "mentions_full_text") 
+# load the mention names
+full_mention_data_names <- dbReadTable(con, "pub_att_news_author_names")
+# load NARCIS and coauathor gender inference
+narcis_gender <- dbReadTable(con, "gender_table")
+coauthor_gender <- dbReadTable(con, "coauthor_name_gender")
+# combine the existing sources together
+narcis_gender <- narcis_gender %>%
+  select(first, inferred_gender)%>%
+  distinct(first, inferred_gender)
 
-# remove NAs
-mentions_full_text_authors <- filter(mentions_full_text,
-                                      !is.na(web_author))
+coauthor_gender <- coauthor_gender %>%
+  select(name, gender)%>%
+  distinct(name, gender)
 
-# check for newspaper names
-counts_of_authors <- mentions_full_text_authors %>%
-  group_by(web_author)%>%
-  summarise(n = n())
+colnames(narcis_gender) <- c("name", "gender")
+
+full_name_list <- rbind(narcis_gender,
+                        coauthor_gender) %>%
+  distinct(name, .keep_all = TRUE)
+
+# check which names are already there
+unique_mention_names <- full_mention_data_names %>%
+  distinct(author_first_name)
+
+missing_mention_names <- filter(unique_mention_names,
+                                ! author_first_name %in% full_name_list$name)
+
+# infer gender for them
+# list of names
+missing_mention_names <- missing_mention_names$author_first_name
+
+mention_name_gender <- data.frame(matrix(NA, nrow = 0, ncol = 4))
+
+for (i in 1:length(missing_mention_names)){
+  name <- missing_mention_names[i]
+  output <- genderize_io_function(name,
+                                  api_key = genderize_api_key)
+  
+  mention_name_gender  <- rbind(mention_name_gender ,
+                                output)
+  print(paste("done with", i, "out of", length(missing_mention_names)))
+}
+
+
+# bind with the full list
+full_name_list <- rbind(full_name_list,
+                        mention_name_gender[c("name", "gender")])
 ```
+
+And finally, infer the gender for our mention authors:
+```{r}
+colnames(full_mention_data_names)[2] <- "name"
+
+full_mention_data_names_gender <- merge(full_mention_data_names,
+                                        full_name_list,
+                                        by = "name", 
+                                        all.x = TRUE)
+```
+
+Now, write this into our database:
+```{r}
+dbWriteTable(con, "pub_att_news_author_names_gender", full_mention_data_names_gender)
+```
+
+
+
+
 
