@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
 ```
 Load the packages:
 ```{r message=  F, warning = F, eval = T}
@@ -45,7 +46,6 @@ Load the professor profiles:
 narcis_prof_info <- dbReadTable(con, "narcis_prof_info")
 prof_gender <- dbReadTable(con, "gender_table")
 ```
-
 
 
 Load the prof-publication matching and the attention info:

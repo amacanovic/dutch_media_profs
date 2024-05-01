@@ -8,6 +8,7 @@ date: "2023-12-06"
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(eval = FALSE)
 ```
 
 This script processes the output of our python scrip that pings Google Search API
@@ -16,9 +17,12 @@ and outputs the first result.
 ```{r warning = F, message = F}
 library(groundhog)
 packages_to_load <- c("readr", "dplyr", "stringr", "strex",
-                      "stringdist")
+                      "stringdist", "RPostgres",
+                      "DBI", "RODBC", "odbc")
 groundhog.library(packages_to_load, date = "2023-12-01")
 ```
+
+# Tidying up the names
 
 Loading the output of the python script from our results folder:
 ```{r warning = F, message = F}
@@ -127,13 +131,7 @@ handle_dataframe <- cbind.data.frame(name = names,
 
 ```
 
-
-Check the results:
-```{r}
-knitr::kable(handle_dataframe[1:10,], "html")
-```
-
-Flag suspicious handles:
+Get the string similarity between the Twitter name and the professor name:
 ```{r}
 # tidy up the extracted names
 handle_dataframe$name_extracted <- tolower(handle_dataframe$name_extracted)
@@ -143,9 +141,113 @@ handle_dataframe$name_extracted <- gsub("[^[:alnum:] ]", "", handle_dataframe$na
 handle_dataframe$string_sim <- stringsim(handle_dataframe$name_extracted, handle_dataframe$name)
 ```
 
-
 Write the results out for manual checking:
 ```{r}
 write_csv(handle_dataframe, "twitter_handles/handle_extraction_raw.csv")
+```
+
+# Matching professors and names
+
+We have manually checked the handles and noted the ones that match professors
+in our dataset.
+
+Load this manually evaluated table and only leve in the handles matching our
+professors:
+```{r warning = F, message=F}
+checked_handles <- read_csv("twitter_handles/handle_extraction_checked.csv")
+
+# filter by "correct" field (actual matches are denoted as "Y") and
+# select relevant columns only
+checked_handles <- checked_handles %>%
+  filter(., correct == "Y")%>%
+  select(name, twitter_handle, link)
+
+# dedupe
+checked_handles$dupl <- duplicated(checked_handles)
+
+checked_handles <- checked_handles %>%
+  filter(., dupl == FALSE)%>%
+  select(-dupl)
+
+# replace bad encodings
+checked_handles$first_last <- str_replace_all(checked_handles$name, "\\Ã©", "é")
+checked_handles$first_last <- str_replace_all(checked_handles$first_last, "\\Ã¨", "è")
+checked_handles$first_last <- str_replace_all(checked_handles$first_last, "\\Ã«", "ë")
+checked_handles$first_last <- str_replace_all(checked_handles$first_last, "Ã¶¨", "ö")
+checked_handles$first_last <- str_replace_all(checked_handles$first_last, "Ã¶", "ö")
+checked_handles$first_last <- str_replace_all(checked_handles$first_last, "\\Ã¼", "ü")
+checked_handles$first_last <- str_replace_all(checked_handles$first_last, "\\Ã¡", "á")
+checked_handles$first_last <- str_replace_all(checked_handles$first_last, "\\Ã³", "ó")
+checked_handles$first_last <- str_replace_all(checked_handles$first_last, "\\Ã£", "ã")
+checked_handles$first_last <- str_replace_all(checked_handles$first_last, "\\Ã¤", "ä")
+checked_handles$first_last <- str_replace_all(checked_handles$first_last, "\\Ã¸l", "ø")
+```
+
+In total, we find handles for accounts of 1361 professors in our dataset
+(almost 20% of all professors in out dataset):
+```{r}
+nrow(checked_handles)
+
+round(nrow(checked_handles)/6830, 3)*100
+```
+Load professors' information and match it with their handles.
+
+First, connect to our database:
+```{r}
+# default port here, change if needed
+port <- 5432
+# username
+user <- ""
+# password
+password <- ""
+# database name
+database_name <- ""
+
+con <- RPostgres::dbConnect(RPostgres::Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+
+```
+
+Load the professor profiles:
+```{r message = F, warning = F}
+profs_full <- dbReadTable(con, "narcis_prof_info")
+```
+
+And now match with handles by first+last name:
+```{r}
+profs_full$first_last <- tolower(paste(profs_full$first, profs_full$last))
+
+
+prof_twitter_handles <- merge(profs_full[c("profile_id", "first_last")],
+                              checked_handles[c("twitter_handle", "link", "first_last")],
+                              by = "first_last",
+                              all.y = TRUE)
+
+# one is still not being recognize, so manually replace
+prof_twitter_handles$profile_id[which(is.na(prof_twitter_handles$profile_id))] <- "https://www.narcis.nl/person/RecordID/PRS1337845"
+
+# and it appears there are some duplicates?
+check_dupl <- prof_twitter_handles %>%
+  group_by(twitter_handle)%>%
+  summarise(n = n())%>%
+  arrange(-n)
+
+# drop the ones that are linked wrong after checking manually:
+drop <- c("https://www.narcis.nl/person/RecordID/PRS1242401",
+          "https://www.narcis.nl/person/RecordID/PRS1305610",
+          "https://www.narcis.nl/person/RecordID/PRS1270096",
+          "https://www.narcis.nl/person/RecordID/PRS1290119")
+
+
+prof_twitter_handles <- filter(prof_twitter_handles,
+                               ! profile_id %in% drop)          
+```
+
+Write these out to the database:
+```{r}
+dbWriteTable(con, "twitter_handle_table", prof_twitter_handles)
 ```
 

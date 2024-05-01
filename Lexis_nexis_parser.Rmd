@@ -3,6 +3,8 @@ title: "Nexis_data_handling"
 author: "Ana Macanovic"
 date: "2023-12-06"
 ---
+This script reads in and parses data from LexisNexis.
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -15,31 +17,21 @@ Load the packages:
 ```{r message=  F, warning = F}
 library(groundhog)
 packages_to_load <- c("readr", "dplyr", "stringr", "tidyr", "tidyverse",
-                      "RPostgres", "lubridate",
+                      "RPostgres", "lubridate", "readtext",
                       "DBI", "RODBC", "odbc")
 groundhog.library(packages_to_load, date = "2023-12-01")
+
+packages_to_load <- c("openalexR")
+groundhog.library(packages_to_load, date = "2024-03-01")
 ```
 
 Load the R package by J. Grubber that conveniently tidies up the LexisNexis data:
-```{r}
+```{r message=  F, warning = F}
 # remotes::install_github("JBGruber/LexisNexisTools")
 library("LexisNexisTools")
 ```
 
 # Tidy up professor data from NARCIS
-
-Load the professor profiles:
-```{r message = F, warning = F}
-load("raw_data/media_profs_profiles.rda")
-profs <- read_csv("raw_data/dutch_profs_urls.csv")
-
-# merge the profs with their ORCIDs
-colnames(profs)[c(1,7)] <- c("id", "profile_id")
-
-profs_full <- merge(profs,
-                    metadf[, c(1:4, 361)],
-                    by = "profile_id")
-```
 
 Connect to database:
 ```{r}
@@ -60,61 +52,25 @@ con <- RPostgres::dbConnect(RPostgres::Postgres(),
 
 ```
 
-# Data coverage
+# Loading in the data
 
-## Reading in the LexisNexis result counts
+Script "lexis_helper_compile.R" compiles data from various download sub-folders, 
+cleans it, and removes professors we do not consider due to ambiguous names.
 
-```{r message = F, warning = F}
-folder <- "../lexis_crawl/downloads/hits"
+Below, we leave an example of the code we use to extract the data from files
+downloaded from Lexis Uni.
 
-
-result_count_list <- list.files(path = folder,
-                                pattern="*.csv", 
-                                full.names = T) %>% 
-  map_df(~read_csv(.))
-
-result_count_list <- result_count_list[, -1]
-```
-
-
-## Checking the count of downloaded files
-
+Load the word files from the individual professor zips and extract the 
+article texts:
 ```{r}
-folder <- "../lexis_crawl/downloads/zipfiles"
-all_docs <- lnt_read(x = folder, convert_date = F)
+folder <- "../downloads/zipfiles"
+all_docs <- lnt_read(x = folder, convert_date = F, extract_paragraphs = F)
 meta_data <- all_docs@meta
 meta_data$profile_id <- str_split_i(meta_data$Source_File, "/zips/", 2)
 meta_data$profile_id <- str_split_i(meta_data$profile_id, "_", 1)
-
-articles_output <- meta_data %>%
-  group_by(profile_id)%>%
-  summarise(retrieved = n())
 ```
 
-Merge:
-```{r}
-result_count_list <- merge(result_count_list,
-                           articles_output,
-                           all.x = TRUE, by = "profile_id")
-
-result_count_list$retrieved <- ifelse(is.na(result_count_list$retrieved),
-                                      0,
-                                      result_count_list$retrieved)
-
-result_count_list$share_retrieved <- result_count_list$retrieved / result_count_list$hits_identified * 100
-```
-
-Get missing articles and their indices to go back and collect them:
-```{r}
-missing_indices <- filter(result_count_list, 
-                          share_retrieved < 100)
-
-missing_indices$first_index_pending <- missing_indices$retrieved + 1
-missing_indices$last_index_pending <- missing_indices$hits_identified
-
-write_csv(missing_indices, "../lexis_crawl/missing_indices.csv")
-```
-
+# Clean the LexisNexis data
 
 Tidy up the dates:
 ```{r}
@@ -187,213 +143,33 @@ news_mentions <- merge(meta_data_sel,
 news_mentions$profile_id <- paste0("https://www.narcis.nl/person/RecordID/", news_mentions$profile_id)
 ```
 
+Filter our professors we do not want to consider due to ambiguous names:
+```{r}
+exclude_profs <- c('PRS1260654', 'PRS1264232', 'PRS1290223',
+                   'PRS1290912','PRS1291282', 'PRS1298775',
+                   'PRS1299517', 'PRS1303190', 'PRS1308364',
+                   'PRS1313821', 'PRS1314292', 'PRS1315919',
+                   'PRS1316094', 'PRS1321926', 'PRS1324504',
+                   'PRS1325131', 'PRS1329040', 'PRS1330089',
+                   'PRS1331627', 'PRS1331980', 'PRS1332877',
+                   'PRS1334007', 'PRS1338934', 'PRS1341238',
+                   'PRS1349009', 'PRS1350774', 'PRS1260039',
+                   'PRS1265665', 'PRS1276211', 'PRS1336203',
+                   'PRS1329967', 'PRS1334028')
+```
+
+
+# Article classification
 Denote whether an article is from a national, regional or specialized Dutch source, or perhaps a higher-profile international source:
 ```{r}
-national_news_nl <- c(
-  "De Telegraaf",
-  "De Telegraaf.nl",
-  "Algemeen Dagblad",
-  "AD/Algemeen Dagblad.nl",
-  "AD/Algemeen Dagblad",
-  "Metro",
-  "Metro (NL)",
-  "De Volkskrant",
-  "De Volkskrant.nl",
-  "NRC Handelsblad",
-  "Trouw",
-  "Trouw.nl",
-  "Het Financieele Dagblad",
-  "Het Financieele Dagblad (Abstract)/MD Info",
-  "FD.nl",
-  "Reformatorisch Dagblad",
-  "Nederlands Dagblad",
-  "NRC Next",
-  "NRC",
-  "NRC.NEXT",
-  "NRC.nl",
-  "Het Financieele Dagblad (Abstract)/MD Info"
-)
-
-regional_news_nl <- c(
-  "De Limburger",
-  "Gelderlander",
-  "De Twentsche Courant Tubantia",
-  "De Gelderlander",
-  "De Gelderlander.nl",
-  "Stentor",
-  "Noordhollands Dagblad",
-  "Dagblad van het Noorden",
-  "Brabants Dagblad",
-  "BN/DeStem",
-  "BN De Stem.nl",
-  "Tubantia",
-  
-  "Tubantia.nl",
-  "Eindhovens Dagblad",
-  "BN De Stem",
-  "Leeuwarder Courant",
-  "Het Parool",
-  "Het Parool.nl",
-  "Provinciale Zeeuwse Courant",
-  "Haarlems Dagblad",
-  "Leidsch Dagblad",
-  "De Gooi- en Eemlander",
-  "Nieuwsblad Noordoost-Friesland",
-  "Steenwijker Courant",
-  "Friesch Dagblad",
-  "AD/Haagsche Courant",
-  "AD/Rotterdams Dagblad",
-  "AD/Utrechts Nieuwsblad",
-  "Noordhollands Dagblad",
-  "AD/Groene Hart",
-  "AD/De Dordtenaar",
-  "AD/Amersfoortse Courant",
-  "AD/Rivierenland",
-  "Limburgs Dagblad",
-  "Brabants Dagblad.nl",
-  "Eindhovens Dagblad.nl",
-  "De Stentor.nl",
-  "De Stentor",
-  "De Stentor/Zwolse Courant",
-  "De Stentor/Gelders Dagblad",
-  "De Stentor/Zutphens Dagblad",
-  "De Stentor/Nieuw Kamper Dagblad",
-  "De Stentor/Dagblad Flevoland",
-  "De Stentor/Veluws Dagblad",
-  "De Stentor/Deventer Dagblad",
-  "Dagblad Tubantia/Twentsche Courant",
-  "de limburger.nl",
-  "De Stentor/Apeldoornse Courant",
-  "DAGBLAD VAN HET NOORDEN",
-  "De Stentor/Sallands Dagblad",
-  "De Stentor/Gelders Dagblad",
-  "De Stentor/Zutphens Dagblad",
-  "De Stentor/Zwolse Courant",
-  "De Groene Amsterdammer",
-  "De Stentor/Apeldoornse Courant",
-  "De Stentor/Dagblad Flevoland",
-  "Dagblad van het Noorden.nl",
-  "Noordhollands Dagblad.nl",
-  "De Stentor/Deventer Dagblad",
-  "Rotterdams Dagblad",
-  "Friesch Dagblad",
-  "Haarlems Dagblad.nl",
-  "Meppeler Courant",
-  "IJmuider Courant.nl",
-  "Dagblad voor Zuidwest-Nederland",
-  "Zwolse Courant",
-  "Ijmuider Courant",
-  "Leidsch Dagblad.nl",
-  "Utrechts Nieuwsblad",
-  "Haagsche Courant",
-  "Leeuwarder Courant.nl",
-  "De Stentor/Nieuw Kamper Dagblad",
-  "Amersfoortse Courant",
-  "Goudsche Courant",
-  "Friesch Dagblad.nl",
-  "Dagblad Rivierenland",
-  "PZC.nl",
-  "Woerdense Courant",
-  "Goudse post",
-  "Tubantia.nl",
-  "nu.nl",
-  "Voorburgse Courant",
-  "De Stad Wageningen",
-  "De Stem",
-  "Knack Magazine",
-  "IJmuider Courant",
-  "De Brug Nijmegen",
-  "de Volkskrant (Abstract) / MD Info")
-
-professional_pub_nl <- c(
-  "De Accountant",
-  "Cobouw",
-  "Boerderij",
-  "Logistiek",
-  "Psychologie Magazine",
-  "Boerderij Vandaag",
-  "Nieuwsblad Transport",
-  "Vrij Nederland",
-  "Food & Agri business",
-  "Pakblad",
-  "Nieuwsblad Transport",
-  "restaurantonline.co.uk",
-  "Groenten en Fruit",
-  "Pluimveehouderij",
-  "Logistiek Krant")
-
-high_profile_int <- c(
-  "The Times Higher Education Supplement",
-  "Financial Times (London, England)",
-  "The New York Times", 
-  "Business Wire",
-  "The Times (London)",
-  "MailOnline",
-  "Guardian.com",
-  "The Guardian - Final Edition",
-  "Guardian Weekly",
-  "Asian News International (ANI)",
-  "Associated Press International",
-  "Associated Press Online",
-  "FT.com",
-  "The Toronto Star",
-  "thetimes.co.uk",
-  "Xinhua General News Service",
-  "FT.com Headlines",
-  "The Guardian (London)",
-  "The International Herald Tribune",
-  "The Guardian",
-  "CNN Wire",
-  "telegraph.co.uk",
-  "The Daily Telegraph (London)",
-  "The Independent (United Kingdom)",
-  "The Independent (London)",
-  "The Guardian(London)",
-  "Independent.co.uk",
-  "CNN.com",
-  "The Sunday Times (London)",
-  "NEW YORK TIMES")
-
-# government and press releases
-pr_govt <- c("Targeted News Service", 
-            "US Fed News",
-            "US Official News",
-            "PR Newswire", 
-            "M2 PressWIRE", 
-            "Premium Official News",
-            "European Union News", 
-            "TendersInfo", 
-            "GlobeNewswire",
-            "PR Newswire Europe",
-            "PR.com",
-            "ENP Newswire",
-            "FinancialWire")
-
-# university newspapers
-uni_news <- c("University Wire")
-
-# news bites
-news_bites <- c("News Bites - Private Companies",
-                "News Bites - People in Business",
-                "News Bites - Benelux: Netherlands",
-                "News Bites - Nordic: Denmark",
-                "OzEquities News Bites (Australia)",
-                "Australian Company News Bites - Stock Report",
-                "News Bites - Western Europe: Spain",
-                "News Bites - Western Europe : Germany",
-                "News Bites - Western Europe",
-                "News Bites - Western Europe: Switzerland",
-                "News Bites - Nordic: Sweden")
-
-# irrelevant sources
-irrelevant <-	"FD (Fair Disclosure) Wire"
+source("resources/altmetric_news_outlet_classification.R")
 ```
+
 
 Remove spaces around / for easier identification:
 ```{r}
 news_mentions$newspaper_tidy <- str_replace(news_mentions$newspaper, " \\/ ", "\\/")
 ```
-
 
 Denote whether the article belongs to any of these, and then also exclude
 one source that works a lot with newsletters, but not actual news:
@@ -449,94 +225,85 @@ news_mentions$source_type <- ifelse(news_mentions$national_nl == 1,
                                                                                             "other")))))))))
 ```
 
-Write this out to our database:
+See if the source is an online outlet/website:
 ```{r}
-dbWriteTable(con, "lexis_nexis_mentions", news_mentions)
+news_mentions$online_resource <- str_detect(tolower(news_mentions$newspaper_tidy), "\\.nl")
+news_mentions$online_resource_2 <- str_detect(tolower(news_mentions$newspaper_tidy), "\\.co")
+news_mentions$online_resource <- ifelse(news_mentions$online_resource == TRUE | news_mentions$online_resource_2 == TRUE,
+                                        1,
+                                        0)
+
+news_mentions <- news_mentions %>% select(-online_resource_2)
 ```
 
 
-Add in professor gender:
-```{r}
-gender_table <- dbReadTable(con, "gender_table")
+## See mentions of professor's names AND institutions
 
-news_mentions_gender <- merge(news_mentions[, -1],
-                              gender_table[c("profile_id", "inferred_gender")],
-                              by = "profile_id")
+For robustness checks, we might want to know which articles include both the
+professor's last name and any of the institutions they have been affiliated with
+during their lifetimes. This could help us exclude articles about people with the
+same name and some sort of academic/university affiliation, but who are not our
+professor in question. 
+
+Read in the institutional search:
+```{r}
+all_prof_inst_search <- dbReadTable(con, "oa_affiliation_string_search")
 ```
 
 
-Deduplicate mentions to remove multiple regional newspapers discussing the same
+Now, merge the professor IDs with Lexis outputs:
+```{r}
+colnames(all_prof_inst_search)[1] <- "profile_id"
+news_mentions_profs <- merge(news_mentions,
+                             all_prof_inst_search,
+                             by = "profile_id",
+                             all.x = TRUE)
+```
+
+Now also include their last name:
+```{r}
+profs_full <- dbReadTable(con, "narcis_prof_info")
+
+news_mentions_profs <- merge(news_mentions_profs,
+                             profs_full[c("profile_id", "last")],
+                             by = "profile_id")
+
+# lowercase text and uni strings
+news_mentions_profs$article_lowercase <- tolower(news_mentions_profs$article)
+news_mentions_profs$string_match_names_lower <- tolower(news_mentions_profs$string_match_names)
+
+# remove special characters from the string match columns
+news_mentions_profs$string_match_names_lower <- gsub("[\U4E00-\U9FFF\U3000-\U303F]", "", news_mentions_profs$string_match_names_lower)
+news_mentions_profs$string_match_names_lower <- gsub("（)", "", news_mentions_profs$string_match_names_lower)
+news_mentions_profs$string_match_names_lower <- gsub("\\b\\b|", "", news_mentions_profs$string_match_names_lower)
+news_mentions_profs$string_match_names_lower <- gsub("\\)", "", news_mentions_profs$string_match_names_lower)
+news_mentions_profs$string_match_names_lower <- gsub("\\(", "", news_mentions_profs$string_match_names_lower)
+```
+
+Detect affiliation:
+```{r}
+news_mentions_profs$affiliation <- str_detect(news_mentions_profs$article_lowercase, news_mentions_profs$string_match_names_lower)
+```
+
+
+Flag mentions to remove multiple regional newspapers discussing the same
 person:
 ```{r}
-news_mentions_gender_dedupe <- news_mentions_gender
-news_mentions_gender_dedupe$dupl <- duplicated(news_mentions_gender[c("profile_id", "headline", "length")])
-
-news_mentions_gender_dedupe <- news_mentions_gender_dedupe %>%
-  filter(dupl == FALSE)%>%
-  select(-dupl)
+news_mentions_profs$regional_duplicate <- duplicated(news_mentions_profs[c("profile_id", "headline", "length")])
 ```
 
-
-
-Source breakdown per gender?
+Drop redundant fields:
 ```{r}
-breakdown <- news_mentions_gender_dedupe %>%
-  filter(! str_remove(profile_id, "https://www.narcis.nl/person/RecordID/") %in% missing_indices$profile_id)%>%
-  group_by(inferred_gender, source_type)%>%
-  summarise(n = n())%>%
-  pivot_wider(names_from = inferred_gender, values_from = n)
-
-breakdown$share_articles_m <- round(breakdown$m / sum(breakdown$m), 3)*100
-breakdown$share_articles_w <- round(breakdown$w / sum(breakdown$w), 3)*100
-
-# average articles per gender 
-prof_counts <- filter(gender_table,
-                      profile_id %in% unique(news_mentions_gender_dedupe$profile_id))%>%
-  group_by(inferred_gender)%>%
-  summarise(profs = n())%>%
-  pivot_wider(names_from = inferred_gender, values_from = profs)
-     
-colnames(prof_counts) <- paste0("count_", colnames(prof_counts))    
-
-
-breakdown$count_prof_m <- prof_counts$count_m
-breakdown$count_prof_w <- prof_counts$count_w
-
-breakdown$avg_per_m <-  round(breakdown$m / breakdown$count_prof_m, 3)
-breakdown$avg_per_w <-  round(breakdown$w / breakdown$count_prof_w, 3)
-
-breakdown2 <- breakdown
-breakdown2$share_w_profs <- round(breakdown2$count_prof_w/(breakdown2$count_prof_w + breakdown2$count_prof_m), 3)
-breakdown2$share_w_mentions <- round(breakdown2$w/(breakdown2$w + breakdown2$m), 3)
-breakdown2 <- breakdown2 %>%
-  select(source_type, share_w_profs, share_w_mentions)
-
+news_mentions_profs <- news_mentions_profs %>%
+    select(-string_match_names, -last, -article_lowercase, -string_match_names_lower)
 ```
 
-Genders:
+
+Write this out to our database:
 ```{r}
-result_count_list <- merge(result_count_list,
-                           gender_table[c("profile_id", "inferred_gender")],
-                           by = "profile_id")
-
-gender_hits <- result_count_list %>%
-  group_by(inferred_gender)%>%
-  summarise(n = n(),
-            avg_hits = mean(hits_identified),
-            total_hits = sum(hits_identified))
-
-gender_hits$share_hits <- round(gender_hits$total_hits/sum(gender_hits$total_hits), 2)*100
-
-gender_hits
+dbWriteTable(con, "lexis_nexis_mentions", news_mentions_profs)
 ```
 
-
-```{r}
-zeroes <- result_count_list %>%
-  group_by(inferred_gender)%>%
-  summarise(n = n(),
-            zeroes = sum(hits_identified > 132))
-
-zeroes$share <- zeroes$zeroes/zeroes$n
 ```
+
 

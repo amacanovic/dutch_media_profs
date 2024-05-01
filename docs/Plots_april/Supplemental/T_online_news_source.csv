@@ -1,0 +1,46 @@
+Field,News type,N professors - men,N professors - women,News mentions - men,News mentions - women,Avg. news mentions - men,Avg. news mentions - women,Share mentions per source - men,Share mentions per source - women
+All fields,All news,4990,1801,528005,167676,105.813,93.102,1,1
+Arts & Humanities,All news,247,110,1334,530,5.401,4.818,1,1
+Arts & Humanities,Finance news,247,110,25,8,0.101,0.073,0.019,0.015
+Arts & Humanities,General interest,247,110,223,105,0.903,0.955,0.167,0.198
+Arts & Humanities,General interest - local,247,110,98,58,0.397,0.527,0.073,0.109
+Arts & Humanities,Medical portals,247,110,14,11,0.057,0.1,0.01,0.021
+Arts & Humanities,News aggregator,247,110,30,10,0.121,0.091,0.022,0.019
+Arts & Humanities,Online blog,247,110,590,134,2.389,1.218,0.442,0.253
+Arts & Humanities,Other news,247,110,176,91,0.713,0.827,0.132,0.172
+Arts & Humanities,Popular science news,247,110,50,41,0.202,0.373,0.037,0.077
+Arts & Humanities,Science news,247,110,75,37,0.304,0.336,0.056,0.07
+Arts & Humanities,Science news aggregator,247,110,53,35,0.215,0.318,0.04,0.066
+Medicine,All news,1283,546,258801,102418,201.716,187.579,1,1
+Medicine,Finance news,1283,546,10591,3661,8.255,6.705,0.041,0.036
+Medicine,General interest,1283,546,35183,16088,27.422,29.465,0.136,0.157
+Medicine,General interest - local,1283,546,42544,14800,33.16,27.106,0.164,0.145
+Medicine,Medical portals,1283,546,50918,19210,39.687,35.183,0.197,0.188
+Medicine,News aggregator,1283,546,9851,3549,7.678,6.5,0.038,0.035
+Medicine,Online blog,1283,546,31197,12625,24.316,23.123,0.121,0.123
+Medicine,Other news,1283,546,52924,22202,41.25,40.663,0.204,0.217
+Medicine,Popular science news,1283,546,5242,2572,4.086,4.711,0.02,0.025
+Medicine,Science news,1283,546,14140,5387,11.021,9.866,0.055,0.053
+Medicine,Science news aggregator,1283,546,6211,2324,4.841,4.256,0.024,0.023
+STEM,All news,1841,381,207637,36119,112.785,94.801,1,1
+STEM,Finance news,1841,381,6228,754,3.383,1.979,0.03,0.021
+STEM,General interest,1841,381,35630,5914,19.354,15.522,0.172,0.164
+STEM,General interest - local,1841,381,16535,2858,8.982,7.501,0.08,0.079
+STEM,Medical portals,1841,381,8734,2046,4.744,5.37,0.042,0.057
+STEM,News aggregator,1841,381,6875,1291,3.734,3.388,0.033,0.036
+STEM,Online blog,1841,381,42924,7470,23.316,19.606,0.207,0.207
+STEM,Other news,1841,381,45367,8177,24.643,21.462,0.218,0.226
+STEM,Popular science news,1841,381,7767,1385,4.219,3.635,0.037,0.038
+STEM,Science news,1841,381,23777,3998,12.915,10.493,0.115,0.111
+STEM,Science news aggregator,1841,381,13800,2226,7.496,5.843,0.066,0.062
+Social sciences,All news,1619,764,60233,28609,37.204,37.446,1,1
+Social sciences,Finance news,1619,764,2695,1188,1.665,1.555,0.045,0.042
+Social sciences,General interest,1619,764,13118,6683,8.103,8.747,0.218,0.234
+Social sciences,General interest - local,1619,764,6442,3690,3.979,4.83,0.107,0.129
+Social sciences,Medical portals,1619,764,3236,1582,1.999,2.071,0.054,0.055
+Social sciences,News aggregator,1619,764,1475,736,0.911,0.963,0.024,0.026
+Social sciences,Online blog,1619,764,13152,5306,8.124,6.945,0.218,0.185
+Social sciences,Other news,1619,764,12650,5925,7.813,7.755,0.21,0.207
+Social sciences,Popular science news,1619,764,3198,1522,1.975,1.992,0.053,0.053
+Social sciences,Science news,1619,764,2650,1234,1.637,1.615,0.044,0.043
+Social sciences,Science news aggregator,1619,764,1617,743,0.999,0.973,0.027,0.026

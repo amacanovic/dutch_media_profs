@@ -14,7 +14,9 @@ exclude:
   - "oa_database"
   - "resources"
   - "panel_datasets"
+  - "old_panel_datasets"
   - "temp_altm"
+  - "Old_scripts"
 
   
 bibliography: references.bib
@@ -42,12 +44,12 @@ navbar:
         href: Data_descriptives.html
       - text: "6. Panel data compilation"
         href: Panel_data_compilation.html
-      - text: "7. Share of women in fame plots"
-        href: exploring_fame.html
       - text: "8. Data plots"
         href: Various_plots.html
       - text: "9. Regression models"
         href: Various_regressions.html
+      - text: "10. Various analyses - April"
+        href: April_analyses.html
 
 
   right:

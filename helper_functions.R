@@ -1261,3 +1261,162 @@ coauthor_data_compiler <- function(profile_id,
   return(prof_panel_merge)
 }
 
+### transition matrices
+
+gen_transition_matrix <- function(dataframe,
+                                  names_col = "period",
+                                  values_col = "pub_perc",
+                                  split_by = "gender",
+                                  brackets = 10){
+  
+  if (! split_by %in% c("gender", "gender & field", "field")){
+    stop('split_by has to be one of: "gender", "gender & field"')
+  }
+  
+  if (split_by == "gender"){
+    prof_panel_periods <- dataframe %>%
+      group_by(profile_id, general_field, entry_batch_2023, period, inferred_gender)%>%
+      summarise(
+        count_pubs = mean(count_pubs, na.rm = TRUE),
+        cited_by = mean(cited_by, na.rm = TRUE),
+        alt_online_all = mean(alt_online_all, na.rm = TRUE),
+        alt_twitter = mean(alt_twitter, na.rm = TRUE),
+        news = mean(news_all, na.rm = TRUE))%>%
+      group_by(general_field, entry_batch_2023, period)%>%
+      mutate(
+        pub_perc = ntile(-count_pubs, brackets),
+        cit_perc = ntile(-cited_by, brackets),    
+        online_perc = ntile(-alt_online_all, brackets),
+        news_perc = ntile(-news, brackets),
+        twitter_perc = ntile(-alt_twitter, brackets))
+    
+    pub_transitions <- prof_panel_periods %>%
+      ungroup()%>%
+      select(profile_id, inferred_gender, period, pub_perc)%>%
+      pivot_wider(names_from = period, values_from = pub_perc)%>%
+      filter(!is.na(first) & !is.na(second))
+    
+    cit_transitions <- prof_panel_periods %>%
+      ungroup()%>%
+      select(profile_id, inferred_gender, period, cit_perc)%>%
+      pivot_wider(names_from = period, values_from = cit_perc)%>%
+      filter(!is.na(first) & !is.na(second))
+    
+    online_news_transitions <- prof_panel_periods %>%
+      ungroup()%>%
+      select(profile_id, inferred_gender, period, online_perc)%>%
+      pivot_wider(names_from = period, values_from = online_perc)%>%
+      filter(!is.na(first) & !is.na(second))
+    
+    news_transitions <- prof_panel_periods %>%
+      ungroup()%>%
+      select(profile_id, inferred_gender, period, news_perc)%>%
+      pivot_wider(names_from = period, values_from = news_perc)%>%
+      filter(!is.na(first) & !is.na(second))
+    
+    twitter_transitions <- prof_panel_periods %>%
+      ungroup()%>%
+      select(profile_id, inferred_gender, period, twitter_perc)%>%
+      pivot_wider(names_from = period, values_from = twitter_perc)%>%
+      filter(!is.na(first) & !is.na(second))
+    
+    matrix_list <- list()
+    
+    list_m <- c("pub_transitions", "cit_transitions",
+                "online_news_transitions", "news_transitions", 
+                "twitter_transitions")
+    
+    for (transition in list_m){
+      matrix_get <- get(transition)
+      
+      transition_matrix <- markovchainFit(matrix_get[c("first", "second")])$estimate@transitionMatrix
+      transition_matrix_men <- markovchainFit(matrix_get[which(matrix_get$inferred_gender == "m"), c("first", "second")])$estimate@transitionMatrix
+      transition_matrix_women <- markovchainFit(matrix_get[which(matrix_get$inferred_gender == "w"), c("first", "second")])$estimate@transitionMatrix
+      
+      matrix_sublist <- list()
+      matrix_sublist[['all']] <- transition_matrix
+      matrix_sublist[['men']] <- transition_matrix_men
+      matrix_sublist[['women']] <- transition_matrix_women
+      matrix_list[[transition]] <- matrix_sublist
+      
+    }
+  }
+  
+  
+  if (split_by == "gender & field"){
+    prof_panel_periods <- dataframe %>%
+      group_by(profile_id, general_field, entry_batch_2023, period, inferred_gender)%>%
+      summarise(
+        count_pubs = mean(count_pubs, na.rm = TRUE),
+        cited_by = mean(cited_by, na.rm = TRUE),
+        alt_online_all = mean(alt_online_all, na.rm = TRUE),
+        alt_twitter = mean(alt_twitter, na.rm = TRUE),
+        news = mean(news_all, na.rm = TRUE))%>%
+      group_by(general_field, entry_batch_2023, period)%>%
+      mutate(
+        pub_perc = ntile(-count_pubs, brackets),
+        cit_perc = ntile(-cited_by, brackets),    
+        online_perc = ntile(-alt_online_all, brackets),
+        news_perc = ntile(-news, brackets),
+        twitter_perc = ntile(-alt_twitter, brackets))
+    
+    pub_transitions <- prof_panel_periods %>%
+      ungroup()%>%
+      select(profile_id, inferred_gender, general_field, period, pub_perc)%>%
+      pivot_wider(names_from = period, values_from = pub_perc)%>%
+      filter(!is.na(first) & !is.na(second))
+    
+    cit_transitions <- prof_panel_periods %>%
+      ungroup()%>%
+      select(profile_id, inferred_gender, general_field, period, cit_perc)%>%
+      pivot_wider(names_from = period, values_from = cit_perc)%>%
+      filter(!is.na(first) & !is.na(second))
+    
+    online_news_transitions <- prof_panel_periods %>%
+      ungroup()%>%
+      select(profile_id, inferred_gender, general_field, period, online_perc)%>%
+      pivot_wider(names_from = period, values_from = online_perc)%>%
+      filter(!is.na(first) & !is.na(second))
+    
+    news_transitions <- prof_panel_periods %>%
+      ungroup()%>%
+      select(profile_id, inferred_gender, general_field, period, news_perc)%>%
+      pivot_wider(names_from = period, values_from = news_perc)%>%
+      filter(!is.na(first) & !is.na(second))
+    
+    twitter_transitions <- prof_panel_periods %>%
+      ungroup()%>%
+      select(profile_id, inferred_gender, general_field, period, twitter_perc)%>%
+      pivot_wider(names_from = period, values_from = twitter_perc)%>%
+      filter(!is.na(first) & !is.na(second))
+    
+    list_m <- c("pub_transitions", "cit_transitions",
+                "online_news_transitions", "news_transitions", 
+                "twitter_transitions")
+    
+    matrix_list <- list()
+    for (transition in list_m){
+      
+      fields <- c("STEM", "Social sciences", "Medicine", "Arts & Humanities")
+      field_sublist <- c()
+      for (field in fields){
+        matrix_sublist <- list()
+        matrix_get <- get(transition)
+        matrix_get <- matrix_get[which(matrix_get$general_field == field),]
+        transition_matrix <- markovchainFit(matrix_get[c("first", "second")])$estimate@transitionMatrix
+        transition_matrix_men <- markovchainFit(matrix_get[which(matrix_get$inferred_gender == "m"), c("first", "second")])$estimate@transitionMatrix
+        transition_matrix_women <- markovchainFit(matrix_get[which(matrix_get$inferred_gender == "w"), c("first", "second")])$estimate@transitionMatrix
+        
+        matrix_sublist[['all']] <- transition_matrix
+        matrix_sublist[['men']] <- transition_matrix_men
+        matrix_sublist[['women']] <- transition_matrix_women
+        field_sublist[[field]] <- matrix_sublist
+      }
+      
+      matrix_list[[transition]] <- field_sublist
+    }
+    
+  }
+  
+  return(matrix_list)
+}

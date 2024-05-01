@@ -59,14 +59,12 @@ po/*~
 /oa_database/
 /resources/
 /panel_datasets/
+/old_panel_datasets/
 /temp_altm/
-
-
+/Old_scripts/
 #/docs/ 
 
 # .csv files
-
-
 
 name_data/temp_name_webpages/origin_df.rda
 

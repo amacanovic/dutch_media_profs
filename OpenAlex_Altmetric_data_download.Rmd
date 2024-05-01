@@ -1252,3 +1252,109 @@ for (i in 1:length(batches)){
 # }
 ```
 
+
+
+## Institutional affiliations
+
+Load professor publications:
+```{r}
+oa_pubs_unique <- dbReadTable(con, "oa_prof_pubs_unique")
+oa_prof_pub_matching <- dbReadTable(con, "oa_prof_pub_match")
+
+oa_ids <- dbReadTable(con, "oa_id_mapping")
+```
+
+For each professor, construct a list of affiliations they've had:
+```{r}
+list_profs <- unique(oa_ids$oa_id)
+all_results <- data.frame(matrix(NA, ncol = 7, nrow = 0))
+
+for (i in 1:length(list_profs)){
+  # get the list
+  prof <- list_profs[i]
+  get_api <- fromJSON(paste0("https://api.openalex.org/authors?filter=ids.openalex:", prof))
+  
+  if ('affiliations' %in% names(get_api[["results"]])){
+    result_institutions <- get_api[["results"]][["affiliations"]][[1]][["institution"]]
+    if (!all(is.na(result_institutions))){
+      result_institutions$au_id <- prof
+      all_results <- rbind.data.frame(all_results,
+                                      result_institutions)
+    }
+  }
+  print(i)
+}
+
+
+all_results_sel <- all_results %>%
+  select(-lineage)
+
+# write out a table
+dbWriteTable(con, "oa_prof_affiliations", all_results_sel)
+```
+
+For each unique institution, also get alternative names:
+```{r}
+unique_institutions <- unique(all_results_sel$id)
+all_institution_names <- data.frame(matrix(NA, ncol = 2, nrow = 0))
+
+for (inst in unique_institutions){
+  get_api <- fromJSON(paste0("https://api.openalex.org/institutions?filter=ids.openalex:", inst))
+  if ('display_name_alternatives' %in% names(get_api[["results"]])){
+    alt_names <- get_api[["results"]][["display_name_alternatives"]][[1]]
+    name <- get_api[["results"]][["display_name"]]
+    institution_name_list <- paste(c(name,alt_names), collapse = ", ")
+    # get a list for string matching
+    institution_name_list_str_match <- c(name, alt_names)
+    institution_name_list_str_match <- paste0(paste0("\\b", institution_name_list_str_match), "\\b")
+    institution_name_list_str_match <- paste(institution_name_list_str_match, collapse = "|")
+    
+    institution_output <- cbind.data.frame(id = inst,
+                                           display_names = institution_name_list,
+                                           string_match_names = institution_name_list_str_match)
+    
+    all_institution_names <- rbind.data.frame(all_institution_names,
+                                              institution_output)
+  }
+  
+  print(which(unique_institutions == inst))
+  
+}
+
+dbWriteTable(con, "oa_affiliation_display_names", all_institution_names)
+```
+
+For each professor, compile all institutions they are affiliated with into a single
+field:
+```{r}
+list_profs <- unique(profs_full$profile_id)
+all_prof_inst_search <- data.frame(matrix(NA, ncol = 2, nrow = 0))
+
+for (i in 1:length(list_profs)){
+  # get the list
+  prof <- list_profs[i]
+  
+  prof_oa_ids <- filter(oa_ids, 
+                   profile_id == prof)
+  
+  rel_inst <- filter(all_results_sel,
+                     au_id %in% prof_oa_ids$oa_id)%>%
+    distinct(id, .keep_all = TRUE)
+  
+  institution_names <- filter(all_institution_names,
+                              id %in% rel_inst$id)
+  
+  institution_names_prof <- paste(institution_names$string_match_names, collapse = "|")
+  
+  prof_inst_search <- cbind.data.frame(au_id = prof,
+                                           string_match_names = institution_names_prof)
+  
+  all_prof_inst_search <- rbind.data.frame(all_prof_inst_search,
+                                           prof_inst_search)
+  
+  print(i)
+}
+
+dbWriteTable(con, "oa_affiliation_string_search", all_prof_inst_search)
+
+```

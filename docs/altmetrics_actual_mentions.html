@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Ana Macanovic" />
+
+<meta name="date" content="2024-03-25" />
+
+<title>Altmetric_actual_mentions</title>
+
+<script src="site_libs/header-attrs-2.25/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<script src="site_libs/navigation-1.1/sourceembed.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.4.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+<style type="text/css">
+#rmd-source-code {
+  display: none;
+}
+</style>
+
+
+<link rel="stylesheet" href="tweaks.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html"></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a>
+    <span class="fa fa-home"></span>
+     
+  </a>
+</li>
+<li>
+  <a href="index.html">Code homepage</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="glyphicon glyphicon glyphicon glyphicon-list"></span>
+     
+    Scripts
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="SQL_tutorial.html">Intro: SQL tutorial</a>
+    </li>
+    <li>
+      <a href="OpenAlex_Altmetric_data_download.html">1. Open Alex and Altmetric data download</a>
+    </li>
+    <li>
+      <a href="Gender_inference.html">2. Gender inference</a>
+    </li>
+    <li>
+      <a href="Grant_parsing.html">3. Grant parsing</a>
+    </li>
+    <li>
+      <a href="Lexis_nexis_parser.html">4. Lexis data parser</a>
+    </li>
+    <li>
+      <a href="Mention_url_extraction.html">5. Mention URL extraction</a>
+    </li>
+    <li>
+      <a href="Data_descriptives.html">5. Database description and coverage</a>
+    </li>
+    <li>
+      <a href="Panel_data_compilation.html">6. Panel data compilation</a>
+    </li>
+    <li>
+      <a href="Various_plots.html">8. Data plots</a>
+    </li>
+    <li>
+      <a href="Various_regressions.html">9. Regression models</a>
+    </li>
+    <li>
+      <a href="April_analyses.html">10. Various analyses - April</a>
+    </li>
+  </ul>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/amacanovic/dutch_media_profs">
+    <span class="fab fa-github"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+<li role="separator" class="divider"></li>
+<li><a id="rmd-download-source" href="#">Download Rmd</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Altmetric_actual_mentions</h1>
+<h4 class="author">Ana Macanovic</h4>
+<h4 class="date">2024-03-25</h4>
+
+</div>
+
+
+<p>Load the packages:</p>
+<pre class="r"><code>library(groundhog)
+packages_to_load &lt;- c(&quot;readr&quot;, &quot;dplyr&quot;, &quot;tidyr&quot;, &quot;PerformanceAnalytics&quot;,
+                      &quot;tidyverse&quot;, &quot;RPostgres&quot;, &quot;lubridate&quot;, &quot;psych&quot;,
+                      &quot;digest&quot;, &quot;DBI&quot;, &quot;RODBC&quot;, &quot;odbc&quot;, &quot;gridExtra&quot;,
+                      &quot;panelr&quot;, &quot;skimr&quot;, &quot;foreach&quot;, &quot;vegan&quot;,
+                      &quot;doParallel&quot;)
+groundhog.library(packages_to_load, date = &quot;2023-12-01&quot;)
+
+# load the helper function file
+source(&quot;helper_functions.R&quot;)</code></pre>
+<p>Connect to the database:</p>
+<pre class="r"><code># fill in own credentials
+port &lt;- 
+user &lt;- &quot;&quot;
+password &lt;- &quot;&quot;
+database_name &lt;- &quot;&quot;
+
+con &lt;- RPostgres::dbConnect(RPostgres::Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+
+con # Checks connection is working</code></pre>
+<p>Load the professor profiles:</p>
+<pre class="r"><code>narcis_prof_info &lt;- dbReadTable(con, &quot;narcis_prof_info&quot;)
+prof_gender &lt;- dbReadTable(con, &quot;gender_table&quot;)</code></pre>
+<p>Load the prof-publication matching and the attention info:</p>
+<pre class="r"><code>#prof - pub matching
+oa_prof_pub_matching &lt;- dbReadTable(con, &quot;oa_prof_pub_match&quot;)
+attention_news &lt;- dbReadTable(con, &quot;altmetric_pub_att_news&quot;)
+attention_blogs &lt;- dbReadTable(con, &quot;altmetric_pub_att_blogs&quot;)</code></pre>
+<p>Match attention to profile_ids and first/last names of our
+professors:</p>
+<pre class="r"><code>attention_news &lt;- merge(attention_news,
+                        oa_prof_pub_matching[c(&quot;id&quot;, &quot;profile_id&quot;)],
+                        by = &quot;id&quot;,
+                        all.x = TRUE)
+
+attention_news &lt;- merge(attention_news,
+                        narcis_prof_info[c(&quot;profile_id&quot;, &quot;last&quot;, &quot;first&quot;)],
+                        by = &quot;profile_id&quot;,
+                        all.x = TRUE)</code></pre>
+<p>Now, get the full texts:</p>
+<pre class="r"><code>attention_news_full &lt;- dbReadTable(con, &quot;pub_att_news_full_text&quot;)
+
+attention_news_full_filt &lt;- filter(attention_news_full,
+                                   response == 200)</code></pre>
+<p>Merge professor info with full text mentions:</p>
+<pre class="r"><code>attention_news_full_filt &lt;- merge(attention_news_full_filt,
+                                  attention_news[c(&quot;profile_id&quot;, &quot;id&quot;, &quot;last&quot;, &quot;first&quot;, &quot;url&quot;, &quot;posted_on&quot;)],
+                                  by = &quot;url&quot;)
+
+attention_news_full_filt$first_last &lt;- paste(attention_news_full_filt$first, attention_news_full_filt$last)
+
+attention_news_full_filt &lt;- merge(attention_news_full_filt,
+                                  prof_gender[c(&quot;profile_id&quot;, &quot;inferred_gender&quot;)])</code></pre>
+<p>Seek author’s last names in the full text:</p>
+<pre class="r"><code>attention_news_full_filt$name_mention &lt;- str_detect(tolower(attention_news_full_filt$content), paste0(&quot;\\b&quot;, attention_news_full_filt$last, &quot;\\b&quot;))</code></pre>
+<p>Link to professor fields:</p>
+<pre class="r"><code>oa_pubs_topics &lt;- dbReadTable(con, &quot;oa_pubs_topics&quot;)
+
+oa_pubs_topics &lt;- merge(oa_prof_pub_matching,
+                        oa_pubs_topics,
+                        by = &quot;id&quot;,
+                        all.x = TRUE)
+
+prof_total_field &lt;- oa_pubs_topics %&gt;%
+  group_by(profile_id, field_display_name) %&gt;%
+  summarise(n = n())%&gt;%
+  slice_max(n, with_ties = FALSE)%&gt;%
+  select(-n)
+
+prof_total_field &lt;- prof_total_field %&gt;% 
+  mutate(total_field = case_match(
+    field_display_name,
+    &quot;Arts and Humanities&quot;  ~ &quot;Arts &amp; Humanities&quot;,
+    c(&quot;Biochemistry, Genetics and Molecular Biology&quot;,&quot;Agricultural and Biological Sciences&quot;,
+      &quot;Chemical Engineering&quot;, &quot;Chemistry&quot;,  &quot;Computer Science&quot;, &quot;Decision Sciences&quot;,
+      &quot;Earth and Planetary Sciences&quot;, &quot;Energy&quot;, &quot;Engineering&quot;, &quot;Environmental Science&quot;,
+      &quot;Immunology and Microbiology&quot;, &quot;Materials Science&quot;, &quot;Mathematics&quot;, &quot;Neuroscience&quot;, 
+      &quot;Physics and Astronomy&quot; ) ~ &quot;STEM&quot;,
+    c(&quot;Dentistry&quot;, &quot;Health Professions&quot;, &quot;Medicine&quot;) ~ &quot;Medicine&quot;,
+    c(&quot;Business, Management and Accounting&quot;, &quot;Economics, Econometrics and Finance&quot;,
+      &quot;Psychology&quot;, &quot;Social Sciences&quot;) ~ &quot;Social sciences&quot;))
+
+attention_news_full_filt &lt;- merge(attention_news_full_filt,
+                                  prof_total_field,
+                                  by = &quot;profile_id&quot;,
+                                  all.x = TRUE)</code></pre>
+<p>Get shares of mentions of papers that include professor’s names per
+gender:</p>
+<pre class="r"><code>gender_mentions_overall &lt;- attention_news_full_filt %&gt;%
+  group_by(inferred_gender)%&gt;%
+  summarise(n_mentions = sum(name_mention == TRUE,na.rm = TRUE),
+            n_all = n())%&gt;%
+  mutate(share_mentions = n_mentions / n_all)</code></pre>
+<p>Is this difference statistically signficant? Yes, it is.</p>
+<pre class="r"><code>prop.test(x = gender_mentions_overall$n_mentions, n = gender_mentions_overall$n_all)</code></pre>
+<p>Per gender and field?</p>
+<pre class="r"><code>gender_mentions_field &lt;- attention_news_full_filt %&gt;%
+  group_by(inferred_gender, total_field)%&gt;%
+  summarise(n_mentions = sum(name_mention == TRUE,na.rm = TRUE),
+            n_all = n())%&gt;%
+  mutate(share_mentions = n_mentions / n_all)
+
+gender_mentions_field</code></pre>
+<p>Per field, get the proportion comparisons:</p>
+<pre class="r"><code>fields &lt;- unique(gender_mentions_field$total_field)
+
+proportions_field &lt;- as.data.frame(matrix(ncol = 2, nrow = 0))
+
+for (field in fields){
+  select &lt;- filter(gender_mentions_field, total_field == as.symbol(field))
+  test &lt;- round(prop.test(x = select$n_mentions, n = select$n_all)$p.value, 5)
+  proportions_field &lt;- rbind(proportions_field,
+                             cbind(field, test))
+}
+
+proportions_field</code></pre>
+<pre class="r"><code># get a year from the &quot;posted on&quot; string
+attention_news_full_filt$year &lt;- year(as_date(attention_news_full_filt$posted_on))
+
+
+prof_year_attention_news &lt;- attention_news_full_filt %&gt;%
+  group_by(profile_id, year)%&gt;%
+  summarise(attn_news_by = n())%&gt;%
+  arrange(profile_id, year) %&gt;%
+  mutate(attn_news_by_total = cumsum(attn_news_by)) %&gt;%
+  arrange(profile_id, year)
+
+prof_year_attention_news_l &lt;- prof_year_attention_news 
+colnames(prof_year_attention_news_l)[3:4] &lt;- paste0(colnames(prof_year_attention_news_l)[3:4], &quot;_l&quot;)
+
+prof_year_attention_news_l &lt;- prof_year_attention_news_l %&gt;%
+  arrange(year) %&gt;%
+  group_by(profile_id) %&gt;%
+  mutate_at(vars(contains(&#39;_l&#39;)), lag)%&gt;%
+  arrange(profile_id, year)
+
+prof_year_attention_news_merge &lt;- merge(prof_year_attention_news,
+                                        prof_year_attention_news_l,
+                                        by = c(&quot;profile_id&quot;, &quot;year&quot;))
+
+colnames(prof_year_attention_news_merge)[-c(1:2)] &lt;- paste0(colnames(prof_year_attention_news_merge)[-c(1:2)], &quot;_name&quot;)</code></pre>
+<p>Merge with the prof panel:</p>
+<pre class="r"><code>prof_panel &lt;- read_csv(&quot;panel_datasets/prof_year_p_c_g_a_t_l_l_18_3.csv&quot;)
+prof_panel_coa &lt;- read_csv(&quot;panel_datasets/prof_panel_combined_no_lexis_19_3.csv&quot;)
+
+# combine the two, since the latter mixes nexis data
+lexis_data &lt;- prof_panel %&gt;%
+  select(profile_id, year, contains(&quot;lexis&quot;))
+
+prof_panel_coa &lt;- merge(prof_panel_coa,
+                        lexis_data,
+                        by= c(&quot;profile_id&quot;, &quot;year&quot;))</code></pre>
+<p>Merge the attention:</p>
+<pre class="r"><code>prof_year_p_c_g_a &lt;- merge(prof_panel_coa,
+                           prof_year_attention_news_merge,
+                           by = c(&quot;profile_id&quot;, &quot;year&quot;),
+                           all.x = TRUE)
+
+# determine actual NAs
+prof_year_p_c_g_a$attn_news_by_name &lt;- ifelse((is.na(prof_year_p_c_g_a$attn_news_by_name) &amp; prof_year_p_c_g_a$year &gt;=  2011),
+                                            0,
+                                            prof_year_p_c_g_a$attn_news_by_name)
+
+prof_year_p_c_g_a$attn_news_by_total_name &lt;- ifelse((is.na(prof_year_p_c_g_a$attn_news_by_total_name) &amp; prof_year_p_c_g_a$year &gt;=  2011),
+                                            0,
+                                            prof_year_p_c_g_a$attn_news_by_total_name)
+
+prof_year_p_c_g_a$attn_news_by_l_name &lt;- ifelse((is.na(prof_year_p_c_g_a$attn_news_by_l_name) &amp; prof_year_p_c_g_a$year &gt;=  2011),
+                                            0,
+                                            prof_year_p_c_g_a$attn_news_by_l_name)
+
+prof_year_p_c_g_a$prof_tot_coa_attn_news_by_total_l &lt;- ifelse((is.na(prof_year_p_c_g_a$prof_tot_coa_attn_news_by_total_l) &amp; prof_year_p_c_g_a$year &gt;=  2011),
+                                            0,
+                                            prof_year_p_c_g_a$prof_tot_coa_attn_news_by_total_l)
+
+# fill
+prof_year_p_c_g_a &lt;- prof_year_p_c_g_a %&gt;%
+  group_by(profile_id)%&gt;%
+  fill(attn_news_by_total_name)
+
+prof_year_p_c_g_a &lt;- prof_year_p_c_g_a %&gt;%
+  group_by(profile_id)%&gt;%
+  fill(prof_tot_coa_attn_news_by_total_l)</code></pre>
+<pre class="r"><code># recode the fields
+prof_year_p_c_g_a &lt;- prof_year_p_c_g_a %&gt;% 
+  mutate(general_field = case_match(
+    overall_field,
+    &quot;Arts and Humanities&quot;  ~ &quot;Arts &amp; Humanities&quot;,
+    c(&quot;Biochemistry, Genetics and Molecular Biology&quot;,&quot;Agricultural and Biological Sciences&quot;,
+      &quot;Chemical Engineering&quot;, &quot;Chemistry&quot;,  &quot;Computer Science&quot;, &quot;Decision Sciences&quot;,
+      &quot;Earth and Planetary Sciences&quot;, &quot;Energy&quot;, &quot;Engineering&quot;, &quot;Environmental Science&quot;,
+      &quot;Immunology and Microbiology&quot;, &quot;Materials Science&quot;, &quot;Mathematics&quot;, &quot;Neuroscience&quot;, 
+      &quot;Physics and Astronomy&quot; ) ~ &quot;STEM&quot;,
+    c(&quot;Dentistry&quot;, &quot;Health Professions&quot;, &quot;Medicine&quot;) ~ &quot;Medicine&quot;,
+    c(&quot;Business, Management and Accounting&quot;, &quot;Economics, Econometrics and Finance&quot;,
+      &quot;Psychology&quot;, &quot;Social Sciences&quot;) ~ &quot;Social sciences&quot;))
+
+prof_year_p_c_g_a &lt;- prof_year_p_c_g_a %&gt;% 
+  mutate(general_field_yearly = case_match(
+    yearly_field,
+    &quot;Arts and Humanities&quot;  ~ &quot;Arts &amp; Humanities&quot;,
+    c(&quot;Biochemistry, Genetics and Molecular Biology&quot;,&quot;Agricultural and Biological Sciences&quot;,
+      &quot;Chemical Engineering&quot;, &quot;Chemistry&quot;,  &quot;Computer Science&quot;, &quot;Decision Sciences&quot;,
+      &quot;Earth and Planetary Sciences&quot;, &quot;Energy&quot;, &quot;Engineering&quot;, &quot;Environmental Science&quot;,
+      &quot;Immunology and Microbiology&quot;, &quot;Materials Science&quot;, &quot;Mathematics&quot;, &quot;Neuroscience&quot;, 
+      &quot;Physics and Astronomy&quot; ) ~ &quot;STEM&quot;,
+    c(&quot;Dentistry&quot;, &quot;Health Professions&quot;, &quot;Medicine&quot;) ~ &quot;Medicine&quot;,
+    c(&quot;Business, Management and Accounting&quot;, &quot;Economics, Econometrics and Finance&quot;,
+      &quot;Psychology&quot;, &quot;Social Sciences&quot;) ~ &quot;Social sciences&quot;))</code></pre>
+<p>Rename the columns neatly:</p>
+<pre class="r"><code>prof_panel_tidy &lt;- prof_year_p_c_g_a %&gt;%
+  select(-c(cited_by_before_2012, cited_by_total_oa, cited_by_total_oa_l, dupl, dupl_l, 
+           coa_cited_by_before_2012, coa_count_pubs_before_2012, coa_cited_by_before_2012_l,
+           coa_count_pubs_before_2012, prof_tot_count_pubs_total_oa, prof_tot_cited_by_total_oa,
+           prof_tot_cited_by_before_2012, prof_tot_count_pubs_before_2012 ))%&gt;%
+  rename(
+    online_news = attn_news_by,
+    online_news_total = attn_news_by_total,
+    online_news_l = attn_news_by_l,
+    online_news_total_l = attn_news_by_total_l,
+    online_news_name = attn_news_by_name,
+    online_news_name_total = attn_news_by_total_name,
+    online_news_name_l = attn_news_by_l_name,
+    online_news_name_total_l = prof_tot_coa_attn_news_by_total_l,
+    blogs = attn_blogs_by,
+    blogs_total = attn_blogs_by_total,
+    blogs_l = attn_blogs_by_l,
+    blogs_total_l = attn_blogs_by_total_l,
+    twitter = attn_twitter_by,
+    twitter_total = attn_twitter_by_total,
+    twitter_l = attn_twitter_by_l,
+    twitter_total_l = attn_twitter_by_total_l,
+    grant_veni = veni,
+    grant_veni_l = veni_l,
+    grant_vidi = vidi,
+    grant_vidi_l = vidi_l,    
+    grant_vici = vici,
+    grant_vici_l = vici_l,
+    grant_stevin = stevin,
+    grant_stevin_l = stevin_l,
+    grant_spinoza = spinoza,
+    grant_spinoza_l = spinoza_l,
+    grant_starting = starting,
+    grant_starting_l = starting_l,
+    grant_advanced = advanced,
+    grant_advanced_l = advanced_l,
+    grant_consolidator = consolidator,
+    grant_consolidator_l = consolidator_l,
+    grant_synergy = synergy,
+    grant_synergy_l = synergy_l,
+    coa_online_news = coa_attn_news_by,
+    coa_blogs = coa_attn_blog_by,
+    coa_twitter = coa_attn_twitter_by,
+    coa_online_news_total = coa_attn_news_by_total,
+    coa_blogs_total = coa_attn_blog_by_total,
+    coa_twitter_total = coa_attn_twitter_by_total,
+    coa_online_news_l = coa_attn_news_by_l,
+    coa_blogs_l = coa_attn_blog_by_l,
+    coa_twitter_l = coa_attn_twitter_by_l,
+    coa_online_news_total_l = coa_attn_news_by_total_l,
+    coa_blogs_total_l = coa_attn_blog_by_total_l,
+    coa_twitter_total_l = coa_attn_twitter_by_total_l,
+    coa_tot_count_pubs = prof_tot_count_pubs, 
+    coa_tot_cited_by = prof_tot_cited_by,
+    coa_tot_count_pubs_total = prof_tot_count_pubs_total_all,
+    coa_tot_cited_by_total = prof_tot_cited_by_total_all,
+    coa_tot_online_news = prof_tot_coa_attn_news_by,
+    coa_tot_blogs = prof_tot_coa_attn_blog_by,
+    coa_tot_twitter = prof_tot_coa_attn_twitter_by,
+    coa_tot_online_news_total = prof_tot_coa_attn_news_by_total,
+    coa_tot_blogs_total = prof_tot_coa_attn_blog_by_total,
+    coa_tot_twitter_total = prof_tot_coa_attn_twitter_by_total,
+    coa_tot_unique_m = prof_tot_unique_coa_m,
+    coa_tot_unique_w = prof_tot_unique_coa_w,
+    coa_tot_unique_u = prof_tot_unique_coa_u,
+    coa_tot_count_pubs_l = prof_tot_count_pubs_l, 
+    coa_tot_cited_by_l = prof_tot_cited_by_l,
+    coa_tot_count_pubs_total_l = prof_tot_count_pubs_total_all_l,
+    coa_tot_cited_by_total_l = prof_tot_cited_by_total_all_l,
+    coa_tot_online_news_l = prof_tot_coa_attn_news_by_l,
+    coa_tot_blogs_l = prof_tot_coa_attn_blog_by_l,
+    coa_tot_twitter_l = prof_tot_coa_attn_twitter_by_l,
+    coa_tot_online_news_total_l = prof_tot_coa_attn_news_by_total_l,
+    coa_tot_blogs_total_l = prof_tot_coa_attn_blog_by_total_l,
+    coa_tot_twitter_total_l = prof_tot_coa_attn_twitter_by_total_l,
+    coa_tot_unique_m_l = prof_tot_unique_coa_m_l,
+    coa_tot_unique_w_l = prof_tot_unique_coa_w_l,
+    coa_tot_unique_u_l = prof_tot_unique_coa_u_l,
+    news_national = lexis_national,
+    news_regional = lexis_regional,
+    news_intl = lexis_intl,
+    news = lexis_all,
+    news_national_total = lexis_national_total,
+    news_regional_total = lexis_regional_total,
+    news_intl_total = lexis_intl_total,
+    news_total = lexis_all_total,
+    news_national_l = lexis_national_l,
+    news_regional_l = lexis_regional_l,
+    news_intl_l = lexis_intl_l,
+    news_l = lexis_all_l,
+    news_national_total_l = lexis_national_total_l,
+    news_regional_total_l = lexis_regional_total_l,
+    news_intl_total_l = lexis_intl_total_l,
+    news_total_l = lexis_all_total_l)</code></pre>
+<p>Select relevant columns and tidy everything up:</p>
+<pre class="r"><code>prof_panel_tidy &lt;- prof_panel_tidy %&gt;%
+  # but not 2024
+  filter(year &lt; 2024 &amp; !is.na(year))
+
+# tidy up mentions
+prof_panel_tidy$online_news_blogs &lt;- prof_panel_tidy$online_news + prof_panel_tidy$blogs
+prof_panel_tidy$online_news_blogs_l &lt;- prof_panel_tidy$online_news_l + prof_panel_tidy$blogs_l
+prof_panel_tidy$online_news_blogs_total_l &lt;- prof_panel_tidy$online_news_total_l + prof_panel_tidy$blogs_total_l
+
+# coauthors this year
+prof_panel_tidy$coa_online_news_blogs &lt;- prof_panel_tidy$coa_online_news + prof_panel_tidy$coa_blogs
+prof_panel_tidy$coa_online_news_blogs_l &lt;- prof_panel_tidy$coa_online_news_l + prof_panel_tidy$coa_blogs_l
+prof_panel_tidy$coa_online_news_blogs_total &lt;- prof_panel_tidy$coa_online_news_total + prof_panel_tidy$coa_blogs_total
+prof_panel_tidy$coa_online_news_blogs_total_l &lt;- prof_panel_tidy$coa_online_news_total_l + prof_panel_tidy$coa_blogs_total_l
+
+# all coauthors up until now
+prof_panel_tidy$coa_tot_online_news_blogs &lt;- prof_panel_tidy$coa_tot_online_news + prof_panel_tidy$coa_tot_blogs
+prof_panel_tidy$coa_tot_online_news_blogs_l &lt;- prof_panel_tidy$coa_tot_online_news_l + prof_panel_tidy$coa_tot_blogs_l
+prof_panel_tidy$coa_tot_online_news_blogs_total &lt;- prof_panel_tidy$coa_tot_online_news_total + prof_panel_tidy$coa_tot_blogs_total
+prof_panel_tidy$coa_tot_online_news_blogs_total_l &lt;- prof_panel_tidy$coa_tot_online_news_total_l + prof_panel_tidy$coa_tot_blogs_total_l
+
+# get groups per years since entry
+prof_panel_tidy$entry_batch &lt;- cut(prof_panel_tidy$years_since_first_pub, breaks = seq(0, 50, by=10))
+prof_panel_tidy$years_since_entry &lt;- paste(&quot;up to&quot;, str_remove(str_split_i(as.character(prof_panel_tidy$entry_batch), &quot;,&quot;, 2),&quot;]&quot;))</code></pre>
+<p>Alternatively, leave only those professors for whom we actually have
+lexis data:</p>
+<pre class="r"><code># ones we collected before 20.3. in the morning 
+lexis_info &lt;- file.info(list.files(path = &quot;../lexis_crawl/downloads/zipfiles&quot;,
+                                   pattern=&quot;*.zip&quot;,
+                                   full.names = T))
+lexis_rel_list &lt;- filter(lexis_info,
+                         mtime &lt;= &quot;2024-03-20 8:55:00&quot;)
+
+lexis_rel_list$profile_id &lt;- str_remove(str_remove(rownames(lexis_rel_list), &quot;../lexis_crawl/downloads/zipfiles/&quot;), &quot;.zip&quot;)
+
+# minus ones that are incomplete
+missing_indices &lt;- read_csv(&quot;../lexis_crawl/missing_indices.csv&quot;)
+
+lexis_list &lt;- filter(lexis_rel_list, ! profile_id %in% missing_indices$profile_id)
+
+prof_panel_filter &lt;- filter(prof_panel_tidy,
+                            str_remove(profile_id, &quot;https://www.narcis.nl/person/RecordID/&quot;) %in% lexis_list$profile_id)</code></pre>
+<p>Write this out:</p>
+<pre class="r"><code>write_csv(prof_panel_filter, &quot;panel_datasets/full_panel_lexis_name_altm_26_3_3655_prof.csv&quot;)</code></pre>
+
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIkFsdG1ldHJpY19hY3R1YWxfbWVudGlvbnMiDQphdXRob3I6ICJBbmEgTWFjYW5vdmljIg0KZGF0ZTogIjIwMjQtMDMtMjUiDQpvdXRwdXQ6IGh0bWxfZG9jdW1lbnQNCi0tLQ0KDQpgYGB7ciBzZXR1cCwgaW5jbHVkZT1GQUxTRX0NCmtuaXRyOjpvcHRzX2NodW5rJHNldChlY2hvID0gVFJVRSkNCmtuaXRyOjpvcHRzX2NodW5rJHNldChldmFsID0gRkFMU0UpDQpgYGANCkxvYWQgdGhlIHBhY2thZ2VzOg0KYGBge3IgbWVzc2FnZT0gIEYsIHdhcm5pbmcgPSBGLCBldmFsID0gVH0NCmxpYnJhcnkoZ3JvdW5kaG9nKQ0KcGFja2FnZXNfdG9fbG9hZCA8LSBjKCJyZWFkciIsICJkcGx5ciIsICJ0aWR5ciIsICJQZXJmb3JtYW5jZUFuYWx5dGljcyIsDQogICAgICAgICAgICAgICAgICAgICAgInRpZHl2ZXJzZSIsICJSUG9zdGdyZXMiLCAibHVicmlkYXRlIiwgInBzeWNoIiwNCiAgICAgICAgICAgICAgICAgICAgICAiZGlnZXN0IiwgIkRCSSIsICJST0RCQyIsICJvZGJjIiwgImdyaWRFeHRyYSIsDQogICAgICAgICAgICAgICAgICAgICAgInBhbmVsciIsICJza2ltciIsICJmb3JlYWNoIiwgInZlZ2FuIiwNCiAgICAgICAgICAgICAgICAgICAgICAiZG9QYXJhbGxlbCIpDQpncm91bmRob2cubGlicmFyeShwYWNrYWdlc190b19sb2FkLCBkYXRlID0gIjIwMjMtMTItMDEiKQ0KDQojIGxvYWQgdGhlIGhlbHBlciBmdW5jdGlvbiBmaWxlDQpzb3VyY2UoImhlbHBlcl9mdW5jdGlvbnMuUiIpDQpgYGANCg0KQ29ubmVjdCB0byB0aGUgZGF0YWJhc2U6DQpgYGB7cn0NCiMgZmlsbCBpbiBvd24gY3JlZGVudGlhbHMNCnBvcnQgPC0gDQp1c2VyIDwtICIiDQpwYXNzd29yZCA8LSAiIg0KZGF0YWJhc2VfbmFtZSA8LSAiIg0KDQpjb24gPC0gUlBvc3RncmVzOjpkYkNvbm5lY3QoUlBvc3RncmVzOjpQb3N0Z3JlcygpLA0KICAgICAgICAgICAgICAgICBkYm5hbWU9IGRhdGFiYXNlX25hbWUsDQogICAgICAgICAgICAgICAgIHBvcnQgPSBwb3J0LA0KICAgICAgICAgICAgICAgICB1c2VyID0gdXNlciwgDQogICAgICAgICAgICAgICAgIHBhc3N3b3JkID0gcGFzc3dvcmQpDQoNCmNvbiAjIENoZWNrcyBjb25uZWN0aW9uIGlzIHdvcmtpbmcNCmBgYA0KDQoNCkxvYWQgdGhlIHByb2Zlc3NvciBwcm9maWxlczoNCmBgYHtyIG1lc3NhZ2UgPSBGLCB3YXJuaW5nID0gRn0NCm5hcmNpc19wcm9mX2luZm8gPC0gZGJSZWFkVGFibGUoY29uLCAibmFyY2lzX3Byb2ZfaW5mbyIpDQpwcm9mX2dlbmRlciA8LSBkYlJlYWRUYWJsZShjb24sICJnZW5kZXJfdGFibGUiKQ0KYGBgDQoNCg0KTG9hZCB0aGUgcHJvZi1wdWJsaWNhdGlvbiBtYXRjaGluZyBhbmQgdGhlIGF0dGVudGlvbiBpbmZvOg0KYGBge3J9DQojcHJvZiAtIHB1YiBtYXRjaGluZw0Kb2FfcHJvZl9wdWJfbWF0Y2hpbmcgPC0gZGJSZWFkVGFibGUoY29uLCAib2FfcHJvZl9wdWJfbWF0Y2giKQ0KYXR0ZW50aW9uX25ld3MgPC0gZGJSZWFkVGFibGUoY29uLCAiYWx0bWV0cmljX3B1Yl9hdHRfbmV3cyIpDQphdHRlbnRpb25fYmxvZ3MgPC0gZGJSZWFkVGFibGUoY29uLCAiYWx0bWV0cmljX3B1Yl9hdHRfYmxvZ3MiKQ0KYGBgDQoNCk1hdGNoIGF0dGVudGlvbiB0byBwcm9maWxlX2lkcyBhbmQgZmlyc3QvbGFzdCBuYW1lcyBvZiBvdXIgcHJvZmVzc29yczoNCmBgYHtyfQ0KYXR0ZW50aW9uX25ld3MgPC0gbWVyZ2UoYXR0ZW50aW9uX25ld3MsDQogICAgICAgICAgICAgICAgICAgICAgICBvYV9wcm9mX3B1Yl9tYXRjaGluZ1tjKCJpZCIsICJwcm9maWxlX2lkIildLA0KICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSAiaWQiLA0KICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFKQ0KDQphdHRlbnRpb25fbmV3cyA8LSBtZXJnZShhdHRlbnRpb25fbmV3cywNCiAgICAgICAgICAgICAgICAgICAgICAgIG5hcmNpc19wcm9mX2luZm9bYygicHJvZmlsZV9pZCIsICJsYXN0IiwgImZpcnN0IildLA0KICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSAicHJvZmlsZV9pZCIsDQogICAgICAgICAgICAgICAgICAgICAgICBhbGwueCA9IFRSVUUpDQpgYGANCg0KTm93LCBnZXQgdGhlIGZ1bGwgdGV4dHM6DQpgYGB7cn0NCmF0dGVudGlvbl9uZXdzX2Z1bGwgPC0gZGJSZWFkVGFibGUoY29uLCAicHViX2F0dF9uZXdzX2Z1bGxfdGV4dCIpDQoNCmF0dGVudGlvbl9uZXdzX2Z1bGxfZmlsdCA8LSBmaWx0ZXIoYXR0ZW50aW9uX25ld3NfZnVsbCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcmVzcG9uc2UgPT0gMjAwKQ0KDQpgYGANCg0KTWVyZ2UgcHJvZmVzc29yIGluZm8gd2l0aCBmdWxsIHRleHQgbWVudGlvbnM6DQpgYGB7cn0NCmF0dGVudGlvbl9uZXdzX2Z1bGxfZmlsdCA8LSBtZXJnZShhdHRlbnRpb25fbmV3c19mdWxsX2ZpbHQsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYXR0ZW50aW9uX25ld3NbYygicHJvZmlsZV9pZCIsICJpZCIsICJsYXN0IiwgImZpcnN0IiwgInVybCIsICJwb3N0ZWRfb24iKV0sDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYnkgPSAidXJsIikNCg0KYXR0ZW50aW9uX25ld3NfZnVsbF9maWx0JGZpcnN0X2xhc3QgPC0gcGFzdGUoYXR0ZW50aW9uX25ld3NfZnVsbF9maWx0JGZpcnN0LCBhdHRlbnRpb25fbmV3c19mdWxsX2ZpbHQkbGFzdCkNCg0KYXR0ZW50aW9uX25ld3NfZnVsbF9maWx0IDwtIG1lcmdlKGF0dGVudGlvbl9uZXdzX2Z1bGxfZmlsdCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwcm9mX2dlbmRlcltjKCJwcm9maWxlX2lkIiwgImluZmVycmVkX2dlbmRlciIpXSkNCmBgYA0KDQpTZWVrIGF1dGhvcidzIGxhc3QgbmFtZXMgaW4gdGhlIGZ1bGwgdGV4dDoNCmBgYHtyfQ0KYXR0ZW50aW9uX25ld3NfZnVsbF9maWx0JG5hbWVfbWVudGlvbiA8LSBzdHJfZGV0ZWN0KHRvbG93ZXIoYXR0ZW50aW9uX25ld3NfZnVsbF9maWx0JGNvbnRlbnQpLCBwYXN0ZTAoIlxcYiIsIGF0dGVudGlvbl9uZXdzX2Z1bGxfZmlsdCRsYXN0LCAiXFxiIikpDQpgYGANCg0KDQpMaW5rIHRvIHByb2Zlc3NvciBmaWVsZHM6DQpgYGB7cn0NCm9hX3B1YnNfdG9waWNzIDwtIGRiUmVhZFRhYmxlKGNvbiwgIm9hX3B1YnNfdG9waWNzIikNCg0Kb2FfcHVic190b3BpY3MgPC0gbWVyZ2Uob2FfcHJvZl9wdWJfbWF0Y2hpbmcsDQogICAgICAgICAgICAgICAgICAgICAgICBvYV9wdWJzX3RvcGljcywNCiAgICAgICAgICAgICAgICAgICAgICAgIGJ5ID0gImlkIiwNCiAgICAgICAgICAgICAgICAgICAgICAgIGFsbC54ID0gVFJVRSkNCg0KcHJvZl90b3RhbF9maWVsZCA8LSBvYV9wdWJzX3RvcGljcyAlPiUNCiAgZ3JvdXBfYnkocHJvZmlsZV9pZCwgZmllbGRfZGlzcGxheV9uYW1lKSAlPiUNCiAgc3VtbWFyaXNlKG4gPSBuKCkpJT4lDQogIHNsaWNlX21heChuLCB3aXRoX3RpZXMgPSBGQUxTRSklPiUNCiAgc2VsZWN0KC1uKQ0KDQpwcm9mX3RvdGFsX2ZpZWxkIDwtIHByb2ZfdG90YWxfZmllbGQgJT4lIA0KICBtdXRhdGUodG90YWxfZmllbGQgPSBjYXNlX21hdGNoKA0KICAgIGZpZWxkX2Rpc3BsYXlfbmFtZSwNCiAgICAiQXJ0cyBhbmQgSHVtYW5pdGllcyIgIH4gIkFydHMgJiBIdW1hbml0aWVzIiwNCiAgICBjKCJCaW9jaGVtaXN0cnksIEdlbmV0aWNzIGFuZCBNb2xlY3VsYXIgQmlvbG9neSIsIkFncmljdWx0dXJhbCBhbmQgQmlvbG9naWNhbCBTY2llbmNlcyIsDQogICAgICAiQ2hlbWljYWwgRW5naW5lZXJpbmciLCAiQ2hlbWlzdHJ5IiwgICJDb21wdXRlciBTY2llbmNlIiwgIkRlY2lzaW9uIFNjaWVuY2VzIiwNCiAgICAgICJFYXJ0aCBhbmQgUGxhbmV0YXJ5IFNjaWVuY2VzIiwgIkVuZXJneSIsICJFbmdpbmVlcmluZyIsICJFbnZpcm9ubWVudGFsIFNjaWVuY2UiLA0KICAgICAgIkltbXVub2xvZ3kgYW5kIE1pY3JvYmlvbG9neSIsICJNYXRlcmlhbHMgU2NpZW5jZSIsICJNYXRoZW1hdGljcyIsICJOZXVyb3NjaWVuY2UiLCANCiAgICAgICJQaHlzaWNzIGFuZCBBc3Ryb25vbXkiICkgfiAiU1RFTSIsDQogICAgYygiRGVudGlzdHJ5IiwgIkhlYWx0aCBQcm9mZXNzaW9ucyIsICJNZWRpY2luZSIpIH4gIk1lZGljaW5lIiwNCiAgICBjKCJCdXNpbmVzcywgTWFuYWdlbWVudCBhbmQgQWNjb3VudGluZyIsICJFY29ub21pY3MsIEVjb25vbWV0cmljcyBhbmQgRmluYW5jZSIsDQogICAgICAiUHN5Y2hvbG9neSIsICJTb2NpYWwgU2NpZW5jZXMiKSB+ICJTb2NpYWwgc2NpZW5jZXMiKSkNCg0KYXR0ZW50aW9uX25ld3NfZnVsbF9maWx0IDwtIG1lcmdlKGF0dGVudGlvbl9uZXdzX2Z1bGxfZmlsdCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwcm9mX3RvdGFsX2ZpZWxkLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGJ5ID0gInByb2ZpbGVfaWQiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGFsbC54ID0gVFJVRSkNCg0KDQpgYGANCg0KR2V0IHNoYXJlcyBvZiBtZW50aW9ucyBvZiBwYXBlcnMgdGhhdCBpbmNsdWRlIHByb2Zlc3NvcidzIG5hbWVzIHBlciBnZW5kZXI6DQpgYGB7cn0NCmdlbmRlcl9tZW50aW9uc19vdmVyYWxsIDwtIGF0dGVudGlvbl9uZXdzX2Z1bGxfZmlsdCAlPiUNCiAgZ3JvdXBfYnkoaW5mZXJyZWRfZ2VuZGVyKSU+JQ0KICBzdW1tYXJpc2Uobl9tZW50aW9ucyA9IHN1bShuYW1lX21lbnRpb24gPT0gVFJVRSxuYS5ybSA9IFRSVUUpLA0KICAgICAgICAgICAgbl9hbGwgPSBuKCkpJT4lDQogIG11dGF0ZShzaGFyZV9tZW50aW9ucyA9IG5fbWVudGlvbnMgLyBuX2FsbCkNCmBgYA0KDQpJcyB0aGlzIGRpZmZlcmVuY2Ugc3RhdGlzdGljYWxseSBzaWduZmljYW50PyBZZXMsIGl0IGlzLg0KYGBge3J9DQpwcm9wLnRlc3QoeCA9IGdlbmRlcl9tZW50aW9uc19vdmVyYWxsJG5fbWVudGlvbnMsIG4gPSBnZW5kZXJfbWVudGlvbnNfb3ZlcmFsbCRuX2FsbCkNCmBgYA0KDQpQZXIgZ2VuZGVyIGFuZCBmaWVsZD8NCmBgYHtyfQ0KZ2VuZGVyX21lbnRpb25zX2ZpZWxkIDwtIGF0dGVudGlvbl9uZXdzX2Z1bGxfZmlsdCAlPiUNCiAgZ3JvdXBfYnkoaW5mZXJyZWRfZ2VuZGVyLCB0b3RhbF9maWVsZCklPiUNCiAgc3VtbWFyaXNlKG5fbWVudGlvbnMgPSBzdW0obmFtZV9tZW50aW9uID09IFRSVUUsbmEucm0gPSBUUlVFKSwNCiAgICAgICAgICAgIG5fYWxsID0gbigpKSU+JQ0KICBtdXRhdGUoc2hhcmVfbWVudGlvbnMgPSBuX21lbnRpb25zIC8gbl9hbGwpDQoNCmdlbmRlcl9tZW50aW9uc19maWVsZA0KYGBgDQpQZXIgZmllbGQsIGdldCB0aGUgcHJvcG9ydGlvbiBjb21wYXJpc29uczoNCmBgYHtyfQ0KZmllbGRzIDwtIHVuaXF1ZShnZW5kZXJfbWVudGlvbnNfZmllbGQkdG90YWxfZmllbGQpDQoNCnByb3BvcnRpb25zX2ZpZWxkIDwtIGFzLmRhdGEuZnJhbWUobWF0cml4KG5jb2wgPSAyLCBucm93ID0gMCkpDQoNCmZvciAoZmllbGQgaW4gZmllbGRzKXsNCiAgc2VsZWN0IDwtIGZpbHRlcihnZW5kZXJfbWVudGlvbnNfZmllbGQsIHRvdGFsX2ZpZWxkID09IGFzLnN5bWJvbChmaWVsZCkpDQogIHRlc3QgPC0gcm91bmQocHJvcC50ZXN0KHggPSBzZWxlY3Qkbl9tZW50aW9ucywgbiA9IHNlbGVjdCRuX2FsbCkkcC52YWx1ZSwgNSkNCiAgcHJvcG9ydGlvbnNfZmllbGQgPC0gcmJpbmQocHJvcG9ydGlvbnNfZmllbGQsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNiaW5kKGZpZWxkLCB0ZXN0KSkNCn0NCg0KcHJvcG9ydGlvbnNfZmllbGQNCmBgYA0KDQpgYGB7cn0NCiMgZ2V0IGEgeWVhciBmcm9tIHRoZSAicG9zdGVkIG9uIiBzdHJpbmcNCmF0dGVudGlvbl9uZXdzX2Z1bGxfZmlsdCR5ZWFyIDwtIHllYXIoYXNfZGF0ZShhdHRlbnRpb25fbmV3c19mdWxsX2ZpbHQkcG9zdGVkX29uKSkNCg0KDQpwcm9mX3llYXJfYXR0ZW50aW9uX25ld3MgPC0gYXR0ZW50aW9uX25ld3NfZnVsbF9maWx0ICU+JQ0KICBncm91cF9ieShwcm9maWxlX2lkLCB5ZWFyKSU+JQ0KICBzdW1tYXJpc2UoYXR0bl9uZXdzX2J5ID0gbigpKSU+JQ0KICBhcnJhbmdlKHByb2ZpbGVfaWQsIHllYXIpICU+JQ0KICBtdXRhdGUoYXR0bl9uZXdzX2J5X3RvdGFsID0gY3Vtc3VtKGF0dG5fbmV3c19ieSkpICU+JQ0KICBhcnJhbmdlKHByb2ZpbGVfaWQsIHllYXIpDQoNCnByb2ZfeWVhcl9hdHRlbnRpb25fbmV3c19sIDwtIHByb2ZfeWVhcl9hdHRlbnRpb25fbmV3cyANCmNvbG5hbWVzKHByb2ZfeWVhcl9hdHRlbnRpb25fbmV3c19sKVszOjRdIDwtIHBhc3RlMChjb2xuYW1lcyhwcm9mX3llYXJfYXR0ZW50aW9uX25ld3NfbClbMzo0XSwgIl9sIikNCg0KcHJvZl95ZWFyX2F0dGVudGlvbl9uZXdzX2wgPC0gcHJvZl95ZWFyX2F0dGVudGlvbl9uZXdzX2wgJT4lDQogIGFycmFuZ2UoeWVhcikgJT4lDQogIGdyb3VwX2J5KHByb2ZpbGVfaWQpICU+JQ0KICBtdXRhdGVfYXQodmFycyhjb250YWlucygnX2wnKSksIGxhZyklPiUNCiAgYXJyYW5nZShwcm9maWxlX2lkLCB5ZWFyKQ0KDQpwcm9mX3llYXJfYXR0ZW50aW9uX25ld3NfbWVyZ2UgPC0gbWVyZ2UocHJvZl95ZWFyX2F0dGVudGlvbl9uZXdzLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2ZfeWVhcl9hdHRlbnRpb25fbmV3c19sLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGJ5ID0gYygicHJvZmlsZV9pZCIsICJ5ZWFyIikpDQoNCmNvbG5hbWVzKHByb2ZfeWVhcl9hdHRlbnRpb25fbmV3c19tZXJnZSlbLWMoMToyKV0gPC0gcGFzdGUwKGNvbG5hbWVzKHByb2ZfeWVhcl9hdHRlbnRpb25fbmV3c19tZXJnZSlbLWMoMToyKV0sICJfbmFtZSIpDQogIA0KYGBgDQoNCk1lcmdlIHdpdGggdGhlIHByb2YgcGFuZWw6DQoNCmBgYHtyfQ0KcHJvZl9wYW5lbCA8LSByZWFkX2NzdigicGFuZWxfZGF0YXNldHMvcHJvZl95ZWFyX3BfY19nX2FfdF9sX2xfMThfMy5jc3YiKQ0KcHJvZl9wYW5lbF9jb2EgPC0gcmVhZF9jc3YoInBhbmVsX2RhdGFzZXRzL3Byb2ZfcGFuZWxfY29tYmluZWRfbm9fbGV4aXNfMTlfMy5jc3YiKQ0KDQojIGNvbWJpbmUgdGhlIHR3bywgc2luY2UgdGhlIGxhdHRlciBtaXhlcyBuZXhpcyBkYXRhDQpsZXhpc19kYXRhIDwtIHByb2ZfcGFuZWwgJT4lDQogIHNlbGVjdChwcm9maWxlX2lkLCB5ZWFyLCBjb250YWlucygibGV4aXMiKSkNCg0KcHJvZl9wYW5lbF9jb2EgPC0gbWVyZ2UocHJvZl9wYW5lbF9jb2EsDQogICAgICAgICAgICAgICAgICAgICAgICBsZXhpc19kYXRhLA0KICAgICAgICAgICAgICAgICAgICAgICAgYnk9IGMoInByb2ZpbGVfaWQiLCAieWVhciIpKQ0KDQpgYGANCg0KTWVyZ2UgdGhlIGF0dGVudGlvbjoNCmBgYHtyfQ0KcHJvZl95ZWFyX3BfY19nX2EgPC0gbWVyZ2UocHJvZl9wYW5lbF9jb2EsDQogICAgICAgICAgICAgICAgICAgICAgICAgICBwcm9mX3llYXJfYXR0ZW50aW9uX25ld3NfbWVyZ2UsDQogICAgICAgICAgICAgICAgICAgICAgICAgICBieSA9IGMoInByb2ZpbGVfaWQiLCAieWVhciIpLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFKQ0KDQojIGRldGVybWluZSBhY3R1YWwgTkFzDQpwcm9mX3llYXJfcF9jX2dfYSRhdHRuX25ld3NfYnlfbmFtZSA8LSBpZmVsc2UoKGlzLm5hKHByb2ZfeWVhcl9wX2NfZ19hJGF0dG5fbmV3c19ieV9uYW1lKSAmIHByb2ZfeWVhcl9wX2NfZ19hJHllYXIgPj0gIDIwMTEpLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAwLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwcm9mX3llYXJfcF9jX2dfYSRhdHRuX25ld3NfYnlfbmFtZSkNCg0KcHJvZl95ZWFyX3BfY19nX2EkYXR0bl9uZXdzX2J5X3RvdGFsX25hbWUgPC0gaWZlbHNlKChpcy5uYShwcm9mX3llYXJfcF9jX2dfYSRhdHRuX25ld3NfYnlfdG90YWxfbmFtZSkgJiBwcm9mX3llYXJfcF9jX2dfYSR5ZWFyID49ICAyMDExKSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJvZl95ZWFyX3BfY19nX2EkYXR0bl9uZXdzX2J5X3RvdGFsX25hbWUpDQoNCnByb2ZfeWVhcl9wX2NfZ19hJGF0dG5fbmV3c19ieV9sX25hbWUgPC0gaWZlbHNlKChpcy5uYShwcm9mX3llYXJfcF9jX2dfYSRhdHRuX25ld3NfYnlfbF9uYW1lKSAmIHByb2ZfeWVhcl9wX2NfZ19hJHllYXIgPj0gIDIwMTEpLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAwLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwcm9mX3llYXJfcF9jX2dfYSRhdHRuX25ld3NfYnlfbF9uYW1lKQ0KDQpwcm9mX3llYXJfcF9jX2dfYSRwcm9mX3RvdF9jb2FfYXR0bl9uZXdzX2J5X3RvdGFsX2wgPC0gaWZlbHNlKChpcy5uYShwcm9mX3llYXJfcF9jX2dfYSRwcm9mX3RvdF9jb2FfYXR0bl9uZXdzX2J5X3RvdGFsX2wpICYgcHJvZl95ZWFyX3BfY19nX2EkeWVhciA+PSAgMjAxMSksDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDAsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2ZfeWVhcl9wX2NfZ19hJHByb2ZfdG90X2NvYV9hdHRuX25ld3NfYnlfdG90YWxfbCkNCg0KIyBmaWxsDQpwcm9mX3llYXJfcF9jX2dfYSA8LSBwcm9mX3llYXJfcF9jX2dfYSAlPiUNCiAgZ3JvdXBfYnkocHJvZmlsZV9pZCklPiUNCiAgZmlsbChhdHRuX25ld3NfYnlfdG90YWxfbmFtZSkNCg0KcHJvZl95ZWFyX3BfY19nX2EgPC0gcHJvZl95ZWFyX3BfY19nX2EgJT4lDQogIGdyb3VwX2J5KHByb2ZpbGVfaWQpJT4lDQogIGZpbGwocHJvZl90b3RfY29hX2F0dG5fbmV3c19ieV90b3RhbF9sKQ0KYGBgDQoNCg0KYGBge3J9DQoNCiMgcmVjb2RlIHRoZSBmaWVsZHMNCnByb2ZfeWVhcl9wX2NfZ19hIDwtIHByb2ZfeWVhcl9wX2NfZ19hICU+JSANCiAgbXV0YXRlKGdlbmVyYWxfZmllbGQgPSBjYXNlX21hdGNoKA0KICAgIG92ZXJhbGxfZmllbGQsDQogICAgIkFydHMgYW5kIEh1bWFuaXRpZXMiICB+ICJBcnRzICYgSHVtYW5pdGllcyIsDQogICAgYygiQmlvY2hlbWlzdHJ5LCBHZW5ldGljcyBhbmQgTW9sZWN1bGFyIEJpb2xvZ3kiLCJBZ3JpY3VsdHVyYWwgYW5kIEJpb2xvZ2ljYWwgU2NpZW5jZXMiLA0KICAgICAgIkNoZW1pY2FsIEVuZ2luZWVyaW5nIiwgIkNoZW1pc3RyeSIsICAiQ29tcHV0ZXIgU2NpZW5jZSIsICJEZWNpc2lvbiBTY2llbmNlcyIsDQogICAgICAiRWFydGggYW5kIFBsYW5ldGFyeSBTY2llbmNlcyIsICJFbmVyZ3kiLCAiRW5naW5lZXJpbmciLCAiRW52aXJvbm1lbnRhbCBTY2llbmNlIiwNCiAgICAgICJJbW11bm9sb2d5IGFuZCBNaWNyb2Jpb2xvZ3kiLCAiTWF0ZXJpYWxzIFNjaWVuY2UiLCAiTWF0aGVtYXRpY3MiLCAiTmV1cm9zY2llbmNlIiwgDQogICAgICAiUGh5c2ljcyBhbmQgQXN0cm9ub215IiApIH4gIlNURU0iLA0KICAgIGMoIkRlbnRpc3RyeSIsICJIZWFsdGggUHJvZmVzc2lvbnMiLCAiTWVkaWNpbmUiKSB+ICJNZWRpY2luZSIsDQogICAgYygiQnVzaW5lc3MsIE1hbmFnZW1lbnQgYW5kIEFjY291bnRpbmciLCAiRWNvbm9taWNzLCBFY29ub21ldHJpY3MgYW5kIEZpbmFuY2UiLA0KICAgICAgIlBzeWNob2xvZ3kiLCAiU29jaWFsIFNjaWVuY2VzIikgfiAiU29jaWFsIHNjaWVuY2VzIikpDQoNCnByb2ZfeWVhcl9wX2NfZ19hIDwtIHByb2ZfeWVhcl9wX2NfZ19hICU+JSANCiAgbXV0YXRlKGdlbmVyYWxfZmllbGRfeWVhcmx5ID0gY2FzZV9tYXRjaCgNCiAgICB5ZWFybHlfZmllbGQsDQogICAgIkFydHMgYW5kIEh1bWFuaXRpZXMiICB+ICJBcnRzICYgSHVtYW5pdGllcyIsDQogICAgYygiQmlvY2hlbWlzdHJ5LCBHZW5ldGljcyBhbmQgTW9sZWN1bGFyIEJpb2xvZ3kiLCJBZ3JpY3VsdHVyYWwgYW5kIEJpb2xvZ2ljYWwgU2NpZW5jZXMiLA0KICAgICAgIkNoZW1pY2FsIEVuZ2luZWVyaW5nIiwgIkNoZW1pc3RyeSIsICAiQ29tcHV0ZXIgU2NpZW5jZSIsICJEZWNpc2lvbiBTY2llbmNlcyIsDQogICAgICAiRWFydGggYW5kIFBsYW5ldGFyeSBTY2llbmNlcyIsICJFbmVyZ3kiLCAiRW5naW5lZXJpbmciLCAiRW52aXJvbm1lbnRhbCBTY2llbmNlIiwNCiAgICAgICJJbW11bm9sb2d5IGFuZCBNaWNyb2Jpb2xvZ3kiLCAiTWF0ZXJpYWxzIFNjaWVuY2UiLCAiTWF0aGVtYXRpY3MiLCAiTmV1cm9zY2llbmNlIiwgDQogICAgICAiUGh5c2ljcyBhbmQgQXN0cm9ub215IiApIH4gIlNURU0iLA0KICAgIGMoIkRlbnRpc3RyeSIsICJIZWFsdGggUHJvZmVzc2lvbnMiLCAiTWVkaWNpbmUiKSB+ICJNZWRpY2luZSIsDQogICAgYygiQnVzaW5lc3MsIE1hbmFnZW1lbnQgYW5kIEFjY291bnRpbmciLCAiRWNvbm9taWNzLCBFY29ub21ldHJpY3MgYW5kIEZpbmFuY2UiLA0KICAgICAgIlBzeWNob2xvZ3kiLCAiU29jaWFsIFNjaWVuY2VzIikgfiAiU29jaWFsIHNjaWVuY2VzIikpDQpgYGANCiANCiANClJlbmFtZSB0aGUgY29sdW1ucyBuZWF0bHk6DQpgYGB7cn0NCnByb2ZfcGFuZWxfdGlkeSA8LSBwcm9mX3llYXJfcF9jX2dfYSAlPiUNCiAgc2VsZWN0KC1jKGNpdGVkX2J5X2JlZm9yZV8yMDEyLCBjaXRlZF9ieV90b3RhbF9vYSwgY2l0ZWRfYnlfdG90YWxfb2FfbCwgZHVwbCwgZHVwbF9sLCANCiAgICAgICAgICAgY29hX2NpdGVkX2J5X2JlZm9yZV8yMDEyLCBjb2FfY291bnRfcHVic19iZWZvcmVfMjAxMiwgY29hX2NpdGVkX2J5X2JlZm9yZV8yMDEyX2wsDQogICAgICAgICAgIGNvYV9jb3VudF9wdWJzX2JlZm9yZV8yMDEyLCBwcm9mX3RvdF9jb3VudF9wdWJzX3RvdGFsX29hLCBwcm9mX3RvdF9jaXRlZF9ieV90b3RhbF9vYSwNCiAgICAgICAgICAgcHJvZl90b3RfY2l0ZWRfYnlfYmVmb3JlXzIwMTIsIHByb2ZfdG90X2NvdW50X3B1YnNfYmVmb3JlXzIwMTIgKSklPiUNCiAgcmVuYW1lKA0KICAgIG9ubGluZV9uZXdzID0gYXR0bl9uZXdzX2J5LA0KICAgIG9ubGluZV9uZXdzX3RvdGFsID0gYXR0bl9uZXdzX2J5X3RvdGFsLA0KICAgIG9ubGluZV9uZXdzX2wgPSBhdHRuX25ld3NfYnlfbCwNCiAgICBvbmxpbmVfbmV3c190b3RhbF9sID0gYXR0bl9uZXdzX2J5X3RvdGFsX2wsDQogICAgb25saW5lX25ld3NfbmFtZSA9IGF0dG5fbmV3c19ieV9uYW1lLA0KICAgIG9ubGluZV9uZXdzX25hbWVfdG90YWwgPSBhdHRuX25ld3NfYnlfdG90YWxfbmFtZSwNCiAgICBvbmxpbmVfbmV3c19uYW1lX2wgPSBhdHRuX25ld3NfYnlfbF9uYW1lLA0KICAgIG9ubGluZV9uZXdzX25hbWVfdG90YWxfbCA9IHByb2ZfdG90X2NvYV9hdHRuX25ld3NfYnlfdG90YWxfbCwNCiAgICBibG9ncyA9IGF0dG5fYmxvZ3NfYnksDQogICAgYmxvZ3NfdG90YWwgPSBhdHRuX2Jsb2dzX2J5X3RvdGFsLA0KICAgIGJsb2dzX2wgPSBhdHRuX2Jsb2dzX2J5X2wsDQogICAgYmxvZ3NfdG90YWxfbCA9IGF0dG5fYmxvZ3NfYnlfdG90YWxfbCwNCiAgICB0d2l0dGVyID0gYXR0bl90d2l0dGVyX2J5LA0KICAgIHR3aXR0ZXJfdG90YWwgPSBhdHRuX3R3aXR0ZXJfYnlfdG90YWwsDQogICAgdHdpdHRlcl9sID0gYXR0bl90d2l0dGVyX2J5X2wsDQogICAgdHdpdHRlcl90b3RhbF9sID0gYXR0bl90d2l0dGVyX2J5X3RvdGFsX2wsDQogICAgZ3JhbnRfdmVuaSA9IHZlbmksDQogICAgZ3JhbnRfdmVuaV9sID0gdmVuaV9sLA0KICAgIGdyYW50X3ZpZGkgPSB2aWRpLA0KICAgIGdyYW50X3ZpZGlfbCA9IHZpZGlfbCwgICAgDQogICAgZ3JhbnRfdmljaSA9IHZpY2ksDQogICAgZ3JhbnRfdmljaV9sID0gdmljaV9sLA0KICAgIGdyYW50X3N0ZXZpbiA9IHN0ZXZpbiwNCiAgICBncmFudF9zdGV2aW5fbCA9IHN0ZXZpbl9sLA0KICAgIGdyYW50X3NwaW5vemEgPSBzcGlub3phLA0KICAgIGdyYW50X3NwaW5vemFfbCA9IHNwaW5vemFfbCwNCiAgICBncmFudF9zdGFydGluZyA9IHN0YXJ0aW5nLA0KICAgIGdyYW50X3N0YXJ0aW5nX2wgPSBzdGFydGluZ19sLA0KICAgIGdyYW50X2FkdmFuY2VkID0gYWR2YW5jZWQsDQogICAgZ3JhbnRfYWR2YW5jZWRfbCA9IGFkdmFuY2VkX2wsDQogICAgZ3JhbnRfY29uc29saWRhdG9yID0gY29uc29saWRhdG9yLA0KICAgIGdyYW50X2NvbnNvbGlkYXRvcl9sID0gY29uc29saWRhdG9yX2wsDQogICAgZ3JhbnRfc3luZXJneSA9IHN5bmVyZ3ksDQogICAgZ3JhbnRfc3luZXJneV9sID0gc3luZXJneV9sLA0KICAgIGNvYV9vbmxpbmVfbmV3cyA9IGNvYV9hdHRuX25ld3NfYnksDQogICAgY29hX2Jsb2dzID0gY29hX2F0dG5fYmxvZ19ieSwNCiAgICBjb2FfdHdpdHRlciA9IGNvYV9hdHRuX3R3aXR0ZXJfYnksDQogICAgY29hX29ubGluZV9uZXdzX3RvdGFsID0gY29hX2F0dG5fbmV3c19ieV90b3RhbCwNCiAgICBjb2FfYmxvZ3NfdG90YWwgPSBjb2FfYXR0bl9ibG9nX2J5X3RvdGFsLA0KICAgIGNvYV90d2l0dGVyX3RvdGFsID0gY29hX2F0dG5fdHdpdHRlcl9ieV90b3RhbCwNCiAgICBjb2Ffb25saW5lX25ld3NfbCA9IGNvYV9hdHRuX25ld3NfYnlfbCwNCiAgICBjb2FfYmxvZ3NfbCA9IGNvYV9hdHRuX2Jsb2dfYnlfbCwNCiAgICBjb2FfdHdpdHRlcl9sID0gY29hX2F0dG5fdHdpdHRlcl9ieV9sLA0KICAgIGNvYV9vbmxpbmVfbmV3c190b3RhbF9sID0gY29hX2F0dG5fbmV3c19ieV90b3RhbF9sLA0KICAgIGNvYV9ibG9nc190b3RhbF9sID0gY29hX2F0dG5fYmxvZ19ieV90b3RhbF9sLA0KICAgIGNvYV90d2l0dGVyX3RvdGFsX2wgPSBjb2FfYXR0bl90d2l0dGVyX2J5X3RvdGFsX2wsDQogICAgY29hX3RvdF9jb3VudF9wdWJzID0gcHJvZl90b3RfY291bnRfcHVicywgDQogICAgY29hX3RvdF9jaXRlZF9ieSA9IHByb2ZfdG90X2NpdGVkX2J5LA0KICAgIGNvYV90b3RfY291bnRfcHVic190b3RhbCA9IHByb2ZfdG90X2NvdW50X3B1YnNfdG90YWxfYWxsLA0KICAgIGNvYV90b3RfY2l0ZWRfYnlfdG90YWwgPSBwcm9mX3RvdF9jaXRlZF9ieV90b3RhbF9hbGwsDQogICAgY29hX3RvdF9vbmxpbmVfbmV3cyA9IHByb2ZfdG90X2NvYV9hdHRuX25ld3NfYnksDQogICAgY29hX3RvdF9ibG9ncyA9IHByb2ZfdG90X2NvYV9hdHRuX2Jsb2dfYnksDQogICAgY29hX3RvdF90d2l0dGVyID0gcHJvZl90b3RfY29hX2F0dG5fdHdpdHRlcl9ieSwNCiAgICBjb2FfdG90X29ubGluZV9uZXdzX3RvdGFsID0gcHJvZl90b3RfY29hX2F0dG5fbmV3c19ieV90b3RhbCwNCiAgICBjb2FfdG90X2Jsb2dzX3RvdGFsID0gcHJvZl90b3RfY29hX2F0dG5fYmxvZ19ieV90b3RhbCwNCiAgICBjb2FfdG90X3R3aXR0ZXJfdG90YWwgPSBwcm9mX3RvdF9jb2FfYXR0bl90d2l0dGVyX2J5X3RvdGFsLA0KICAgIGNvYV90b3RfdW5pcXVlX20gPSBwcm9mX3RvdF91bmlxdWVfY29hX20sDQogICAgY29hX3RvdF91bmlxdWVfdyA9IHByb2ZfdG90X3VuaXF1ZV9jb2FfdywNCiAgICBjb2FfdG90X3VuaXF1ZV91ID0gcHJvZl90b3RfdW5pcXVlX2NvYV91LA0KICAgIGNvYV90b3RfY291bnRfcHVic19sID0gcHJvZl90b3RfY291bnRfcHVic19sLCANCiAgICBjb2FfdG90X2NpdGVkX2J5X2wgPSBwcm9mX3RvdF9jaXRlZF9ieV9sLA0KICAgIGNvYV90b3RfY291bnRfcHVic190b3RhbF9sID0gcHJvZl90b3RfY291bnRfcHVic190b3RhbF9hbGxfbCwNCiAgICBjb2FfdG90X2NpdGVkX2J5X3RvdGFsX2wgPSBwcm9mX3RvdF9jaXRlZF9ieV90b3RhbF9hbGxfbCwNCiAgICBjb2FfdG90X29ubGluZV9uZXdzX2wgPSBwcm9mX3RvdF9jb2FfYXR0bl9uZXdzX2J5X2wsDQogICAgY29hX3RvdF9ibG9nc19sID0gcHJvZl90b3RfY29hX2F0dG5fYmxvZ19ieV9sLA0KICAgIGNvYV90b3RfdHdpdHRlcl9sID0gcHJvZl90b3RfY29hX2F0dG5fdHdpdHRlcl9ieV9sLA0KICAgIGNvYV90b3Rfb25saW5lX25ld3NfdG90YWxfbCA9IHByb2ZfdG90X2NvYV9hdHRuX25ld3NfYnlfdG90YWxfbCwNCiAgICBjb2FfdG90X2Jsb2dzX3RvdGFsX2wgPSBwcm9mX3RvdF9jb2FfYXR0bl9ibG9nX2J5X3RvdGFsX2wsDQogICAgY29hX3RvdF90d2l0dGVyX3RvdGFsX2wgPSBwcm9mX3RvdF9jb2FfYXR0bl90d2l0dGVyX2J5X3RvdGFsX2wsDQogICAgY29hX3RvdF91bmlxdWVfbV9sID0gcHJvZl90b3RfdW5pcXVlX2NvYV9tX2wsDQogICAgY29hX3RvdF91bmlxdWVfd19sID0gcHJvZl90b3RfdW5pcXVlX2NvYV93X2wsDQogICAgY29hX3RvdF91bmlxdWVfdV9sID0gcHJvZl90b3RfdW5pcXVlX2NvYV91X2wsDQogICAgbmV3c19uYXRpb25hbCA9IGxleGlzX25hdGlvbmFsLA0KICAgIG5ld3NfcmVnaW9uYWwgPSBsZXhpc19yZWdpb25hbCwNCiAgICBuZXdzX2ludGwgPSBsZXhpc19pbnRsLA0KICAgIG5ld3MgPSBsZXhpc19hbGwsDQogICAgbmV3c19uYXRpb25hbF90b3RhbCA9IGxleGlzX25hdGlvbmFsX3RvdGFsLA0KICAgIG5ld3NfcmVnaW9uYWxfdG90YWwgPSBsZXhpc19yZWdpb25hbF90b3RhbCwNCiAgICBuZXdzX2ludGxfdG90YWwgPSBsZXhpc19pbnRsX3RvdGFsLA0KICAgIG5ld3NfdG90YWwgPSBsZXhpc19hbGxfdG90YWwsDQogICAgbmV3c19uYXRpb25hbF9sID0gbGV4aXNfbmF0aW9uYWxfbCwNCiAgICBuZXdzX3JlZ2lvbmFsX2wgPSBsZXhpc19yZWdpb25hbF9sLA0KICAgIG5ld3NfaW50bF9sID0gbGV4aXNfaW50bF9sLA0KICAgIG5ld3NfbCA9IGxleGlzX2FsbF9sLA0KICAgIG5ld3NfbmF0aW9uYWxfdG90YWxfbCA9IGxleGlzX25hdGlvbmFsX3RvdGFsX2wsDQogICAgbmV3c19yZWdpb25hbF90b3RhbF9sID0gbGV4aXNfcmVnaW9uYWxfdG90YWxfbCwNCiAgICBuZXdzX2ludGxfdG90YWxfbCA9IGxleGlzX2ludGxfdG90YWxfbCwNCiAgICBuZXdzX3RvdGFsX2wgPSBsZXhpc19hbGxfdG90YWxfbCkNCmBgYA0KIA0KDQpTZWxlY3QgcmVsZXZhbnQgY29sdW1ucyBhbmQgdGlkeSBldmVyeXRoaW5nIHVwOg0KYGBge3J9DQpwcm9mX3BhbmVsX3RpZHkgPC0gcHJvZl9wYW5lbF90aWR5ICU+JQ0KICAjIGJ1dCBub3QgMjAyNA0KICBmaWx0ZXIoeWVhciA8IDIwMjQgJiAhaXMubmEoeWVhcikpDQoNCiMgdGlkeSB1cCBtZW50aW9ucw0KcHJvZl9wYW5lbF90aWR5JG9ubGluZV9uZXdzX2Jsb2dzIDwtIHByb2ZfcGFuZWxfdGlkeSRvbmxpbmVfbmV3cyArIHByb2ZfcGFuZWxfdGlkeSRibG9ncw0KcHJvZl9wYW5lbF90aWR5JG9ubGluZV9uZXdzX2Jsb2dzX2wgPC0gcHJvZl9wYW5lbF90aWR5JG9ubGluZV9uZXdzX2wgKyBwcm9mX3BhbmVsX3RpZHkkYmxvZ3NfbA0KcHJvZl9wYW5lbF90aWR5JG9ubGluZV9uZXdzX2Jsb2dzX3RvdGFsX2wgPC0gcHJvZl9wYW5lbF90aWR5JG9ubGluZV9uZXdzX3RvdGFsX2wgKyBwcm9mX3BhbmVsX3RpZHkkYmxvZ3NfdG90YWxfbA0KDQojIGNvYXV0aG9ycyB0aGlzIHllYXINCnByb2ZfcGFuZWxfdGlkeSRjb2Ffb25saW5lX25ld3NfYmxvZ3MgPC0gcHJvZl9wYW5lbF90aWR5JGNvYV9vbmxpbmVfbmV3cyArIHByb2ZfcGFuZWxfdGlkeSRjb2FfYmxvZ3MNCnByb2ZfcGFuZWxfdGlkeSRjb2Ffb25saW5lX25ld3NfYmxvZ3NfbCA8LSBwcm9mX3BhbmVsX3RpZHkkY29hX29ubGluZV9uZXdzX2wgKyBwcm9mX3BhbmVsX3RpZHkkY29hX2Jsb2dzX2wNCnByb2ZfcGFuZWxfdGlkeSRjb2Ffb25saW5lX25ld3NfYmxvZ3NfdG90YWwgPC0gcHJvZl9wYW5lbF90aWR5JGNvYV9vbmxpbmVfbmV3c190b3RhbCArIHByb2ZfcGFuZWxfdGlkeSRjb2FfYmxvZ3NfdG90YWwNCnByb2ZfcGFuZWxfdGlkeSRjb2Ffb25saW5lX25ld3NfYmxvZ3NfdG90YWxfbCA8LSBwcm9mX3BhbmVsX3RpZHkkY29hX29ubGluZV9uZXdzX3RvdGFsX2wgKyBwcm9mX3BhbmVsX3RpZHkkY29hX2Jsb2dzX3RvdGFsX2wNCg0KIyBhbGwgY29hdXRob3JzIHVwIHVudGlsIG5vdw0KcHJvZl9wYW5lbF90aWR5JGNvYV90b3Rfb25saW5lX25ld3NfYmxvZ3MgPC0gcHJvZl9wYW5lbF90aWR5JGNvYV90b3Rfb25saW5lX25ld3MgKyBwcm9mX3BhbmVsX3RpZHkkY29hX3RvdF9ibG9ncw0KcHJvZl9wYW5lbF90aWR5JGNvYV90b3Rfb25saW5lX25ld3NfYmxvZ3NfbCA8LSBwcm9mX3BhbmVsX3RpZHkkY29hX3RvdF9vbmxpbmVfbmV3c19sICsgcHJvZl9wYW5lbF90aWR5JGNvYV90b3RfYmxvZ3NfbA0KcHJvZl9wYW5lbF90aWR5JGNvYV90b3Rfb25saW5lX25ld3NfYmxvZ3NfdG90YWwgPC0gcHJvZl9wYW5lbF90aWR5JGNvYV90b3Rfb25saW5lX25ld3NfdG90YWwgKyBwcm9mX3BhbmVsX3RpZHkkY29hX3RvdF9ibG9nc190b3RhbA0KcHJvZl9wYW5lbF90aWR5JGNvYV90b3Rfb25saW5lX25ld3NfYmxvZ3NfdG90YWxfbCA8LSBwcm9mX3BhbmVsX3RpZHkkY29hX3RvdF9vbmxpbmVfbmV3c190b3RhbF9sICsgcHJvZl9wYW5lbF90aWR5JGNvYV90b3RfYmxvZ3NfdG90YWxfbA0KDQojIGdldCBncm91cHMgcGVyIHllYXJzIHNpbmNlIGVudHJ5DQpwcm9mX3BhbmVsX3RpZHkkZW50cnlfYmF0Y2ggPC0gY3V0KHByb2ZfcGFuZWxfdGlkeSR5ZWFyc19zaW5jZV9maXJzdF9wdWIsIGJyZWFrcyA9IHNlcSgwLCA1MCwgYnk9MTApKQ0KcHJvZl9wYW5lbF90aWR5JHllYXJzX3NpbmNlX2VudHJ5IDwtIHBhc3RlKCJ1cCB0byIsIHN0cl9yZW1vdmUoc3RyX3NwbGl0X2koYXMuY2hhcmFjdGVyKHByb2ZfcGFuZWxfdGlkeSRlbnRyeV9iYXRjaCksICIsIiwgMiksIl0iKSkNCmBgYA0KDQpBbHRlcm5hdGl2ZWx5LCBsZWF2ZSBvbmx5IHRob3NlIHByb2Zlc3NvcnMgZm9yIHdob20gd2UgYWN0dWFsbHkgaGF2ZSBsZXhpcyBkYXRhOg0KYGBge3Igd2FybmluZyA9IEYsIG1lc3NhZ2UgPSBGfQ0KIyBvbmVzIHdlIGNvbGxlY3RlZCBiZWZvcmUgMjAuMy4gaW4gdGhlIG1vcm5pbmcgDQpsZXhpc19pbmZvIDwtIGZpbGUuaW5mbyhsaXN0LmZpbGVzKHBhdGggPSAiLi4vbGV4aXNfY3Jhd2wvZG93bmxvYWRzL3ppcGZpbGVzIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcGF0dGVybj0iKi56aXAiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBmdWxsLm5hbWVzID0gVCkpDQpsZXhpc19yZWxfbGlzdCA8LSBmaWx0ZXIobGV4aXNfaW5mbywNCiAgICAgICAgICAgICAgICAgICAgICAgICBtdGltZSA8PSAiMjAyNC0wMy0yMCA4OjU1OjAwIikNCg0KbGV4aXNfcmVsX2xpc3QkcHJvZmlsZV9pZCA8LSBzdHJfcmVtb3ZlKHN0cl9yZW1vdmUocm93bmFtZXMobGV4aXNfcmVsX2xpc3QpLCAiLi4vbGV4aXNfY3Jhd2wvZG93bmxvYWRzL3ppcGZpbGVzLyIpLCAiLnppcCIpDQoNCiMgbWludXMgb25lcyB0aGF0IGFyZSBpbmNvbXBsZXRlDQptaXNzaW5nX2luZGljZXMgPC0gcmVhZF9jc3YoIi4uL2xleGlzX2NyYXdsL21pc3NpbmdfaW5kaWNlcy5jc3YiKQ0KDQpsZXhpc19saXN0IDwtIGZpbHRlcihsZXhpc19yZWxfbGlzdCwgISBwcm9maWxlX2lkICVpbiUgbWlzc2luZ19pbmRpY2VzJHByb2ZpbGVfaWQpDQoNCnByb2ZfcGFuZWxfZmlsdGVyIDwtIGZpbHRlcihwcm9mX3BhbmVsX3RpZHksDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgc3RyX3JlbW92ZShwcm9maWxlX2lkLCAiaHR0cHM6Ly93d3cubmFyY2lzLm5sL3BlcnNvbi9SZWNvcmRJRC8iKSAlaW4lIGxleGlzX2xpc3QkcHJvZmlsZV9pZCkNCmBgYA0KDQpXcml0ZSB0aGlzIG91dDoNCmBgYHtyfQ0Kd3JpdGVfY3N2KHByb2ZfcGFuZWxfZmlsdGVyLCAicGFuZWxfZGF0YXNldHMvZnVsbF9wYW5lbF9sZXhpc19uYW1lX2FsdG1fMjZfM18zNjU1X3Byb2YuY3N2IikNCmBgYA0KDQo=</div>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeSourceEmbed("altmetrics_actual_mentions.Rmd");
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
