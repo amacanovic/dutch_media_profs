@@ -44,12 +44,8 @@ navbar:
         href: Data_descriptives.html
       - text: "6. Panel data compilation"
         href: Panel_data_compilation.html
-      - text: "8. Data plots"
-        href: Various_plots.html
-      - text: "9. Regression models"
-        href: Various_regressions.html
-      - text: "10. Various analyses - April"
-        href: April_analyses.html
+      - text: "7. Various analyses"
+        href: analyses.html
 
 
   right:

@@ -5,8 +5,15 @@ date: "2023-12-06"
 ---
 
 
-This script downloads information from BlueSky based on the handles we offer.
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+This script downloads information from BlueSky based on the handles we offer.
+```{r, include=FALSE}
 #install.packages("pak")
 #pak::pak("JBGruber/atr")
 library(atr)

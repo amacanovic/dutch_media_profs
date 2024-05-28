@@ -7,7 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(eval = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 ```
@@ -16,7 +16,7 @@ knitr::opts_chunk$set(message = FALSE)
 This is a first draft of our main analyses.
 
 Load the packages:
-```{r message=  F, warning = F, eval = T}
+```{r message=  F, warning = F, eval = F}
 library(groundhog)
 packages_to_load <- c("readr", "dplyr", "tidyr", 
                       "ggplot2", "gridExtra", "cowplot",
@@ -25,7 +25,7 @@ packages_to_load <- c("readr", "dplyr", "tidyr",
                       "gridExtra", "DescTools", "marginaleffects",
                       "panelr", "skimr", "margins",
                       "lmtest", "sandwich", "rstatix", "ggpubr",
-                      "stargazer","plm", "grid")
+                      "stargazer","plm", "grid", "corrplot")
 groundhog.library(packages_to_load, date = "2023-12-01")
 #groundhog.library(c("ggeffects", "insight"), date = "2024-04-15")
 
@@ -41,15 +41,214 @@ prof_panel_coa <- read_csv("panel_datasets/prof_panel_tidy_26_4.csv")
 
 prof_panel_filter <- filter(prof_panel_coa,
                             year < 2024)
+
+prof_panel_filter$coa_online_all_total <- prof_panel_filter$coa_online_news_total + prof_panel_filter$coa_blogs_total
+prof_panel_filter$coa_online_all_total_l <- prof_panel_filter$coa_online_news_total_l + prof_panel_filter$coa_blogs_total_l
+prof_panel_filter$coa_online_all <- prof_panel_filter$coa_online_news + prof_panel_filter$coa_blogs
+prof_panel_filter$coa_online_all_l <- prof_panel_filter$coa_online_news_l + prof_panel_filter$coa_blogs_l
+
+prof_panel_filter$coa_tot_online_all_total <- prof_panel_filter$coa_tot_online_news_total + prof_panel_filter$coa_tot_blogs_total
+prof_panel_filter$coa_tot_online_all_total_l <- prof_panel_filter$coa_tot_online_news_total_l + prof_panel_filter$coa_tot_blogs_total_l
+prof_panel_filter$coa_tot_online_all <- prof_panel_filter$coa_tot_online_news + prof_panel_filter$coa_tot_blogs
+prof_panel_filter$coa_tot_online_all_l <- prof_panel_filter$coa_tot_online_news + prof_panel_filter$coa_tot_blogs_l
 ```
 
 
-# Explore representation across different data sources:
+# Explore representation across different data sources
 ```{r}
 sources_check <- prof_panel_filter %>%
   group_by(profile_id)%>%
   filter(year == max(year))
 ```
+
+Check two kinds of coauthor variables we have:
+```{r}
+select_vars_cor <- c("coa_count_pubs_total_oa",
+                     "coa_cited_by_total_oa",
+                     "coa_online_all_total",
+                     "coa_twitter_total",
+                     "coa_tot_count_pubs",
+                     "coa_tot_cited_by",
+                     "coa_tot_online_all_total",
+                     "coa_tot_twitter")
+
+labels_cor <-c("Publications - this year's coauthors' total",
+               "Citations - this year's coauthors' total",
+               "Online news attention - this year's coauthor' total",
+               "Twitter attention - this year's coauthor' total",
+               "Publications - all coauthors' total",
+               "Citations - all coauthors' total",
+               "Online news attention - all coauthor' total",
+               "Twitter attention - all coauthor' total")
+
+correlation_matrix <- cor(sources_check[,select_vars_cor],use="pairwise.complete.obs")
+
+
+colnames(correlation_matrix) <- labels_cor
+rownames(correlation_matrix) <- labels_cor
+
+
+png(height=10, width=10, 
+    unit = "in", 
+    res = 600,
+    file="Plots_april/Supplemental/correlations_coauthor_var_comparison_total.png")
+
+# Your function to plot image goes here
+corrplot(correlation_matrix, 
+         method="number",
+         tl.col = "black",
+         title = "Variable Correlation Matrix - Coauthor variable comparison (Totals)",
+         mar=c(0,0,2,0))
+# Then
+dev.off()
+```
+
+
+First, some correlations between different variables, looking at totals in the final
+year overall:
+```{r fig.width=10, fig.height=10}
+select_vars_cor <- c("count_pubs_total",
+                     "cited_by_total_all",
+                     "news_all_total",
+                     "alt_online_all_total",
+                     "alt_twitter_total",
+                     "coa_count_pubs_total_oa",
+                     "coa_cited_by_total_oa",
+                     "coa_online_all_total",
+                     "coa_twitter_total",
+                     "years_since_first_pub")
+
+labels_cor <-c("Publications",
+               "Citations",
+               "News attention",
+               "Online news attention",
+               "Twitter attention",
+               "Coauthor publications",
+               "Coauthor citations",
+               "Coauthor online news attention",
+               "Coauthor twitter attention",
+               "Years since first publications")
+
+correlation_matrix <- cor(sources_check[,select_vars_cor],use="pairwise.complete.obs")
+
+
+colnames(correlation_matrix) <- labels_cor
+rownames(correlation_matrix) <- labels_cor
+
+
+png(height=10, width=10, 
+    unit = "in", 
+    res = 600,
+    file="Plots_april/Supplemental/correlations_total_overall.png")
+
+# Your function to plot image goes here
+corrplot(correlation_matrix, 
+         method="number",
+         tl.col = "black",
+         title = "Variable Correlation Matrix - Totals, All fields",
+         mar=c(0,0,2,0))
+# Then
+dev.off()
+
+```
+And per field:
+```{r}
+fields <- unique(sources_check$general_field)
+fields <- fields[1:4]
+
+for (field in fields){
+  field_data <- filter(sources_check, general_field == field)
+  
+  correlation_matrix_field <- cor(field_data[,select_vars_cor],use="pairwise.complete.obs")
+  
+  rownames(correlation_matrix_field) <- colnames(correlation_matrix_field)
+
+  
+  colnames(correlation_matrix_field) <- labels_cor
+  rownames(correlation_matrix_field) <- labels_cor
+  
+  
+  png(height=10, width=10, 
+      unit = "in", 
+      res = 600,
+      file= paste0("Plots_april/Supplemental/correlations_total_", field, ".png"))
+  
+  # Your function to plot image goes here
+  corrplot(correlation_matrix_field, 
+           method="number",
+           tl.col = "black",
+           title = paste("Variable Correlation Matrix - Totals", field),
+         mar=c(0,0,2,0))
+  # Then
+  dev.off()
+
+}
+```
+
+Looking at year over year numbers:
+```{r}
+select_vars_cor <- c("count_pubs",
+                     "cited_by",
+                     "news_all",
+                     "alt_online_all",
+                     "alt_twitter",
+                     "coa_count_pubs",
+                     "coa_cited_by",
+                     "coa_online_all",
+                     "coa_twitter")
+
+correlation_matrix <- cor(prof_panel_filter[,select_vars_cor],use="pairwise.complete.obs")
+
+
+colnames(correlation_matrix) <- labels_cor[1:9]
+rownames(correlation_matrix) <- labels_cor[1:9]
+
+
+png(height=10, width=10, 
+    unit = "in", 
+    res = 600,
+    file="Plots_april/Supplemental/correlations_yearly_overall.png")
+
+# Your function to plot image goes here
+corrplot(correlation_matrix, 
+         method="number",
+         tl.col = "black",
+         title = "Variable Correlation Matrix - Yearly, All fields",
+         mar=c(0,0,2,0))
+# Then
+dev.off()
+```
+And per field:
+```{r}
+for (field in fields){
+  field_data <- filter(prof_panel_filter, general_field == field)
+  
+  correlation_matrix_field <- cor(field_data[,select_vars_cor],use="pairwise.complete.obs")
+  
+  rownames(correlation_matrix_field) <- colnames(correlation_matrix_field)
+
+  
+  colnames(correlation_matrix_field) <- labels_cor[1:9]
+  rownames(correlation_matrix_field) <- labels_cor[1:9]
+  
+  
+  png(height=10, width=10, 
+      unit = "in", 
+      res = 600,
+      file= paste0("Plots_april/Supplemental/correlations_yearly_", field, ".png"))
+  
+  # Your function to plot image goes here
+  corrplot(correlation_matrix_field, 
+           method="number",
+           tl.col = "black",
+           title = paste("Variable Correlation Matrix - Yearly,", field),
+         mar=c(0,0,2,0))
+  # Then
+  dev.off()
+
+}
+```
+
 
 ## News data
 
@@ -71,7 +270,6 @@ Or, 2.65 mentions per year:
 ```{r}
 mean(prof_panel_filter$news_allall, na.rm = TRUE)
 ```
-
 
 
 Breakdown by news article type:
@@ -951,7 +1149,7 @@ for (field in fields){
                      # coauthor publication variables
                      coa_tot_cited_by_total_l +
                      # coauthor publication variables
-                     coa_online_news_total_l + coa_twitter_total_l+as.factor(year),
+                     coa_online_all_total_l + coa_twitter_total_l+as.factor(year),
                    data = field_dataset) 
   
   model_result <- coeftest(news_model, vcov = vcovCL, cluster = ~profile_id)[,] %>% 
@@ -1066,7 +1264,7 @@ for (field in fields){
                          # coauthor publication variables
                          coa_tot_cited_by_total_l +
                          # coauthor publication variables
-                         coa_online_news_total_l + coa_twitter_total_l+as.factor(year),
+                         coa_online_all_total_l + coa_twitter_total_l+as.factor(year),
                    data = field_dataset) 
   
   model_result <- coeftest(news_model, vcov = vcovCL, cluster = ~profile_id)[,] %>% 
@@ -1184,7 +1382,7 @@ for (field in fields){
                      # coauthor publication variables
                      coa_tot_cited_by_total_l +
                      # coauthor publication variables
-                     coa_online_news_total_l + coa_twitter_total_l+as.factor(year),
+                     coa_online_all_total_l + coa_twitter_total_l+as.factor(year),
                    data = field_dataset) 
   
   model_result <- coeftest(news_model, vcov = vcovCL, cluster = ~profile_id)[,] %>% 
@@ -1350,7 +1548,7 @@ for (field in fields){
                      # coauthor publication variables
                      coa_tot_cited_by_total_l +
                      # coauthor publication variables
-                     coa_online_news_total_l + coa_twitter_total_l+as.factor(year),
+                     coa_online_all_total_l + coa_twitter_total_l+as.factor(year),
                    data = field_dataset, family = 'poisson') 
   
   model_result <- coeftest(news_model, vcov = vcovCL, cluster = ~profile_id)[,] %>% 
@@ -1433,7 +1631,7 @@ for (field in fields){
                          # coauthor publication variables
                          coa_tot_cited_by_total_l +
                          # coauthor publication variables
-                         coa_online_news_total_l + coa_twitter_total_l+as.factor(year),
+                         coa_online_all_total_l + coa_twitter_total_l+as.factor(year),
                    data = field_dataset, family = 'poisson')  
   
   model_result <- coeftest(news_model, vcov = vcovCL, cluster = ~profile_id)[,] %>% 
@@ -1516,7 +1714,7 @@ for (field in fields){
                      # coauthor publication variables
                      coa_tot_cited_by_total_l +
                      # coauthor publication variables
-                     coa_online_news_total_l + coa_twitter_total_l+as.factor(year),
+                     coa_online_all_total_l + coa_twitter_total_l+as.factor(year),
                    data = field_dataset, family = 'poisson')
   
   model_result <- coeftest(news_model, vcov = vcovCL, cluster = ~profile_id)[,] %>% 
@@ -1604,7 +1802,7 @@ for (field in fields){
                      # coauthor publication variables
                      coa_tot_cited_by_total_l +
                      # coauthor publication variables
-                     coa_online_news_total_l + coa_twitter_total_l+as.factor(year),
+                     coa_online_all_total_l + coa_twitter_total_l+as.factor(year),
                    data = field_dataset, family = 'binomial') 
   
   model_result <- coeftest(news_model, type = "HC0", cluster = ~profile_id)[,] %>% 
@@ -1672,7 +1870,7 @@ for (field in fields){
                          # coauthor publication variables
                          coa_tot_cited_by_total_l +
                          # coauthor publication variables
-                         coa_online_news_total_l + coa_twitter_total_l+as.factor(year),
+                         coa_online_all_total_l + coa_twitter_total_l+as.factor(year),
                    data = field_dataset, family = 'binomial')  
   
   model_result <- coeftest(news_model, type = "HC0", cluster = ~profile_id)[,] %>% 
@@ -1742,7 +1940,7 @@ for (field in fields){
                      # coauthor publication variables
                      coa_tot_cited_by_total_l +
                      # coauthor publication variables
-                     coa_online_news_total_l + coa_twitter_total_l+as.factor(year),
+                     coa_online_all_total_l + coa_twitter_total_l+as.factor(year),
                    data = field_dataset, family = 'binomial')
   
   model_result <- coeftest(news_model, type = "HC0", cluster = ~profile_id)[,] %>% 
@@ -1820,7 +2018,7 @@ for (field in fields){
                      # coauthor publication variables
                      coa_tot_cited_by_total_l +
                      # coauthor publication variables
-                     coa_online_news_total_l + coa_twitter_total_l+as.factor(year),
+                     coa_online_all_total_l + coa_twitter_total_l+as.factor(year),
                    data = field_dataset, family = 'binomial') 
   
   model_result <- coeftest(news_model, type = "HC0", cluster = ~profile_id)[,] %>% 
@@ -1888,7 +2086,7 @@ for (field in fields){
                          # coauthor publication variables
                          coa_tot_cited_by_total_l +
                          # coauthor publication variables
-                         coa_online_news_total_l + coa_twitter_total_l+as.factor(year),
+                         coa_online_all_total_l + coa_twitter_total_l+as.factor(year),
                    data = field_dataset, family = 'binomial')  
   
   model_result <- coeftest(news_model, type = "HC0", cluster = ~profile_id)[,] %>% 
@@ -1956,7 +2154,7 @@ for (field in fields){
                      # coauthor publication variables
                      coa_tot_cited_by_total_l +
                      # coauthor publication variables
-                     coa_online_news_total_l + coa_twitter_total_l+as.factor(year),
+                     coa_online_all_total_l + coa_twitter_total_l+as.factor(year),
                    data = field_dataset, family = 'binomial')
   
   model_result <- coeftest(news_model, type = "HC0", cluster = ~profile_id)[,] %>% 
@@ -2021,7 +2219,7 @@ Now, select professors' attention in these years and add it up per period:
 Get transition matrices per gender:
 (see the "helper_functions.R" file for the actual function)
 ```{r message=F}
-splits <- 10
+splits <- 5
 
 gender_matrices <- gen_transition_matrix(prof_panel_mobility, split_by = "gender", brackets = splits)
 ```
@@ -2245,7 +2443,7 @@ arts_hum <- plot_grid(
 
 Save the plot:
 ```{r fig.width=10, fig.height=10}
-ggsave(file="Plots_april/Supplemental/P_overall_transitions.png", 
+ggsave(file="Plots_april/Supplemental/P_overall_transitions_20.png", 
        grid.arrange(stem, soc_sci,
                     medicine, arts_hum,
                     ncol = 1, nrow = 4),
@@ -2463,7 +2661,7 @@ arts_hum <- plot_grid(
 
 Save the plot:
 ```{r fig.width=10, fig.height=10}
-ggsave(file="Plots_april/Supplemental/P_transition_diff.png", 
+ggsave(file="Plots_april/Supplemental/P_transition_diff_20.png", 
        grid.arrange(stem, soc_sci,
                     medicine, arts_hum,
                     ncol = 1, nrow = 4),

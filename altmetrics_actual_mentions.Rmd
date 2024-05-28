@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(eval = FALSE)
 ```
 Load the packages:
-```{r message=  F, warning = F, eval = T}
+```{r message=TRUE, warning=TRUE}
 library(groundhog)
 packages_to_load <- c("readr", "dplyr", "tidyr", "PerformanceAnalytics",
                       "tidyverse", "RPostgres", "lubridate", "psych",
@@ -31,7 +31,7 @@ user <- ""
 password <- ""
 database_name <- ""
 
-con <- RPostgres::dbConnect(RPostgres::Postgres(),
+con <- dbConnect(Postgres(),
                  dbname= database_name,
                  port = port,
                  user = user, 

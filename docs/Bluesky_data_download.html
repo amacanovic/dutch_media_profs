@@ -376,13 +376,7 @@ div.tocify {
       <a href="Panel_data_compilation.html">6. Panel data compilation</a>
     </li>
     <li>
-      <a href="Various_plots.html">8. Data plots</a>
-    </li>
-    <li>
-      <a href="Various_regressions.html">9. Regression models</a>
-    </li>
-    <li>
-      <a href="April_analyses.html">10. Various analyses - April</a>
+      <a href="analyses.html">7. Various analyses</a>
     </li>
   </ul>
 </li>
@@ -429,46 +423,12 @@ updated once we get a list of handles…</h1>
 <p>Get all the user info:</p>
 <pre class="r"><code>user_info &lt;- get_user_info(actor = &quot;anamacanovic.bsky.social&quot;) %&gt;%
   dplyr::glimpse()</code></pre>
-<pre><code>## Rows: 1
-## Columns: 15
-## $ did                 &lt;chr&gt; &quot;did:plc:6uehlptl2bcbb5qgmb26p2sk&quot;
-## $ handle              &lt;chr&gt; &quot;anamacanovic.bsky.social&quot;
-## $ displayName         &lt;chr&gt; &quot;Ana Macanovic&quot;
-## $ avatar              &lt;chr&gt; &quot;https://cdn.bsky.app/img/avatar/plain/did:plc:6ue…
-## $ associated_lists    &lt;int&gt; 0
-## $ associated_feedgens &lt;int&gt; 0
-## $ associated_labeler  &lt;lgl&gt; FALSE
-## $ viewer_muted        &lt;lgl&gt; FALSE
-## $ viewer_blockedBy    &lt;lgl&gt; FALSE
-## $ viewer_followedBy   &lt;chr&gt; &quot;at://did:plc:6uehlptl2bcbb5qgmb26p2sk/app.bsky.gr…
-## $ description         &lt;chr&gt; &quot;PhD Candidate in Sociology @UniUtrecht/ICS | expl…
-## $ indexedAt           &lt;chr&gt; &quot;2024-01-26T01:05:09.055Z&quot;
-## $ followersCount      &lt;int&gt; 161
-## $ followsCount        &lt;int&gt; 125
-## $ postsCount          &lt;int&gt; 14</code></pre>
 <p>Get all the skeets:</p>
 <pre class="r"><code>user_skeets &lt;- get_skeets_authored_by(actor = &quot;anamacanovic.bsky.social&quot;, limit = 150) %&gt;%
   dplyr::glimpse()</code></pre>
-<pre><code>## 
-ℹ Parsing 19 results.
-
-✔ Got 19 results. All done!</code></pre>
-<pre><code>## Rows: 19
-## Columns: 11
-## $ uri          &lt;chr&gt; &quot;at://did:plc:6uehlptl2bcbb5qgmb26p2sk/app.bsky.feed.post…
-## $ cid          &lt;chr&gt; &quot;bafyreiavbqtpigrauwl6y75kdh6bx7vddvmyhdwshhzc5tynd6iuvnk…
-## $ author       &lt;list&gt; [&quot;did:plc:6uehlptl2bcbb5qgmb26p2sk&quot;, &quot;anamacanovic.bsky.…
-## $ text         &lt;chr&gt; &quot;I wrote this paper as an entry level intoduction to vari…
-## $ record       &lt;list&gt; [&quot;app.bsky.feed.post&quot;, &quot;2023-11-07T16:32:11.239Z&quot;, [&quot;app…
-## $ reply_count  &lt;int&gt; 0, 0, 1, 0, 15, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 10
-## $ repost_count &lt;int&gt; 2, 13, 29, 44, 142, 0, 0, 3, 3, 0, 1, 1, 0, 0, 1, 0, 0, 0…
-## $ like_count   &lt;int&gt; 5, 11, 60, 31, 288, 1, 1, 10, 7, 0, 2, 0, 0, 2, 6, 1, 6, …
-## $ indexed_at   &lt;dttm&gt; 2023-11-07 16:32:11, 2023-10-19 12:50:11, 2023-10-11 13:2…
-## $ reply        &lt;list&gt; [[&quot;app.bsky.feed.defs#postView&quot;, &quot;at://did:plc:6gmtdexnr…
-## $ is_reskeet   &lt;lgl&gt; FALSE, TRUE, TRUE, TRUE, TRUE, FALSE, FALSE, TRUE, FALSE…</code></pre>
 </div>
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIkJsdWVza3lfZGF0YV9kb3dubG9hZCINCmF1dGhvcjogIkFuYSBNYWNhbm92aWMiDQpkYXRlOiAiMjAyMy0xMi0wNiINCi0tLQ0KDQoNClRoaXMgc2NyaXB0IGRvd25sb2FkcyBpbmZvcm1hdGlvbiBmcm9tIEJsdWVTa3kgYmFzZWQgb24gdGhlIGhhbmRsZXMgd2Ugb2ZmZXIuDQpgYGB7ciBzZXR1cCwgaW5jbHVkZT1GQUxTRX0NCiNpbnN0YWxsLnBhY2thZ2VzKCJwYWsiKQ0KI3Bhazo6cGFrKCJKQkdydWJlci9hdHIiKQ0KbGlicmFyeShhdHIpDQoNCmxpYnJhcnkoZ3JvdW5kaG9nKQ0KcGFja2FnZXNfdG9fbG9hZCA8LSBjKCJyZWFkciIsICJkcGx5ciIsICJzdHJpbmdyIiwgInN0cmV4IikNCmdyb3VuZGhvZy5saWJyYXJ5KHBhY2thZ2VzX3RvX2xvYWQsIGRhdGUgPSAiMjAyMy0xMi0wMSIpDQpgYGANCg0KIyBUaGlzIHdpbGwgYWxsIGJlIHVwZGF0ZWQgb25jZSB3ZSBnZXQgYSBsaXN0IG9mIGhhbmRsZXMuLi4NCg0KR2V0IGFsbCB0aGUgdXNlciBpbmZvOg0KYGBge3J9DQp1c2VyX2luZm8gPC0gZ2V0X3VzZXJfaW5mbyhhY3RvciA9ICJhbmFtYWNhbm92aWMuYnNreS5zb2NpYWwiKSAlPiUNCiAgZHBseXI6OmdsaW1wc2UoKQ0KYGBgDQoNCkdldCBhbGwgdGhlIHNrZWV0czoNCmBgYHtyfQ0KdXNlcl9za2VldHMgPC0gZ2V0X3NrZWV0c19hdXRob3JlZF9ieShhY3RvciA9ICJhbmFtYWNhbm92aWMuYnNreS5zb2NpYWwiLCBsaW1pdCA9IDE1MCkgJT4lDQogIGRwbHlyOjpnbGltcHNlKCkNCmBgYA0KDQo=</div>
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIkJsdWVza3lfZGF0YV9kb3dubG9hZCINCmF1dGhvcjogIkFuYSBNYWNhbm92aWMiDQpkYXRlOiAiMjAyMy0xMi0wNiINCi0tLQ0KDQoNCmBgYHtyIHNldHVwLCBpbmNsdWRlPUZBTFNFfQ0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KGVjaG8gPSBUUlVFKQ0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KGV2YWwgPSBGQUxTRSkNCmtuaXRyOjpvcHRzX2NodW5rJHNldCh3YXJuaW5nID0gRkFMU0UpDQprbml0cjo6b3B0c19jaHVuayRzZXQobWVzc2FnZSA9IEZBTFNFKQ0KYGBgDQoNClRoaXMgc2NyaXB0IGRvd25sb2FkcyBpbmZvcm1hdGlvbiBmcm9tIEJsdWVTa3kgYmFzZWQgb24gdGhlIGhhbmRsZXMgd2Ugb2ZmZXIuDQpgYGB7ciwgaW5jbHVkZT1GQUxTRX0NCiNpbnN0YWxsLnBhY2thZ2VzKCJwYWsiKQ0KI3Bhazo6cGFrKCJKQkdydWJlci9hdHIiKQ0KbGlicmFyeShhdHIpDQoNCmxpYnJhcnkoZ3JvdW5kaG9nKQ0KcGFja2FnZXNfdG9fbG9hZCA8LSBjKCJyZWFkciIsICJkcGx5ciIsICJzdHJpbmdyIiwgInN0cmV4IikNCmdyb3VuZGhvZy5saWJyYXJ5KHBhY2thZ2VzX3RvX2xvYWQsIGRhdGUgPSAiMjAyMy0xMi0wMSIpDQpgYGANCg0KIyBUaGlzIHdpbGwgYWxsIGJlIHVwZGF0ZWQgb25jZSB3ZSBnZXQgYSBsaXN0IG9mIGhhbmRsZXMuLi4NCg0KR2V0IGFsbCB0aGUgdXNlciBpbmZvOg0KYGBge3J9DQp1c2VyX2luZm8gPC0gZ2V0X3VzZXJfaW5mbyhhY3RvciA9ICJhbmFtYWNhbm92aWMuYnNreS5zb2NpYWwiKSAlPiUNCiAgZHBseXI6OmdsaW1wc2UoKQ0KYGBgDQoNCkdldCBhbGwgdGhlIHNrZWV0czoNCmBgYHtyfQ0KdXNlcl9za2VldHMgPC0gZ2V0X3NrZWV0c19hdXRob3JlZF9ieShhY3RvciA9ICJhbmFtYWNhbm92aWMuYnNreS5zb2NpYWwiLCBsaW1pdCA9IDE1MCkgJT4lDQogIGRwbHlyOjpnbGltcHNlKCkNCmBgYA0KDQo=</div>
 
 
 </div>

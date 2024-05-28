@@ -8,7 +8,7 @@ output: html_document
 This script provides some insights into our final dataset.
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-#knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(eval = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(cache = FALSE, cache.lazy = FALSE)

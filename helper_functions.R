@@ -1420,3 +1420,278 @@ gen_transition_matrix <- function(dataframe,
   
   return(matrix_list)
 }
+
+## Grouped Gini coefficients output per gender
+gender_gini <- function(dataframe,
+                        pub_data = FALSE,
+                        totals = FALSE,
+                        year = 2023,
+                        field = field){
+  
+  if (totals == FALSE){
+  
+  if (nrow(dataframe)>0){
+    # first, news
+    
+    gini_output <- gini_decomp(dataframe$news_all, dataframe$inferred_gender)
+    gini_total <- gini_output$gini_decomp$gini_total
+    gini_within <- gini_output$gini_decomp$gini_within
+    gini_between <- gini_output$gini_decomp$gini_between
+    gini_overlap <- gini_output$gini_decomp$gini_overlap
+    gini_men <- gini_output$gini_group$gini_group["m"]
+    gini_women <- gini_output$gini_group$gini_group["w"]
+    
+    compile_row_news <- c(field,
+                     year,
+                     gini_total,
+                     gini_within,
+                     gini_between,
+                     gini_overlap,
+                     gini_men,
+                     gini_women)
+    
+    compile_row_news$variable <- "news"
+    
+    # then, online news
+    gini_output <- gini_decomp(dataframe$alt_online_all, dataframe$inferred_gender)
+    gini_total <- gini_output$gini_decomp$gini_total
+    gini_within <- gini_output$gini_decomp$gini_within
+    gini_between <- gini_output$gini_decomp$gini_between
+    gini_overlap <- gini_output$gini_decomp$gini_overlap
+    gini_men <- gini_output$gini_group$gini_group["m"]
+    gini_women <- gini_output$gini_group$gini_group["w"]
+    
+    compile_row_online <- c(field,
+                     year,
+                     gini_total,
+                     gini_within,
+                     gini_between,
+                     gini_overlap,
+                     gini_men,
+                     gini_women)
+    
+    compile_row_online$variable <- "online_news"
+    
+    # twitter
+    gini_output <- gini_decomp(dataframe$alt_twitter, dataframe$inferred_gender)
+    gini_total <- gini_output$gini_decomp$gini_total
+    gini_within <- gini_output$gini_decomp$gini_within
+    gini_between <- gini_output$gini_decomp$gini_between
+    gini_overlap <- gini_output$gini_decomp$gini_overlap
+    gini_men <- gini_output$gini_group$gini_group["m"]
+    gini_women <- gini_output$gini_group$gini_group["w"]
+    
+    compile_row_twitter <- c(field,
+                            year,
+                            gini_total,
+                            gini_within,
+                            gini_between,
+                            gini_overlap,
+                            gini_men,
+                            gini_women)
+    
+    compile_row_twitter$variable <- "twitter"
+    
+    compile_output <- rbind(compile_row_news,
+                            compile_row_online,
+                            compile_row_twitter)
+    
+    if (pub_data == TRUE){
+      # add pubs and citations
+      gini_output <- gini_decomp(dataframe$count_pubs, dataframe$inferred_gender)
+      gini_total <- gini_output$gini_decomp$gini_total
+      gini_within <- gini_output$gini_decomp$gini_within
+      gini_between <- gini_output$gini_decomp$gini_between
+      gini_overlap <- gini_output$gini_decomp$gini_overlap
+      gini_men <- gini_output$gini_group$gini_group["m"]
+      gini_women <- gini_output$gini_group$gini_group["w"]
+      
+      compile_row_publ <- c(field,
+                               year,
+                               gini_total,
+                               gini_within,
+                               gini_between,
+                               gini_overlap,
+                               gini_men,
+                               gini_women)
+      
+      compile_row_publ$variable <- "publications"
+      
+      # add pubs and citations
+      gini_output <- gini_decomp(dataframe$cited_by, dataframe$inferred_gender)
+      gini_total <- gini_output$gini_decomp$gini_total
+      gini_within <- gini_output$gini_decomp$gini_within
+      gini_between <- gini_output$gini_decomp$gini_between
+      gini_overlap <- gini_output$gini_decomp$gini_overlap
+      gini_men <- gini_output$gini_group$gini_group["m"]
+      gini_women <- gini_output$gini_group$gini_group["w"]
+      
+      compile_row_cit <- c(field,
+                            year,
+                            gini_total,
+                            gini_within,
+                            gini_between,
+                            gini_overlap,
+                            gini_men,
+                            gini_women)
+      
+      compile_row_cit$variable <- "citations"
+      
+      compile_output <- rbind(compile_output,
+                              compile_row_publ,
+                              compile_row_cit)
+    
+    }
+    
+    colnames(compile_output) <- c("field",
+                                  "year",
+                                  "total_gini",
+                                  "gini_within",
+                                  "gini_between",
+                                  "gini_overlap",
+                                  "gini_men",
+                                  "gini_women", 
+                                  "variable")
+    
+    rownames(compile_output) <- c()
+    
+  }
+  }
+  
+  if (totals == TRUE){
+    if (nrow(dataframe)>0){
+      # first, news
+      
+      gini_output <- gini_decomp(dataframe$news_all_total, dataframe$inferred_gender)
+      gini_total <- gini_output$gini_decomp$gini_total
+      gini_within <- gini_output$gini_decomp$gini_within
+      gini_between <- gini_output$gini_decomp$gini_between
+      gini_overlap <- gini_output$gini_decomp$gini_overlap
+      gini_men <- gini_output$gini_group$gini_group["m"]
+      gini_women <- gini_output$gini_group$gini_group["w"]
+      
+      compile_row_news <- c(field,
+                            gini_total,
+                            gini_within,
+                            gini_between,
+                            gini_overlap,
+                            gini_men,
+                            gini_women)
+      
+      compile_row_news$variable <- "news"
+      
+      # then, online news
+      gini_output <- gini_decomp(dataframe$alt_online_all_total, dataframe$inferred_gender)
+      gini_total <- gini_output$gini_decomp$gini_total
+      gini_within <- gini_output$gini_decomp$gini_within
+      gini_between <- gini_output$gini_decomp$gini_between
+      gini_overlap <- gini_output$gini_decomp$gini_overlap
+      gini_men <- gini_output$gini_group$gini_group["m"]
+      gini_women <- gini_output$gini_group$gini_group["w"]
+      
+      compile_row_online <- c(field,
+                              gini_total,
+                              gini_within,
+                              gini_between,
+                              gini_overlap,
+                              gini_men,
+                              gini_women)
+      
+      compile_row_online$variable <- "online_news"
+      
+      # twitter
+      gini_output <- gini_decomp(dataframe$alt_twitter_total, dataframe$inferred_gender)
+      gini_total <- gini_output$gini_decomp$gini_total
+      gini_within <- gini_output$gini_decomp$gini_within
+      gini_between <- gini_output$gini_decomp$gini_between
+      gini_overlap <- gini_output$gini_decomp$gini_overlap
+      gini_men <- gini_output$gini_group$gini_group["m"]
+      gini_women <- gini_output$gini_group$gini_group["w"]
+      
+      compile_row_twitter <- c(field,
+                               gini_total,
+                               gini_within,
+                               gini_between,
+                               gini_overlap,
+                               gini_men,
+                               gini_women)
+      
+      compile_row_twitter$variable <- "twitter"
+      
+      compile_output <- rbind(compile_row_news,
+                              compile_row_online,
+                              compile_row_twitter)
+      
+      if (pub_data == TRUE){
+        # add pubs and citations
+        gini_output <- gini_decomp(dataframe$count_pubs_total, dataframe$inferred_gender)
+        gini_total <- gini_output$gini_decomp$gini_total
+        gini_within <- gini_output$gini_decomp$gini_within
+        gini_between <- gini_output$gini_decomp$gini_between
+        gini_overlap <- gini_output$gini_decomp$gini_overlap
+        gini_men <- gini_output$gini_group$gini_group["m"]
+        gini_women <- gini_output$gini_group$gini_group["w"]
+        
+        compile_row_publ <- c(field,
+                              gini_total,
+                              gini_within,
+                              gini_between,
+                              gini_overlap,
+                              gini_men,
+                              gini_women)
+        
+        compile_row_publ$variable <- "publications"
+        
+        # add pubs and citations
+        gini_output <- gini_decomp(dataframe$coa_cited_by_total_all, dataframe$inferred_gender)
+        gini_total <- gini_output$gini_decomp$gini_total
+        gini_within <- gini_output$gini_decomp$gini_within
+        gini_between <- gini_output$gini_decomp$gini_between
+        gini_overlap <- gini_output$gini_decomp$gini_overlap
+        gini_men <- gini_output$gini_group$gini_group["m"]
+        gini_women <- gini_output$gini_group$gini_group["w"]
+        
+        compile_row_cit <- c(field,
+                              gini_total,
+                              gini_within,
+                              gini_between,
+                              gini_overlap,
+                              gini_men,
+                              gini_women)
+        
+        compile_row_cit$variable <- "citations"
+        
+        compile_output <- rbind(compile_output,
+                                compile_row_publ,
+                                compile_row_cit)
+        
+      }
+      
+    }
+    
+    colnames(compile_output) <- c("field",
+                                  "total_gini",
+                                  "gini_within",
+                                  "gini_between",
+                                  "gini_overlap",
+                                  "gini_men",
+                                  "gini_women", 
+                                  "variable")
+    
+    rownames(compile_output) <- c()
+    
+  }
+  
+  compile_output <- as.data.frame(compile_output)
+  compile_output <- compile_output %>%
+    mutate_at(c("total_gini",
+                "gini_within",
+                "gini_between",
+                "gini_overlap",
+                "gini_men",
+                "gini_women"), as.numeric)
+  
+  
+  return(compile_output)
+}
+    

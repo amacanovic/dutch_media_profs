@@ -803,11 +803,22 @@ prof_news_year_inst_offline <- prof_news_year_inst_offline[c("profile_id", "year
                                      "news_inst_offline_intl_total", "news_inst_offline_all_total", "news_inst_offline_general_all_total")]
 ```
 
-
 Merge the two lexis sub-data-frames:
 ```{r}
 prof_news_year <- merge(prof_news_year,
                         prof_news_year_offline,
+                        all.x = TRUE,
+                        all.y = TRUE,
+                        by = c("profile_id", "year"))
+
+prof_news_year <- merge(prof_news_year,
+                        prof_news_year_inst,
+                        all.x = TRUE,
+                        all.y = TRUE,
+                        by = c("profile_id", "year"))
+
+prof_news_year <- merge(prof_news_year,
+                        prof_news_year_inst_offline,
                         all.x = TRUE,
                         all.y = TRUE,
                         by = c("profile_id", "year"))
@@ -864,7 +875,7 @@ write_csv(prof_year_p_c_g_a_l, "panel_datasets/prof_year_pubs_citations_grants_a
 Get each professor's main field in a given year based on their papers, and get 
 their overall specialization.
 
-First, fethcing the topics: 
+First, fetching the topics: 
 ```{r}
 oa_pubs_topics <- dbReadTable(con, "oa_pubs_topics")
 

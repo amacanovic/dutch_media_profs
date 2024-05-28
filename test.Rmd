@@ -1,0 +1,15 @@
+---
+title: "Untitled"
+author: "Ana Macanovic"
+date: "2024-05-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+.libPaths()[1]
+```
+
