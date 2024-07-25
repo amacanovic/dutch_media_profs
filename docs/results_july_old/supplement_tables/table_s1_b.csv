@@ -1,0 +1,5 @@
+field,total_m,total_w,total_ttest,online_total_m,online_total_w,online_total_ttest,twitter_total_m,twitter_total_w,twitter_total_ttest
+STEM,64.29,38.22,***,112.85,94.8,,514.06,479.37,
+Medicine,62.92,35.16,***,202.03,187.58,,1073.35,785.73,*
+Social sciences,101.55,64.71,***,37.48,37.54,,155.4,168.93,
+Arts & Humanities,72.02,29.04,***,5.47,4.91,,21.08,18.88,

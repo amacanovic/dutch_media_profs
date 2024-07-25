@@ -8,26 +8,32 @@ output: html_document
 This script compiles our various data resources into a panel data of professors'
 publications, citations, mentions, and coauthorships per year.
 
-```{r include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(eval = FALSE)
-knitr::opts_chunk$set(warning = FALSE)
-knitr::opts_chunk$set(message = FALSE)
-```
-
 Load the packages:
 ```{r message=  F, warning = F, eval = T}
-library(groundhog)
+# load the helper function file
+source("helper_functions.R")
 packages_to_load <- c("readr", "dplyr", "tidyr", "PerformanceAnalytics",
                       "tidyverse", "RPostgres", "lubridate", "psych",
                       "digest", "DBI", "RODBC", "odbc", "gridExtra",
-                      "panelr", "skimr", "foreach", "vegan",
+                      "panelr", "skimr", "foreach", "vegan", "knitr",
                       "doParallel")
-groundhog.library(packages_to_load, date = "2023-12-01")
 
-# load the helper function file
-source("helper_functions.R")
+fpackage_check(packages_to_load)
+
+# For full reproducibility, load the packages with groundhog using the code below instead
+# of the fpackage_check function
+
+# library(groundhog)
+# groundhog.library(packages_to_load, date = "2023-12-01")
 ```
+
+```{r include=FALSE}
+opts_chunk$set(echo = TRUE)
+opts_chunk$set(eval = FALSE)
+opts_chunk$set(warning = FALSE)
+opts_chunk$set(message = FALSE)
+```
+
 
 Connect to the database:
 ```{r}
@@ -38,7 +44,7 @@ password <- "dutchmediaprofssql"
 database_name <- "postgres"
 
 
-con <- RPostgres::dbConnect(RPostgres::Postgres(),
+con <- dbConnect(Postgres(),
                  dbname= database_name,
                  port = port,
                  user = user, 
@@ -879,7 +885,7 @@ First, fetching the topics:
 ```{r}
 oa_pubs_topics <- dbReadTable(con, "oa_pubs_topics")
 
-oa_pubs_topics <- merge(oa_prof_pub_matching,
+taoa_pubs_topics <- merge(oa_prof_pub_matching,
                         oa_pubs_topics,
                         by = "id",
                         all.x = TRUE)

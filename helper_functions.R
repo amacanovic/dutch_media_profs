@@ -1,377 +1,15 @@
 ### This file stores all kinds of helper functions from our different scripts
 
-## gender information from genderize.io
-genderize_io_function <- function(name,
-                                  api_key = "",
-                                  country_id = ""){
-  # call the api using the name
-  name_call <- paste0("https://api.genderize.io?name=", name)
-  
-  # if country ID provided
-  if (country_id != ""){
-    name_call <- paste0(name_call, "&country_id=", toupper(country_id))
-  }
-  # if API key provided
-  if (api_key !=""){
-    name_call <- paste0(name_call, "&apikey=", api_key, "")
-  }
-  output <- fromJSON(txt=name_call)
-  # if no gender predicted
-  if(is.null(output[["gender"]])){
-    output[["gender"]] <- NA
-  }
-  output <- data.frame(output)
-  return(output)
-}
-
-
-## altmetric explorer API calling function using the ORCID
-altmetric_api_orcid_caller <- function(orcid,
-                                       api_secret,
-                                       api_key,
-                                       endpoint = c("research_outputs",
-                                                    "attention",
-                                                    "demographics",
-                                                    "mentions",
-                                                    "mention_sources",
-                                                    "journals")){
-  if (! endpoint %in% c("research_outputs",
-                        "attention",
-                        "demographics",
-                        "mentions",
-                        "mention_sources",
-                        "journals")){
-    stop('Please select one of the following endpoints: "research_outputs", "attention",
-    "demographics", "mentions",  "mention_sources", "journals"')
-  }
-  
-  filter_pt1 <- paste0('orcid|', orcid)
-  filter_pt2 <- paste(filter_pt1, "scope|all", sep = "|")
-  #filters = 'orcid|0000-0003-0800-5271|scope|all'
-  digest <- hmac(api_secret, filter_pt2,
-                 algo = c("sha1"),
-                 serialize = FALSE)
-  
-  
-  # build up the url by inserting an ORCID
-  if (endpoint == "research_outputs"){
-    url_pt1a <- paste0("https://www.altmetric.com/explorer/api/research_outputs?digest=", digest)
-    url_pt1b <- paste0(url_pt1a, "&filter%5Borcid%5D=")
-    url_pt1 <- paste0(url_pt1b, orcid)
-  } else{
-    # for other endpoints, specify the end point
-    url_pt1a <- "https://www.altmetric.com/explorer/api/research_outputs/"
-    url_pt1b <- paste0(paste0(url_pt1a, endpoint), "?digest=")
-    url_pt1c <- paste0(url_pt1b, digest)
-    url_pt1d <- paste0(url_pt1c, "&filter%5Borcid%5D=")
-    url_pt1 <- paste0(url_pt1d, orcid)
-  }
-  # first, get the first page with a 100 results
-  url_pt2 <- paste0(paste0("&filter%5Bscope%5D=all&key=", api_key), "&page%5Bnumber%5D=1")
-  
-  
-  url_build <- paste0(url_pt1, url_pt2)
-  
-  # fetch the output
-  output <- fromJSON(txt=url_build)
-  
-  # fetch the dataframe we need
-  dataframe_output <- output$data
-  
-  # get the total number of results
-  results_total <- output$meta$response$`total-results`
-  # since we get results by a 100, get the number of calls we need (minus the one we made)
-  calls_remaining <- ceiling(results_total/25)-1
-  
-  # if more calls remaining, call the api again, getting the correponding pages:
-  for (call in seq_len(calls_remaining)){
-    # build the url for each next page
-    page <- call + 1
-    url_pages <- paste0(paste0("&filter%5Bscope%5D=all&key=", api_key), "&page%5Bnumber%5D=")
-    url_pages <- paste0(url_pages, page)
-    url_build <- paste0(url_pt1, url_pages)
-    page_output <- fromJSON(txt=url_build)
-    dataframe_page_output <- page_output$data
-    
-    dataframe_output <- dataframe_output %>%
-      dplyr::bind_rows(dataframe_page_output)
-  }
-  return(dataframe_output)
-}
-
-
-## Altmetric details API Retriever function (publication list with DOIs as input)
-
-altmetric_mention_retriever <- function(api_key,
-                                        doi,
-                                        include_twitter = FALSE){
-  
-  # elements to make a url that calls the API to get mention data
-  doi_call_url <- "https://api.altmetric.com/v1/fetch/doi/"
-  api_key_url <- paste0("?key=", api_key)
-  exclude_twitter_url <- "&exclude_sources=twitter"
-  # get the doi without the url part
-  doi_url <- str_remove(doi$doi[1], "https://doi.org/")
-  # work id
-  work_id <- doi$id[1]
-  # if there is a doi:
-  if (!is.na(doi_url)){
-    # make the url for the api call
-    api_call <- paste(doi_call_url, doi_url, api_key_url, sep = "")
-    
-    # exclude twitter? if so, add:
-    if (include_twitter == FALSE){
-      api_call <- paste(api_call, exclude_twitter_url, sep = "")
-    }
-    # empty DOI output object, in case try fails
-    doi_output <- NA
-    # and call the api
-    try(doi_output <- fromJSON(txt=api_call), silent = TRUE)
-    # now, check if this doi has any mentions in the media
-    if ("posts" %in% names(doi_output)){
-      mentions <- doi_output[["posts"]]
-      if (length(mentions)>0){
-        # if news:
-        if ("news" %in% names(mentions)){
-          news <- mentions[["news"]]
-          news <- unnest(news, author, names_sep = "_")
-          news$id <- work_id
-          if (dbExistsTable(con, "altmetric_pub_att_news")){
-            # check fields in the existing table
-            fields <- dbListFields(con, "altmetric_pub_att_news")
-            # if not all fields there
-            if(!all(fields %in% colnames(news))){
-              n_missing <- which(!fields %in% colnames(news))
-              padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
-              colnames(padding) <- fields[which(!fields %in% colnames(news))]
-              news <- bind_cols(news,
-                                padding)
-              news <- news[fields]
-            }
-            # only leave these fields in
-            news <-  news %>%
-              select(all_of(fields))
-            dbAppendTable(con, "altmetric_pub_att_news", news, row.names=NULL, append=TRUE)
-          }else{
-            news <- news %>%
-              select(-citation_ids)
-            dbWriteTable(con, "altmetric_pub_att_news", news, row.names=FALSE, append=TRUE)
-          }
-        }
-        
-        if ("wikipedia" %in% names(mentions)){
-          wiki <- mentions[["wikipedia"]]
-          wiki <- unnest(wiki, author, names_sep = "_")
-          wiki$id <- work_id
-          
-          if (dbExistsTable(con, "altmetric_pub_att_wiki")){
-            # check fields in the existing table
-            fields <- dbListFields(con, "altmetric_pub_att_wiki")
-            # if not all fields there
-            if(!all(fields %in% colnames(wiki))){
-              n_missing <- which(!fields %in% colnames(wiki))
-              padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
-              colnames(padding) <- fields[which(!fields %in% colnames(wiki))]
-              wiki <- bind_cols(wiki,
-                                padding)
-              wiki <- wiki[fields]
-            }
-            # only leave these fields in
-            wiki <-  wiki %>%
-              select(all_of(fields))
-            dbAppendTable(con, "altmetric_pub_att_wiki", wiki, row.names=NULL, append=TRUE)
-          }else{
-            wiki <-  wiki %>%
-              select(-citation_ids)
-            dbWriteTable(con, "altmetric_pub_att_wiki", wiki, row.names=FALSE, append=TRUE)
-          }
-        }
-        
-        if ("reddit" %in% names(mentions)){
-          reddit <- mentions[["reddit"]]
-          reddit <- unnest(reddit, author, names_sep = "_")
-          reddit$id <- work_id
-          
-          if (dbExistsTable(con, "altmetric_pub_att_reddit")){
-            # check fields in the existing table
-            fields <- dbListFields(con, "altmetric_pub_att_reddit")
-            # if not all fields there
-            if(!all(fields %in% colnames(reddit))){
-              n_missing <- which(!fields %in% colnames(reddit))
-              padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
-              colnames(padding) <- fields[which(!fields %in% colnames(reddit))]
-              reddit <- bind_cols(reddit,
-                                  padding)
-              reddit <- reddit[fields]
-            }
-            # only leave these fields in
-            reddit <-  reddit %>%
-              select(all_of(fields))
-            dbAppendTable(con, "altmetric_pub_att_reddit", reddit, row.names=NULL, append=TRUE)
-          }else{
-            reddit <-  reddit %>%
-              select(-citation_ids)
-            dbWriteTable(con, "altmetric_pub_att_reddit", reddit, row.names=FALSE, append=TRUE)
-          }
-        }
-        
-        if ("blogs" %in% names(mentions)){
-          blogs <- mentions[["blogs"]]
-          blogs <- unnest(blogs, author, names_sep = "_")
-          blogs$id <- work_id
-          
-          if (dbExistsTable(con, "altmetric_pub_att_blogs")){
-            # check fields in the existing table
-            fields <- dbListFields(con, "altmetric_pub_att_blogs")
-            # if not all fields there
-            if(!all(fields %in% colnames(blogs))){
-              n_missing <- which(!fields %in% colnames(blogs))
-              padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
-              colnames(padding) <- fields[which(!fields %in% colnames(blogs))]
-              blogs <- bind_cols(blogs,
-                                 padding)
-              blogs <- blogs[fields]
-            }
-            # only leave these fields in
-            blogs <-  blogs %>%
-              select(all_of(fields))
-            dbAppendTable(con, "altmetric_pub_att_blogs", blogs, row.names=NULL, append=TRUE)
-          }else{
-            blogs <- blogs %>%
-              select(-citation_ids)
-            dbWriteTable(con, "altmetric_pub_att_blogs", blogs, row.names=FALSE, append=TRUE)
-          }
-        }
-        
-        if ("policy" %in% names(mentions)){
-          policy <- mentions[["policy"]]
-          policy <- unnest(policy, source)
-          policy$id <- work_id
-          if ("author" %in% colnames(policy)){
-          policy <- unnest(policy, author)
-          }
-          
-          if (dbExistsTable(con, "altmetric_pub_att_policy")){
-            # check fields in the existing table
-            fields <- dbListFields(con, "altmetric_pub_att_policy")
-            # if not all fields there
-            if(!all(fields %in% colnames(policy))){
-              n_missing <- which(!fields %in% colnames(policy))
-              padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
-              colnames(padding) <- fields[which(!fields %in% colnames(policy))]
-              policy <- bind_cols(policy,
-                                  padding)
-              policy <- policy[fields]
-            }
-            # only leave these fields in
-            policy <-  policy %>%
-              select(all_of(fields))
-            dbAppendTable(con, "altmetric_pub_att_policy", policy, row.names=NULL, append=TRUE)
-          }else{
-            policy <- policy %>%
-              select(-citation_ids, -collections)
-            dbWriteTable(con, "altmetric_pub_att_policy", policy, row.names=FALSE, append=TRUE)
-          }
-        }
-        
-        if ("twitter" %in% names(mentions)){
-          twitter <- mentions[["twitter"]]
-          twitter <- unnest(twitter, author)
-          twitter$id <- work_id
-          if (dbExistsTable(con, "altmetric_pub_att_twitter")){
-            # check fields in the existing table
-            fields <- dbListFields(con, "altmetric_pub_att_twitter")
-            # if not all fields there
-            if(!all(fields %in% colnames(twitter))){
-              n_missing <- which(!fields %in% colnames(twitter))
-              padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
-              colnames(padding) <- fields[which(!fields %in% colnames(twitter))]
-              twitter <- bind_cols(twitter,
-                                   padding)
-              twitter <- twitter[fields]
-            }
-            # only leave these fields in
-            twitter <-  twitter %>%
-              select(all_of(fields))
-            dbAppendTable(con, "altmetric_pub_att_twitter", twitter, row.names=NULL, append=TRUE)
-          }else{
-            twitter <- twitter %>%
-              select(-citation_ids)
-            dbWriteTable(con, "altmetric_pub_att_twitter", twitter, row.names=FALSE, append=TRUE)
-          }
-        }
-      }
+## check which packages need to be loaded/installed
+# adapted from Jochem Tolsma
+fpackage_check <- function(packages) {
+  for (package in packages){
+    if (!require(package, character.only = TRUE)) {
+      install.packages(package, dependencies = TRUE)
+      library(package, character.only = TRUE)
     }
   }
 }
-
-
-
-## Altmetric details API retriever - only for tweets (publication list with DOIs as input)
-altmetric_twitter_retriever <- function(api_key,
-                                        publication_list){
-  
-  # elements to make a url that calls the API to get mention data
-  doi_call_url <- "https://api.altmetric.com/v1/fetch/doi/"
-  api_key_url <- paste0("?key=", api_key)
-  
-  # get the publication list
-  oa_pubs <- publication_list
-  # generate a dataframe to hold the output
-  twitter_attention_df <- data.frame(matrix(NA, ncol = 5, nrow = 0))
-  colnames(twitter_attention_df) <- c("id",  "license",
-                                      "citation_ids", "tweeter_id", "tweet_id")
-  
-  # if not empty:
-  if (!all(is.na(oa_pubs))){
-    # loop, for each doi, and:
-    for (i in 1:nrow(oa_pubs)){
-      # get the doi without the url part
-      doi_url <- str_remove(oa_pubs$doi[i], "https://doi.org/")
-      # if there is a doi:
-      if (!is.na(doi_url)){
-        # make the url for the api call
-        api_call <- paste(doi_call_url, doi_url, api_key_url, "&include_sources=twitter", sep="") 
-        
-        # empty DOI output object, in case try fails
-        doi_output <- NA
-        # and call the api
-        try(doi_output <- fromJSON(txt=api_call), silent = TRUE)
-        # now, check if this doi has any mentions in the media
-        if(!all(is.na(doi_output))){
-          if ("posts" %in% names(doi_output)){
-            if ("twitter" %in% names(doi_output[["posts"]])){
-              tweet_info <- doi_output[["posts"]][["twitter"]]
-              tweet_info <- unnest(tweet_info, cols = c(citation_ids, author))
-              # combine this with relevant publication info
-              pub_info_combi <- data.frame(oa_pubs[i, c("id")])
-              colnames(pub_info_combi) <- "id"
-              tweet_info_full <- bind_cols(pub_info_combi, tweet_info)
-              
-              # check if all relevant columns there, if not, pad
-              if(!all(colnames(twitter_attention_df) %in% colnames(tweet_info_full))){
-                n_missing <- which(! colnames(twitter_attention_df) %in% colnames(tweet_info_full))
-                padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
-                colnames(padding) <- colnames(twitter_attention_df)[which(!colnames(twitter_attention_df) %in% colnames(tweet_info_full))]
-                tweet_info_full <- bind_cols(tweet_info_full,
-                                             padding)
-                tweet_info_full <- tweet_info_full[colnames(twitter_attention_df)]
-              }
-              
-              
-              twitter_attention_df <- rbind(twitter_attention_df,
-                                            tweet_info_full)
-            }
-          }
-        }
-      }
-    }
-    # return the list of mentions dataframe
-    return(twitter_attention_df)
-  }
-}
-
-
 
 ## retrieve professor NARCIS IDs based on their NARCIS publication data,
 ## ORCID information, and name matching with OA results
@@ -826,7 +464,7 @@ professor_pub_info_retriever <- function(prof_oa_ids,
       prof_themselves <- filter(prof_all_works_oa_unlist, au_id %in% oa_ids)
       # and a list of their coauthors
       coauthors <- filter(prof_all_works_oa_unlist, ! au_id %in% oa_ids)
-    
+      
       
       # unneest the professor's own publication data
       prof_themselves <- unnest(prof_themselves, "counts_by_year", names_sep = "_")
@@ -949,6 +587,471 @@ professor_pub_info_retriever <- function(prof_oa_ids,
     }
   }
 }
+
+
+## gender information from genderize.io
+genderize_io_function <- function(name,
+                                  api_key = "",
+                                  country_id = ""){
+  # call the api using the name
+  name_call <- paste0("https://api.genderize.io?name=", name)
+  
+  # if country ID provided
+  if (country_id != ""){
+    name_call <- paste0(name_call, "&country_id=", toupper(country_id))
+  }
+  # if API key provided
+  if (api_key !=""){
+    name_call <- paste0(name_call, "&apikey=", api_key, "")
+  }
+  output <- fromJSON(txt=name_call)
+  # if no gender predicted
+  if(is.null(output[["gender"]])){
+    output[["gender"]] <- NA
+  }
+  output <- data.frame(output)
+  return(output)
+}
+
+
+## altmetric explorer API calling function using the ORCID
+altmetric_api_orcid_caller <- function(orcid,
+                                       api_secret,
+                                       api_key,
+                                       endpoint = c("research_outputs",
+                                                    "attention",
+                                                    "demographics",
+                                                    "mentions",
+                                                    "mention_sources",
+                                                    "journals")){
+  if (! endpoint %in% c("research_outputs",
+                        "attention",
+                        "demographics",
+                        "mentions",
+                        "mention_sources",
+                        "journals")){
+    stop('Please select one of the following endpoints: "research_outputs", "attention",
+    "demographics", "mentions",  "mention_sources", "journals"')
+  }
+  
+  filter_pt1 <- paste0('orcid|', orcid)
+  filter_pt2 <- paste(filter_pt1, "scope|all", sep = "|")
+  #filters = 'orcid|0000-0003-0800-5271|scope|all'
+  digest <- hmac(api_secret, filter_pt2,
+                 algo = c("sha1"),
+                 serialize = FALSE)
+  
+  
+  # build up the url by inserting an ORCID
+  if (endpoint == "research_outputs"){
+    url_pt1a <- paste0("https://www.altmetric.com/explorer/api/research_outputs?digest=", digest)
+    url_pt1b <- paste0(url_pt1a, "&filter%5Borcid%5D=")
+    url_pt1 <- paste0(url_pt1b, orcid)
+  } else{
+    # for other endpoints, specify the end point
+    url_pt1a <- "https://www.altmetric.com/explorer/api/research_outputs/"
+    url_pt1b <- paste0(paste0(url_pt1a, endpoint), "?digest=")
+    url_pt1c <- paste0(url_pt1b, digest)
+    url_pt1d <- paste0(url_pt1c, "&filter%5Borcid%5D=")
+    url_pt1 <- paste0(url_pt1d, orcid)
+  }
+  # first, get the first page with a 100 results
+  url_pt2 <- paste0(paste0("&filter%5Bscope%5D=all&key=", api_key), "&page%5Bnumber%5D=1")
+  
+  
+  url_build <- paste0(url_pt1, url_pt2)
+  
+  # fetch the output
+  output <- fromJSON(txt=url_build)
+  
+  # fetch the dataframe we need
+  dataframe_output <- output$data
+  
+  # get the total number of results
+  results_total <- output$meta$response$`total-results`
+  # since we get results by a 100, get the number of calls we need (minus the one we made)
+  calls_remaining <- ceiling(results_total/25)-1
+  
+  # if more calls remaining, call the api again, getting the correponding pages:
+  if (calls_remaining > 0){
+    for (call in seq_len(calls_remaining)){
+      # build the url for each next page
+      page <- call + 1
+      url_pages <- paste0(paste0("&filter%5Bscope%5D=all&key=", api_key), "&page%5Bnumber%5D=")
+      url_pages <- paste0(url_pages, page)
+      url_build <- paste0(url_pt1, url_pages)
+      page_output <- fromJSON(txt=url_build)
+      dataframe_page_output <- page_output$data
+      
+      dataframe_output <- dataframe_output %>%
+        dplyr::bind_rows(dataframe_page_output)
+    }
+  }
+  return(dataframe_output)
+}
+
+
+## Altmetric details API Retriever function (publication list with DOIs as input)
+
+altmetric_mention_retriever <- function(api_key,
+                                        doi,
+                                        include_twitter = FALSE){
+  
+  # elements to make a url that calls the API to get mention data
+  doi_call_url <- "https://api.altmetric.com/v1/fetch/doi/"
+  api_key_url <- paste0("?key=", api_key)
+  exclude_twitter_url <- "&exclude_sources=twitter"
+  # get the doi without the url part
+  doi_url <- str_remove(doi$doi[1], "https://doi.org/")
+  # work id
+  work_id <- doi$id[1]
+  # if there is a doi:
+  if (!is.na(doi_url)){
+    # make the url for the api call
+    api_call <- paste(doi_call_url, doi_url, api_key_url, sep = "")
+    
+    # exclude twitter? if so, add:
+    if (include_twitter == FALSE){
+      api_call <- paste(api_call, exclude_twitter_url, sep = "")
+    }
+    # empty DOI output object, in case try fails
+    doi_output <- NA
+    # and call the api
+    try(doi_output <- fromJSON(txt=api_call), silent = TRUE)
+    # now, check if this doi has any mentions in the media
+    if ("posts" %in% names(doi_output)){
+      mentions <- doi_output[["posts"]]
+      if (length(mentions)>0){
+        # if news:
+        if ("news" %in% names(mentions)){
+          news <- mentions[["news"]]
+          news <- unnest(news, author, names_sep = "_")
+          news$id <- work_id
+          if (dbExistsTable(con, "altmetric_pub_att_news")){
+            # check fields in the existing table
+            fields <- dbListFields(con, "altmetric_pub_att_news")
+            # if not all fields there
+            if(!all(fields %in% colnames(news))){
+              n_missing <- which(!fields %in% colnames(news))
+              padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
+              colnames(padding) <- fields[which(!fields %in% colnames(news))]
+              news <- bind_cols(news,
+                                padding)
+              news <- news[fields]
+            }
+            # only leave these fields in
+            news <-  news %>%
+              select(all_of(fields))
+            dbAppendTable(con, "altmetric_pub_att_news", news, row.names=NULL, append=TRUE)
+          }else{
+            news <- news %>%
+              select(-citation_ids)
+            dbWriteTable(con, "altmetric_pub_att_news", news, row.names=FALSE, append=TRUE)
+          }
+        }
+        
+        if ("wikipedia" %in% names(mentions)){
+          wiki <- mentions[["wikipedia"]]
+          wiki <- unnest(wiki, author, names_sep = "_")
+          wiki$id <- work_id
+          
+          if (dbExistsTable(con, "altmetric_pub_att_wiki")){
+            # check fields in the existing table
+            fields <- dbListFields(con, "altmetric_pub_att_wiki")
+            # if not all fields there
+            if(!all(fields %in% colnames(wiki))){
+              n_missing <- which(!fields %in% colnames(wiki))
+              padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
+              colnames(padding) <- fields[which(!fields %in% colnames(wiki))]
+              wiki <- bind_cols(wiki,
+                                padding)
+              wiki <- wiki[fields]
+            }
+            # only leave these fields in
+            wiki <-  wiki %>%
+              select(all_of(fields))
+            dbAppendTable(con, "altmetric_pub_att_wiki", wiki, row.names=NULL, append=TRUE)
+          }else{
+            wiki <-  wiki %>%
+              select(-citation_ids)
+            dbWriteTable(con, "altmetric_pub_att_wiki", wiki, row.names=FALSE, append=TRUE)
+          }
+        }
+        
+        if ("reddit" %in% names(mentions)){
+          reddit <- mentions[["reddit"]]
+          reddit <- unnest(reddit, author, names_sep = "_")
+          reddit$id <- work_id
+          
+          if (dbExistsTable(con, "altmetric_pub_att_reddit")){
+            # check fields in the existing table
+            fields <- dbListFields(con, "altmetric_pub_att_reddit")
+            # if not all fields there
+            if(!all(fields %in% colnames(reddit))){
+              n_missing <- which(!fields %in% colnames(reddit))
+              padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
+              colnames(padding) <- fields[which(!fields %in% colnames(reddit))]
+              reddit <- bind_cols(reddit,
+                                  padding)
+              reddit <- reddit[fields]
+            }
+            # only leave these fields in
+            reddit <-  reddit %>%
+              select(all_of(fields))
+            dbAppendTable(con, "altmetric_pub_att_reddit", reddit, row.names=NULL, append=TRUE)
+          }else{
+            reddit <-  reddit %>%
+              select(-citation_ids)
+            dbWriteTable(con, "altmetric_pub_att_reddit", reddit, row.names=FALSE, append=TRUE)
+          }
+        }
+        
+        if ("blogs" %in% names(mentions)){
+          blogs <- mentions[["blogs"]]
+          blogs <- unnest(blogs, author, names_sep = "_")
+          blogs$id <- work_id
+          
+          if (dbExistsTable(con, "altmetric_pub_att_blogs")){
+            # check fields in the existing table
+            fields <- dbListFields(con, "altmetric_pub_att_blogs")
+            # if not all fields there
+            if(!all(fields %in% colnames(blogs))){
+              n_missing <- which(!fields %in% colnames(blogs))
+              padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
+              colnames(padding) <- fields[which(!fields %in% colnames(blogs))]
+              blogs <- bind_cols(blogs,
+                                 padding)
+              blogs <- blogs[fields]
+            }
+            # only leave these fields in
+            blogs <-  blogs %>%
+              select(all_of(fields))
+            dbAppendTable(con, "altmetric_pub_att_blogs", blogs, row.names=NULL, append=TRUE)
+          }else{
+            blogs <- blogs %>%
+              select(-citation_ids)
+            dbWriteTable(con, "altmetric_pub_att_blogs", blogs, row.names=FALSE, append=TRUE)
+          }
+        }
+        
+        if ("policy" %in% names(mentions)){
+          policy <- mentions[["policy"]]
+          policy <- unnest(policy, source)
+          policy$id <- work_id
+          if ("author" %in% colnames(policy)){
+          policy <- unnest(policy, author)
+          }
+          
+          if (dbExistsTable(con, "altmetric_pub_att_policy")){
+            # check fields in the existing table
+            fields <- dbListFields(con, "altmetric_pub_att_policy")
+            # if not all fields there
+            if(!all(fields %in% colnames(policy))){
+              n_missing <- which(!fields %in% colnames(policy))
+              padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
+              colnames(padding) <- fields[which(!fields %in% colnames(policy))]
+              policy <- bind_cols(policy,
+                                  padding)
+              policy <- policy[fields]
+            }
+            # only leave these fields in
+            policy <-  policy %>%
+              select(all_of(fields))
+            dbAppendTable(con, "altmetric_pub_att_policy", policy, row.names=NULL, append=TRUE)
+          }else{
+            policy <- policy %>%
+              select(-citation_ids, -collections)
+            dbWriteTable(con, "altmetric_pub_att_policy", policy, row.names=FALSE, append=TRUE)
+          }
+        }
+        
+        if ("twitter" %in% names(mentions)){
+          twitter <- mentions[["twitter"]]
+          twitter <- unnest(twitter, author)
+          twitter$id <- work_id
+          if (dbExistsTable(con, "altmetric_pub_att_twitter")){
+            # check fields in the existing table
+            fields <- dbListFields(con, "altmetric_pub_att_twitter")
+            # if not all fields there
+            if(!all(fields %in% colnames(twitter))){
+              n_missing <- which(!fields %in% colnames(twitter))
+              padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
+              colnames(padding) <- fields[which(!fields %in% colnames(twitter))]
+              twitter <- bind_cols(twitter,
+                                   padding)
+              twitter <- twitter[fields]
+            }
+            # only leave these fields in
+            twitter <-  twitter %>%
+              select(all_of(fields))
+            dbAppendTable(con, "altmetric_pub_att_twitter", twitter, row.names=NULL, append=TRUE)
+          }else{
+            twitter <- twitter %>%
+              select(-citation_ids)
+            dbWriteTable(con, "altmetric_pub_att_twitter", twitter, row.names=FALSE, append=TRUE)
+          }
+        }
+      }
+    }
+  }
+}
+
+
+##  The same function, but for robustness checks
+altmetric_mention_retriever_rob <- function(api_key,
+                                        doi,
+                                        include_twitter = FALSE){
+  
+  # elements to make a url that calls the API to get mention data
+  doi_call_url <- "https://api.altmetric.com/v1/fetch/doi/"
+  api_key_url <- paste0("?key=", api_key)
+  exclude_twitter_url <- "&exclude_sources=twitter"
+  # get the doi without the url part
+  doi_url <- str_remove(doi$doi[1], "https://doi.org/")
+  # work id
+  work_id <- doi$id[1]
+  # if there is a doi:
+  if (!is.na(doi_url)){
+    # make the url for the api call
+    api_call <- paste(doi_call_url, doi_url, api_key_url, sep = "")
+    
+    # exclude twitter? if so, add:
+    if (include_twitter == FALSE){
+      api_call <- paste(api_call, exclude_twitter_url, sep = "")
+    }
+    # empty DOI output object, in case try fails
+    doi_output <- NA
+    # and call the api
+    try(doi_output <- fromJSON(txt=api_call), silent = TRUE)
+    # now, check if this doi has any mentions in the media
+    if ("posts" %in% names(doi_output)){
+      mentions <- doi_output[["posts"]]
+      if (length(mentions)>0){
+        # if news:
+        if ("news" %in% names(mentions)){
+          news <- mentions[["news"]]
+          news <- unnest(news, author, names_sep = "_")
+          news$id <- work_id
+          if (dbExistsTable(con, "rob_altmetric_pub_att_news")){
+            # check fields in the existing table
+            fields <- dbListFields(con, "rob_altmetric_pub_att_news")
+            # if not all fields there
+            if(!all(fields %in% colnames(news))){
+              n_missing <- which(!fields %in% colnames(news))
+              padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
+              colnames(padding) <- fields[which(!fields %in% colnames(news))]
+              news <- bind_cols(news,
+                                padding)
+              news <- news[fields]
+            }
+            # only leave these fields in
+            news <-  news %>%
+              select(all_of(fields))
+            dbAppendTable(con, "rob_altmetric_pub_att_news", news, row.names=NULL, append=TRUE)
+          }else{
+            news <- news %>%
+              select(-citation_ids)
+            dbWriteTable(con, "rob_altmetric_pub_att_news", news, row.names=FALSE, append=TRUE)
+          }
+        }
+        
+        if ("blogs" %in% names(mentions)){
+          blogs <- mentions[["blogs"]]
+          blogs <- unnest(blogs, author, names_sep = "_")
+          blogs$id <- work_id
+          
+          if (dbExistsTable(con, "rob_altmetric_pub_att_blogs")){
+            # check fields in the existing table
+            fields <- dbListFields(con, "rob_altmetric_pub_att_blogs")
+            # if not all fields there
+            if(!all(fields %in% colnames(blogs))){
+              n_missing <- which(!fields %in% colnames(blogs))
+              padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
+              colnames(padding) <- fields[which(!fields %in% colnames(blogs))]
+              blogs <- bind_cols(blogs,
+                                 padding)
+              blogs <- blogs[fields]
+            }
+            # only leave these fields in
+            blogs <-  blogs %>%
+              select(all_of(fields))
+            dbAppendTable(con, "rob_altmetric_pub_att_blogs", blogs, row.names=NULL, append=TRUE)
+          }else{
+            blogs <- blogs %>%
+              select(-citation_ids)
+            dbWriteTable(con, "rob_altmetric_pub_att_blogs", blogs, row.names=FALSE, append=TRUE)
+          }
+        }
+      }
+    }
+  }
+}
+
+
+## Altmetric details API retriever - only for tweets (publication list with DOIs as input)
+altmetric_twitter_retriever <- function(api_key,
+                                        publication_list){
+  
+  # elements to make a url that calls the API to get mention data
+  doi_call_url <- "https://api.altmetric.com/v1/fetch/doi/"
+  api_key_url <- paste0("?key=", api_key)
+  
+  # get the publication list
+  oa_pubs <- publication_list
+  # generate a dataframe to hold the output
+  twitter_attention_df <- data.frame(matrix(NA, ncol = 5, nrow = 0))
+  colnames(twitter_attention_df) <- c("id",  "license",
+                                      "citation_ids", "tweeter_id", "tweet_id")
+  
+  # if not empty:
+  if (!all(is.na(oa_pubs))){
+    # loop, for each doi, and:
+    for (i in 1:nrow(oa_pubs)){
+      # get the doi without the url part
+      doi_url <- str_remove(oa_pubs$doi[i], "https://doi.org/")
+      # if there is a doi:
+      if (!is.na(doi_url)){
+        # make the url for the api call
+        api_call <- paste(doi_call_url, doi_url, api_key_url, "&include_sources=twitter", sep="") 
+        
+        # empty DOI output object, in case try fails
+        doi_output <- NA
+        # and call the api
+        try(doi_output <- fromJSON(txt=api_call), silent = TRUE)
+        # now, check if this doi has any mentions in the media
+        if(!all(is.na(doi_output))){
+          if ("posts" %in% names(doi_output)){
+            if ("twitter" %in% names(doi_output[["posts"]])){
+              tweet_info <- doi_output[["posts"]][["twitter"]]
+              tweet_info <- unnest(tweet_info, cols = c(citation_ids, author))
+              # combine this with relevant publication info
+              pub_info_combi <- data.frame(oa_pubs[i, c("id")])
+              colnames(pub_info_combi) <- "id"
+              tweet_info_full <- bind_cols(pub_info_combi, tweet_info)
+              
+              # check if all relevant columns there, if not, pad
+              if(!all(colnames(twitter_attention_df) %in% colnames(tweet_info_full))){
+                n_missing <- which(! colnames(twitter_attention_df) %in% colnames(tweet_info_full))
+                padding <- data.frame(matrix(NA, ncol = length(n_missing), nrow=1))
+                colnames(padding) <- colnames(twitter_attention_df)[which(!colnames(twitter_attention_df) %in% colnames(tweet_info_full))]
+                tweet_info_full <- bind_cols(tweet_info_full,
+                                             padding)
+                tweet_info_full <- tweet_info_full[colnames(twitter_attention_df)]
+              }
+              
+              
+              twitter_attention_df <- rbind(twitter_attention_df,
+                                            tweet_info_full)
+            }
+          }
+        }
+      }
+    }
+    # return the list of mentions dataframe
+    return(twitter_attention_df)
+  }
+}
+
 
 ## Compile coauthor panel and append it to the author panel per profile_id:
 coauthor_data_compiler <- function(profile_id,
@@ -1261,437 +1364,385 @@ coauthor_data_compiler <- function(profile_id,
   return(prof_panel_merge)
 }
 
-### transition matrices
 
-gen_transition_matrix <- function(dataframe,
-                                  names_col = "period",
-                                  values_col = "pub_perc",
-                                  split_by = "gender",
-                                  brackets = 10){
+# Regression analysis functions
+
+# this function takes individual field datasets,
+# and estimates the linear model, gets the predicted values per gender,
+# and then compares the predictions between genders
+
+lm_fitter_cl_robust <- function(panel_dataset,
+                                lm_formula_list,
+                                year_cutoff_upper = 2023,
+                                year_cutoff_lower = 1974){
   
-  if (! split_by %in% c("gender", "gender & field", "field")){
-    stop('split_by has to be one of: "gender", "gender & field"')
-  }
+  all_predictions <- data.frame(matrix(ncol = 7, nrow = 0))
+  all_models <- data.frame(matrix(ncol = 10, nrow = 0))
+  all_comparisons <- data.frame(matrix(ncol = 6, nrow = 0))
   
-  if (split_by == "gender"){
-    prof_panel_periods <- dataframe %>%
-      group_by(profile_id, general_field, entry_batch_2023, period, inferred_gender)%>%
-      summarise(
-        count_pubs = mean(count_pubs, na.rm = TRUE),
-        cited_by = mean(cited_by, na.rm = TRUE),
-        alt_online_all = mean(alt_online_all, na.rm = TRUE),
-        alt_twitter = mean(alt_twitter, na.rm = TRUE),
-        news = mean(news_all, na.rm = TRUE))%>%
-      group_by(general_field, entry_batch_2023, period)%>%
-      mutate(
-        pub_perc = ntile(-count_pubs, brackets),
-        cit_perc = ntile(-cited_by, brackets),    
-        online_perc = ntile(-alt_online_all, brackets),
-        news_perc = ntile(-news, brackets),
-        twitter_perc = ntile(-alt_twitter, brackets))
+  fields <- c("stem", "medicine", "soc_sci", "arts")
+  stem <- filter(panel_dataset, general_field == "STEM")
+  soc_sci <- filter(panel_dataset, general_field == "Social sciences")
+  arts <- filter(panel_dataset, general_field == "Arts & Humanities")
+  medicine <- filter(panel_dataset, general_field == "Medicine")
+  
+  for (field in fields){
+    lm_model <- NA
     
-    pub_transitions <- prof_panel_periods %>%
-      ungroup()%>%
-      select(profile_id, inferred_gender, period, pub_perc)%>%
-      pivot_wider(names_from = period, values_from = pub_perc)%>%
-      filter(!is.na(first) & !is.na(second))
+    field_dataset <- get(field)
     
-    cit_transitions <- prof_panel_periods %>%
-      ungroup()%>%
-      select(profile_id, inferred_gender, period, cit_perc)%>%
-      pivot_wider(names_from = period, values_from = cit_perc)%>%
-      filter(!is.na(first) & !is.na(second))
+    field_dataset <- filter(field_dataset,
+                            year <= year_cutoff_upper & year >= year_cutoff_lower)
     
-    online_news_transitions <- prof_panel_periods %>%
-      ungroup()%>%
-      select(profile_id, inferred_gender, period, online_perc)%>%
-      pivot_wider(names_from = period, values_from = online_perc)%>%
-      filter(!is.na(first) & !is.na(second))
-    
-    news_transitions <- prof_panel_periods %>%
-      ungroup()%>%
-      select(profile_id, inferred_gender, period, news_perc)%>%
-      pivot_wider(names_from = period, values_from = news_perc)%>%
-      filter(!is.na(first) & !is.na(second))
-    
-    twitter_transitions <- prof_panel_periods %>%
-      ungroup()%>%
-      select(profile_id, inferred_gender, period, twitter_perc)%>%
-      pivot_wider(names_from = period, values_from = twitter_perc)%>%
-      filter(!is.na(first) & !is.na(second))
-    
-    matrix_list <- list()
-    
-    list_m <- c("pub_transitions", "cit_transitions",
-                "online_news_transitions", "news_transitions", 
-                "twitter_transitions")
-    
-    for (transition in list_m){
-      matrix_get <- get(transition)
+    for (lm_formula in lm_formula_list){
       
-      transition_matrix <- markovchainFit(matrix_get[c("first", "second")])$estimate@transitionMatrix
-      transition_matrix_men <- markovchainFit(matrix_get[which(matrix_get$inferred_gender == "m"), c("first", "second")])$estimate@transitionMatrix
-      transition_matrix_women <- markovchainFit(matrix_get[which(matrix_get$inferred_gender == "w"), c("first", "second")])$estimate@transitionMatrix
+      lm_model <- lm(lm_formula,
+                     data = field_dataset) 
       
-      matrix_sublist <- list()
-      matrix_sublist[['all']] <- transition_matrix
-      matrix_sublist[['men']] <- transition_matrix_men
-      matrix_sublist[['women']] <- transition_matrix_women
-      matrix_list[[transition]] <- matrix_sublist
+      # cluster-robust SEs
+      coef_test_output <- coeftest(lm(lm_formula,
+                                      data = field_dataset), vcov = vcovCL, cluster = field_dataset$profile_id)
+      model_result <- coef_test_output[,] %>% 
+        as.data.frame() %>% 
+        rownames_to_column(var = "term")
+      model_result$lower_ci <- as.data.frame(confint(coef_test_output,
+                                                     level = 0.95))[,1]
+      model_result$upper_ci <- as.data.frame(confint(coef_test_output,
+                                                     level = 0.95))[,2]
+      
+      # extracting R squared
+      model_result[nrow(model_result)+1, 1] <- "R^2"
+      model_result[nrow(model_result), 2:ncol(model_result)] <- round(summary(lm_model)$r.squared,3)
+      model_result$field <- field
+      model_result$covariate <- trimws(str_split_i(lm_formula, "~", 1))
+      # binding field models together
+      all_models <- rbind(all_models,
+                          model_result)
+      # prediction for our plots
+      prediction <- predict_response(lm_model, c("inferred_gender"), vcov_fun = "vcovCL", 
+                                     vcov_type = "HC0",
+                                     vcov.args = list(cluster = field_dataset$profile_id))
+      prediction$field <- field
+      # binding the predictions for all fields together
+      prediction$covariate <- trimws(str_split_i(lm_formula, "~", 1))
+      all_predictions <- rbind(all_predictions,
+                               prediction)
+      
+      # comparing whether the predictions for men and women are significantly different
+      gender_comparison <- test_predictions(lm_model, c("inferred_gender"), vcov_fun = "vcovCL")
+      gender_comparison$field <- field
+      gender_comparison$covariate <- trimws(str_split_i(lm_formula, "~", 1))
+      
+      all_comparisons <- rbind(all_comparisons,
+                               gender_comparison)
+      
+      
+      
+      
+      #print(field)
+      
       
     }
   }
+  # adding some stars
+  all_models$stars <- ifelse(all_models$`Pr(>|t|)` <= 0.001, "***",
+                             ifelse(all_models$`Pr(>|t|)` <= 0.001, "**",
+                                    ifelse(all_models$`Pr(>|t|)` <= 0.05, "*",
+                                           ifelse(all_models$`Pr(>|t|)` <= 0.1, ".", ""))))
+  
+  all_comparisons$stars <- ifelse(all_comparisons$`p.value` <= 0.001, "***",
+                                  ifelse(all_comparisons$`p.value` <= 0.001, "**",
+                                         ifelse(all_comparisons$`p.value` <= 0.05, "*",
+                                                ifelse(all_comparisons$`p.value` <= 0.1, ".", ""))))
+  
+  # tidying up and rounding the results
+  all_comparisons$group1 <- str_split_i(all_comparisons$inferred_gender, "-", 1)
+  all_comparisons$group2 <- str_split_i(all_comparisons$inferred_gender, "-", 2)
+  all_comparisons$p_rounded <- round(all_comparisons$p.value, 4)
   
   
-  if (split_by == "gender & field"){
-    prof_panel_periods <- dataframe %>%
-      group_by(profile_id, general_field, entry_batch_2023, period, inferred_gender)%>%
-      summarise(
-        count_pubs = mean(count_pubs, na.rm = TRUE),
-        cited_by = mean(cited_by, na.rm = TRUE),
-        alt_online_all = mean(alt_online_all, na.rm = TRUE),
-        alt_twitter = mean(alt_twitter, na.rm = TRUE),
-        news = mean(news_all, na.rm = TRUE))%>%
-      group_by(general_field, entry_batch_2023, period)%>%
-      mutate(
-        pub_perc = ntile(-count_pubs, brackets),
-        cit_perc = ntile(-cited_by, brackets),    
-        online_perc = ntile(-alt_online_all, brackets),
-        news_perc = ntile(-news, brackets),
-        twitter_perc = ntile(-alt_twitter, brackets))
-    
-    pub_transitions <- prof_panel_periods %>%
-      ungroup()%>%
-      select(profile_id, inferred_gender, general_field, period, pub_perc)%>%
-      pivot_wider(names_from = period, values_from = pub_perc)%>%
-      filter(!is.na(first) & !is.na(second))
-    
-    cit_transitions <- prof_panel_periods %>%
-      ungroup()%>%
-      select(profile_id, inferred_gender, general_field, period, cit_perc)%>%
-      pivot_wider(names_from = period, values_from = cit_perc)%>%
-      filter(!is.na(first) & !is.na(second))
-    
-    online_news_transitions <- prof_panel_periods %>%
-      ungroup()%>%
-      select(profile_id, inferred_gender, general_field, period, online_perc)%>%
-      pivot_wider(names_from = period, values_from = online_perc)%>%
-      filter(!is.na(first) & !is.na(second))
-    
-    news_transitions <- prof_panel_periods %>%
-      ungroup()%>%
-      select(profile_id, inferred_gender, general_field, period, news_perc)%>%
-      pivot_wider(names_from = period, values_from = news_perc)%>%
-      filter(!is.na(first) & !is.na(second))
-    
-    twitter_transitions <- prof_panel_periods %>%
-      ungroup()%>%
-      select(profile_id, inferred_gender, general_field, period, twitter_perc)%>%
-      pivot_wider(names_from = period, values_from = twitter_perc)%>%
-      filter(!is.na(first) & !is.na(second))
-    
-    list_m <- c("pub_transitions", "cit_transitions",
-                "online_news_transitions", "news_transitions", 
-                "twitter_transitions")
-    
-    matrix_list <- list()
-    for (transition in list_m){
-      
-      fields <- c("STEM", "Social sciences", "Medicine", "Arts & Humanities")
-      field_sublist <- c()
-      for (field in fields){
-        matrix_sublist <- list()
-        matrix_get <- get(transition)
-        matrix_get <- matrix_get[which(matrix_get$general_field == field),]
-        transition_matrix <- markovchainFit(matrix_get[c("first", "second")])$estimate@transitionMatrix
-        transition_matrix_men <- markovchainFit(matrix_get[which(matrix_get$inferred_gender == "m"), c("first", "second")])$estimate@transitionMatrix
-        transition_matrix_women <- markovchainFit(matrix_get[which(matrix_get$inferred_gender == "w"), c("first", "second")])$estimate@transitionMatrix
-        
-        matrix_sublist[['all']] <- transition_matrix
-        matrix_sublist[['men']] <- transition_matrix_men
-        matrix_sublist[['women']] <- transition_matrix_women
-        field_sublist[[field]] <- matrix_sublist
-      }
-      
-      matrix_list[[transition]] <- field_sublist
-    }
-    
-  }
+  all_models$field <- factor(all_models$field,
+                             levels = c("stem",
+                                        "medicine",
+                                        "soc_sci",
+                                        "arts"))
   
-  return(matrix_list)
+  
+  all_predictions$field <- factor(all_predictions$field,
+                                  levels = c("stem",
+                                             "medicine",
+                                             "soc_sci",
+                                             "arts"))
+  
+  all_comparisons$field <- factor(all_comparisons$field,
+                                  levels = c("stem",
+                                             "medicine",
+                                             "soc_sci",
+                                             "arts"))
+  
+  
+  
+  output_list <- list(all_models,
+                      all_predictions,
+                      all_comparisons)
+  
+  return(output_list)
 }
 
-## Grouped Gini coefficients output per gender
-gender_gini <- function(dataframe,
-                        pub_data = FALSE,
-                        totals = FALSE,
-                        year = 2023,
-                        field = field){
+
+## Function that can fit a poisson or a logistic regression
+
+glm_fitter_cl_robust <- function(panel_dataset,
+                                 formula_list,
+                                 year_cutoff_upper = 2023,
+                                 year_cutoff_lower = 1974,
+                                 reg_family = c("poisson", "binomial")){
   
-  if (totals == FALSE){
+  all_models <- data.frame(matrix(ncol = 10, nrow = 0))
   
-  if (nrow(dataframe)>0){
-    # first, news
-    
-    gini_output <- gini_decomp(dataframe$news_all, dataframe$inferred_gender)
-    gini_total <- gini_output$gini_decomp$gini_total
-    gini_within <- gini_output$gini_decomp$gini_within
-    gini_between <- gini_output$gini_decomp$gini_between
-    gini_overlap <- gini_output$gini_decomp$gini_overlap
-    gini_men <- gini_output$gini_group$gini_group["m"]
-    gini_women <- gini_output$gini_group$gini_group["w"]
-    
-    compile_row_news <- c(field,
-                     year,
-                     gini_total,
-                     gini_within,
-                     gini_between,
-                     gini_overlap,
-                     gini_men,
-                     gini_women)
-    
-    compile_row_news$variable <- "news"
-    
-    # then, online news
-    gini_output <- gini_decomp(dataframe$alt_online_all, dataframe$inferred_gender)
-    gini_total <- gini_output$gini_decomp$gini_total
-    gini_within <- gini_output$gini_decomp$gini_within
-    gini_between <- gini_output$gini_decomp$gini_between
-    gini_overlap <- gini_output$gini_decomp$gini_overlap
-    gini_men <- gini_output$gini_group$gini_group["m"]
-    gini_women <- gini_output$gini_group$gini_group["w"]
-    
-    compile_row_online <- c(field,
-                     year,
-                     gini_total,
-                     gini_within,
-                     gini_between,
-                     gini_overlap,
-                     gini_men,
-                     gini_women)
-    
-    compile_row_online$variable <- "online_news"
-    
-    # twitter
-    gini_output <- gini_decomp(dataframe$alt_twitter, dataframe$inferred_gender)
-    gini_total <- gini_output$gini_decomp$gini_total
-    gini_within <- gini_output$gini_decomp$gini_within
-    gini_between <- gini_output$gini_decomp$gini_between
-    gini_overlap <- gini_output$gini_decomp$gini_overlap
-    gini_men <- gini_output$gini_group$gini_group["m"]
-    gini_women <- gini_output$gini_group$gini_group["w"]
-    
-    compile_row_twitter <- c(field,
-                            year,
-                            gini_total,
-                            gini_within,
-                            gini_between,
-                            gini_overlap,
-                            gini_men,
-                            gini_women)
-    
-    compile_row_twitter$variable <- "twitter"
-    
-    compile_output <- rbind(compile_row_news,
-                            compile_row_online,
-                            compile_row_twitter)
-    
-    if (pub_data == TRUE){
-      # add pubs and citations
-      gini_output <- gini_decomp(dataframe$count_pubs, dataframe$inferred_gender)
-      gini_total <- gini_output$gini_decomp$gini_total
-      gini_within <- gini_output$gini_decomp$gini_within
-      gini_between <- gini_output$gini_decomp$gini_between
-      gini_overlap <- gini_output$gini_decomp$gini_overlap
-      gini_men <- gini_output$gini_group$gini_group["m"]
-      gini_women <- gini_output$gini_group$gini_group["w"]
-      
-      compile_row_publ <- c(field,
-                               year,
-                               gini_total,
-                               gini_within,
-                               gini_between,
-                               gini_overlap,
-                               gini_men,
-                               gini_women)
-      
-      compile_row_publ$variable <- "publications"
-      
-      # add pubs and citations
-      gini_output <- gini_decomp(dataframe$cited_by, dataframe$inferred_gender)
-      gini_total <- gini_output$gini_decomp$gini_total
-      gini_within <- gini_output$gini_decomp$gini_within
-      gini_between <- gini_output$gini_decomp$gini_between
-      gini_overlap <- gini_output$gini_decomp$gini_overlap
-      gini_men <- gini_output$gini_group$gini_group["m"]
-      gini_women <- gini_output$gini_group$gini_group["w"]
-      
-      compile_row_cit <- c(field,
-                            year,
-                            gini_total,
-                            gini_within,
-                            gini_between,
-                            gini_overlap,
-                            gini_men,
-                            gini_women)
-      
-      compile_row_cit$variable <- "citations"
-      
-      compile_output <- rbind(compile_output,
-                              compile_row_publ,
-                              compile_row_cit)
-    
-    }
-    
-    colnames(compile_output) <- c("field",
-                                  "year",
-                                  "total_gini",
-                                  "gini_within",
-                                  "gini_between",
-                                  "gini_overlap",
-                                  "gini_men",
-                                  "gini_women", 
-                                  "variable")
-    
-    rownames(compile_output) <- c()
-    
-  }
-  }
+  fields <- c("stem", "medicine", "soc_sci", "arts")
+  stem <- filter(panel_dataset, general_field == "STEM")
+  soc_sci <- filter(panel_dataset, general_field == "Social sciences")
+  arts <- filter(panel_dataset, general_field == "Arts & Humanities")
+  medicine <- filter(panel_dataset, general_field == "Medicine")
   
-  if (totals == TRUE){
-    if (nrow(dataframe)>0){
-      # first, news
+  for (field in fields){
+    #print(field)
+    reg_model <- NA
+    coef_test_output <- NA
+    
+    field_dataset <- get(field)
+    
+    field_dataset <- filter(field_dataset,
+                            year <= year_cutoff_upper & year >= year_cutoff_lower)
+    
+    for (model_formula in formula_list){
       
-      gini_output <- gini_decomp(dataframe$news_all_total, dataframe$inferred_gender)
-      gini_total <- gini_output$gini_decomp$gini_total
-      gini_within <- gini_output$gini_decomp$gini_within
-      gini_between <- gini_output$gini_decomp$gini_between
-      gini_overlap <- gini_output$gini_decomp$gini_overlap
-      gini_men <- gini_output$gini_group$gini_group["m"]
-      gini_women <- gini_output$gini_group$gini_group["w"]
-      
-      compile_row_news <- c(field,
-                            gini_total,
-                            gini_within,
-                            gini_between,
-                            gini_overlap,
-                            gini_men,
-                            gini_women)
-      
-      compile_row_news$variable <- "news"
-      
-      # then, online news
-      gini_output <- gini_decomp(dataframe$alt_online_all_total, dataframe$inferred_gender)
-      gini_total <- gini_output$gini_decomp$gini_total
-      gini_within <- gini_output$gini_decomp$gini_within
-      gini_between <- gini_output$gini_decomp$gini_between
-      gini_overlap <- gini_output$gini_decomp$gini_overlap
-      gini_men <- gini_output$gini_group$gini_group["m"]
-      gini_women <- gini_output$gini_group$gini_group["w"]
-      
-      compile_row_online <- c(field,
-                              gini_total,
-                              gini_within,
-                              gini_between,
-                              gini_overlap,
-                              gini_men,
-                              gini_women)
-      
-      compile_row_online$variable <- "online_news"
-      
-      # twitter
-      gini_output <- gini_decomp(dataframe$alt_twitter_total, dataframe$inferred_gender)
-      gini_total <- gini_output$gini_decomp$gini_total
-      gini_within <- gini_output$gini_decomp$gini_within
-      gini_between <- gini_output$gini_decomp$gini_between
-      gini_overlap <- gini_output$gini_decomp$gini_overlap
-      gini_men <- gini_output$gini_group$gini_group["m"]
-      gini_women <- gini_output$gini_group$gini_group["w"]
-      
-      compile_row_twitter <- c(field,
-                               gini_total,
-                               gini_within,
-                               gini_between,
-                               gini_overlap,
-                               gini_men,
-                               gini_women)
-      
-      compile_row_twitter$variable <- "twitter"
-      
-      compile_output <- rbind(compile_row_news,
-                              compile_row_online,
-                              compile_row_twitter)
-      
-      if (pub_data == TRUE){
-        # add pubs and citations
-        gini_output <- gini_decomp(dataframe$count_pubs_total, dataframe$inferred_gender)
-        gini_total <- gini_output$gini_decomp$gini_total
-        gini_within <- gini_output$gini_decomp$gini_within
-        gini_between <- gini_output$gini_decomp$gini_between
-        gini_overlap <- gini_output$gini_decomp$gini_overlap
-        gini_men <- gini_output$gini_group$gini_group["m"]
-        gini_women <- gini_output$gini_group$gini_group["w"]
+      if (reg_family == "poisson"){
         
-        compile_row_publ <- c(field,
-                              gini_total,
-                              gini_within,
-                              gini_between,
-                              gini_overlap,
-                              gini_men,
-                              gini_women)
+        reg_model <- glm(model_formula,
+                         data = field_dataset,
+                         family = 'poisson') 
         
-        compile_row_publ$variable <- "publications"
+        # cluster-robust SEs
         
-        # add pubs and citations
-        gini_output <- gini_decomp(dataframe$coa_cited_by_total_all, dataframe$inferred_gender)
-        gini_total <- gini_output$gini_decomp$gini_total
-        gini_within <- gini_output$gini_decomp$gini_within
-        gini_between <- gini_output$gini_decomp$gini_between
-        gini_overlap <- gini_output$gini_decomp$gini_overlap
-        gini_men <- gini_output$gini_group$gini_group["m"]
-        gini_women <- gini_output$gini_group$gini_group["w"]
+        coef_test_output <- coeftest(reg_model, vcov = vcovCL, cluster = reg_model$data$profile_id)
+        model_result <- coef_test_output[,] %>% 
+          as.data.frame() %>% 
+          rownames_to_column(var = "term")
+        model_result$lower_ci <- as.data.frame(confint(coef_test_output,
+                                                       level = 0.95))[,1]
+        model_result$upper_ci <- as.data.frame(confint(coef_test_output,
+                                                       level = 0.95))[,2]
+      }
+      
+      if (reg_family == "binomial"){
         
-        compile_row_cit <- c(field,
-                              gini_total,
-                              gini_within,
-                              gini_between,
-                              gini_overlap,
-                              gini_men,
-                              gini_women)
+        reg_model <- glm(model_formula,
+                         data = field_dataset,
+                         family = 'binomial') 
         
-        compile_row_cit$variable <- "citations"
+        coef_test_output <- coeftest(reg_model, type = "HC0", cluster = reg_model$data$profile_id)
+        model_result <- coef_test_output[,] %>% 
+          as.data.frame() %>% 
+          rownames_to_column(var = "term")
+        model_result$lower_ci <- as.data.frame(confint(coef_test_output,
+                                                       level = 0.95))[,1]
+        model_result$upper_ci <- as.data.frame(confint(coef_test_output,
+                                                       level = 0.95))[,2]
         
-        compile_output <- rbind(compile_output,
-                                compile_row_publ,
-                                compile_row_cit)
+        model_result[nrow(model_result)+1, 1] <- "R^2"
+        pseudo_r <- "no convergence"
+        try(pseudo_r <- round(PseudoR2(reg_model),3))
+        model_result[nrow(model_result), 2:ncol(model_result)] <- pseudo_r
         
       }
       
+      # tidy up
+      model_result$field <- field
+      model_result$covariate <- trimws(str_split_i(model_formula, "~", 1))
+      # binding field models together
+      all_models <- rbind(all_models,
+                          model_result)
+
     }
-    
-    colnames(compile_output) <- c("field",
-                                  "total_gini",
-                                  "gini_within",
-                                  "gini_between",
-                                  "gini_overlap",
-                                  "gini_men",
-                                  "gini_women", 
-                                  "variable")
-    
-    rownames(compile_output) <- c()
-    
   }
+  # adding some stars
+  all_models$stars <- ifelse(all_models$`Pr(>|z|)` <= 0.001, "***",
+                             ifelse(all_models$`Pr(>|z|)` <= 0.001, "**",
+                                    ifelse(all_models$`Pr(>|z|)` <= 0.05, "*",
+                                           ifelse(all_models$`Pr(>|z|)` <= 0.1, ".", ""))))
   
-  compile_output <- as.data.frame(compile_output)
-  compile_output <- compile_output %>%
-    mutate_at(c("total_gini",
-                "gini_within",
-                "gini_between",
-                "gini_overlap",
-                "gini_men",
-                "gini_women"), as.numeric)
+  all_models$field <- factor(all_models$field,
+                             levels = c("stem",
+                                        "medicine",
+                                        "soc_sci",
+                                        "arts"))
   
   
-  return(compile_output)
+  output_list <- list(all_models)
+  
+  return(output_list)
 }
     
+
+# this function tidies up regression outputs for three
+# outcome variables and arranges them for easy writing
+# into a CSV file
+neat_regression_table <- function(
+    table_1,
+    table_2,
+    table_3){
+  
+  table_1_neat <- table_1 %>%
+    arrange(field)%>%
+    filter(!grepl("year)", term))%>%
+    select(field, term:`Std. Error`, stars)
+  
+  colnames(table_1_neat) <- c("field", 
+                              "term",
+                              "coef_printed",
+                              "se_printed",
+                              "sig_printed")
+  
+  table_2_neat <- table_2 %>%
+    arrange(field)%>%
+    filter(!grepl("year)", term))%>%
+    select(field, term:`Std. Error`, stars)
+  
+  colnames(table_2_neat) <- c("field", 
+                              "term",
+                              "coef_online",
+                              "se_online",
+                              "sig_online")
+  
+  table_3_neat <- table_3 %>%
+    arrange(field)%>%
+    filter(!grepl("year)", term))%>%
+    select(field, term:`Std. Error`, stars)
+  
+  colnames(table_3_neat) <- c("field", 
+                              "term",
+                              "coef_twitter",
+                              "se_twitter",
+                              "sig_twitter")
+  
+  three_models_table <- merge(table_1_neat,
+                              table_2_neat,
+                              by = c("field", 
+                                     "term"),
+                              all.x = TRUE,
+                              all.y = TRUE)
+  
+  three_models_table <- merge(three_models_table,
+                              table_3_neat,
+                              by = c("field", 
+                                     "term"),
+                              all.x = TRUE,
+                              all.y = TRUE)
+  
+  
+  three_models_table$term <- ifelse(three_models_table$term %in% c("news_all_l",
+                                                                   "news_all_l_log",
+                                                                   "alt_online_all_l",
+                                                                   "alt_online_all_l_log",
+                                                                   "alt_twitter_l",
+                                                                   "alt_twitter_l_log"),
+                                    "t_min_1",
+                                    three_models_table$term)
+  
+  
+  three_models_table$term <- factor(three_models_table$term,
+                                    levels = c(
+                                      "inferred_genderw",
+                                      "cited_by_total_all_l",
+                                      "cited_by_total_all_l_log",
+                                      "news_all_total_l",
+                                      "news_all_total_l_log",
+                                      "alt_online_all_total_l",
+                                      "alt_online_all_total_l_log",
+                                      "alt_twitter_total_l",
+                                      "alt_twitter_total_l_log",
+                                      "coa_tot_cited_by_total_l",
+                                      "coa_tot_cited_by_total_l_log",
+                                      "coa_online_all_total_l",
+                                      "coa_online_all_total_l_log",
+                                      "coa_tot_online_all_total_l",
+                                      "coa_tot_online_all_total_l_log",
+                                      "coa_twitter_total_l",
+                                      "coa_twitter_total_l_log",
+                                      "coa_tot_twitter_total_l",
+                                      "coa_tot_twitter_total_l_log",
+                                      "t_min_1",
+                                      "news_all_l",
+                                      "news_all_l_log",
+                                      "alt_online_all_l",
+                                      "alt_online_all_l_log",
+                                      "alt_twitter_l",
+                                      "alt_twitter_l_log",
+                                      "years_since_first_pub",
+                                      "as.factor(any_grant_l)1",
+                                      "(Intercept)",
+                                      "R^2"
+                                    ))
+  
+  
+  three_models_table <- three_models_table %>%
+    mutate(across(where(is.numeric), round, 5))%>%
+    mutate(term = recode(term,
+                         'alt_online_all_l' = "Online attention (t-1)",
+                         'alt_online_all_total_l' = "Total online attention (t-1)",
+                         'alt_twitter_l' = "Twitter/X attention (t-1)",
+                         'alt_twitter_total_l' = "Total Twitter/X attention (t-1)",
+                         'cited_by_total_all_l' = "Total citations (t-1)",
+                         'as.factor(any_grant_l)1' = "Received an NWO/ERC grant (t-1)",
+                         'coa_online_all_total_l' = "Coauthors' total online attention total (t-1)",
+                         'coa_tot_online_all_total_l' = "Coauthors' total online attention total (t-1)",
+                         'coa_tot_cited_by_total_l' = "Coauthors' total citations (t-1)",
+                         'coa_twitter_total_l' = "Coauthors' total Twitter/X attention (t-1)",
+                         'coa_tot_twitter_total_l' = "Coauthors' total Twitter/X attention (t-1)",
+                         'years_since_first_pub' = "Years since first publication",
+                         'inferred_genderw' = "Inferred gender (reference: man)",
+                         'news_all_l' = "Printed news attention (t-1)",
+                         'news_all_total_l' = "Total printed news attention (t-1)",
+                         'alt_online_all_l_log' = "Online attention (log, t-1)",
+                         'alt_online_all_total_l_log' = "Total online attention (log, t-1)",
+                         'alt_twitter_l_log' = "Twitter/X attention (log, t-1)",
+                         'alt_twitter_total_l_log' = "Total Twitter/X attention (log, t-1)",
+                         'cited_by_total_all_l_log' = "Total citations (log, t-1)",
+                         't_min_1' = "Dependent variable (t-1)",
+                         'coa_online_all_total_l_log' = "Coauthors' total online attention total (log, t-1)",
+                         'coa_tot_cited_by_total_l_log' = "Coauthors' total citations (log, t-1)",
+                         'coa_twitter_total_l_log' = "Coauthors' total Twitter/X attention (log, t-1)",
+                         'news_all_l_log' = "Printed news attention (log, t-1)",
+                         'news_all_total_l_log' = "Total printed news attention (log, t-1)"
+    ),
+    field = recode(field,
+                   'stem' = "STEM",
+                   'medicine' = "Medicine",
+                   'soc_sci' = "Social science",
+                   'arts' = "Arts & Humanities"))%>%
+    arrange(field, term)%>%
+    select(field:coef_printed, sig_printed, se_printed, 
+           coef_online, sig_online, se_online,
+           coef_twitter, sig_twitter, se_twitter)
+  
+  three_models_table$se_printed <- ifelse(!is.na(three_models_table$se_printed),
+                                      paste0("(", as.character(three_models_table$se_printed), ")"),
+                                             three_models_table$se_printed)
+                                      
+  three_models_table$se_online <- ifelse(!is.na(three_models_table$se_online),
+                                         paste0("(", as.character(three_models_table$se_online), ")"),
+                                         three_models_table$se_online)
+    
+  three_models_table$se_twitter <- ifelse(!is.na(three_models_table$se_twitter),
+                                          paste0("(", as.character(three_models_table$se_twitter), ")"),
+                                          three_models_table$se_twitter)
+  
+  three_models_table$field <- ifelse(three_models_table$term == "Inferred gender (reference: man)",
+                                     as.character(three_models_table$field),
+                                     "")
+  
+  return(three_models_table)
+  
+}

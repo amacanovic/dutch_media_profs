@@ -14,7 +14,7 @@
 
 <title>Dutch media profs scripts</title>
 
-<script src="site_libs/header-attrs-2.25/header-attrs.js"></script>
+<script src="site_libs/header-attrs-2.26/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
@@ -282,28 +282,34 @@ $(document).ready(function () {
       <a href="SQL_tutorial.html">Intro: SQL tutorial</a>
     </li>
     <li>
-      <a href="OpenAlex_Altmetric_data_download.html">1. Open Alex and Altmetric data download</a>
+      <a href="OpenAlex_Altmetric_data_download.html">Prep. 1: Open Alex and Altmetric data download</a>
     </li>
     <li>
-      <a href="Gender_inference.html">2. Gender inference</a>
+      <a href="Gender_inference.html">Prep. 2: Gender inference</a>
     </li>
     <li>
-      <a href="Grant_parsing.html">3. Grant parsing</a>
+      <a href="Grant_parsing.html">Prep. 3: Grant parsing</a>
     </li>
     <li>
-      <a href="Lexis_nexis_parser.html">4. Lexis data parser</a>
+      <a href="Lexis_nexis_parser.html">Prep. 4: Lexis data parser</a>
     </li>
     <li>
-      <a href="Mention_url_extraction.html">5. Mention URL extraction</a>
+      <a href="Panel_data_compilation.html">Prep. 5: Panel data compilation</a>
     </li>
     <li>
-      <a href="Data_descriptives.html">5. Database description and coverage</a>
+      <a href="Analyses_main.html">Main analyses</a>
     </li>
     <li>
-      <a href="Panel_data_compilation.html">6. Panel data compilation</a>
+      <a href="Supplement_data_information.html">Supplement 1: Database description and coverage</a>
     </li>
     <li>
-      <a href="analyses.html">7. Various analyses</a>
+      <a href="Data_coverage.html">Supplement 2: NARCIS and OA database comparison</a>
+    </li>
+    <li>
+      <a href="Analyses_supplemental.html">Supplement 3: Additional analyses and robustness checks</a>
+    </li>
+    <li>
+      <a href="News_classification_other_functions.html">Supplement 4: Additional resources and functions</a>
     </li>
   </ul>
 </li>
@@ -349,9 +355,41 @@ $(document).ready(function () {
 <div class="column" style="width:80%;">
 <div id="repository-description" class="section level1">
 <h1>Repository Description</h1>
-<p>Last compiled on May 28, 2024</p>
-<p>This website shows the script for the Dutch Media Profs project.</p>
-<p>It is still in progress.</p>
+<p>Last compiled on July 25, 2024</p>
+<p>This website shows the script for the Dutch Media Profs project. This
+project explores gender inequalities in media representation between men
+and women professors in the Netherlands.</p>
+<p>The project is conducted by <a href="https://www.bashofstra.com">Bas
+Hofstra</a> and <a href="https://amacanovic.github.io/">Ana
+Macanovic</a> at the <a href="https://www.ru.nl/en">Radboud
+University</a>.</p>
+<p>This project answers these questions by considering whether and why
+women professors are represented in news and social media at different
+numbers than men professors. This representation in the public arena has
+become increasingly important for professors as the dissemination of
+scientific knowledge to the general public is a growing and essential
+part of professors’ activities and evaluation. This project sets out to
+study this among all Dutch professors (1990-2021) through a series of
+new database linkages and computational methods.</p>
+<p>We start with a dataset of 6830 professors as per NARCIS (National
+Academic Research and Collaboration Information System), a former Dutch
+nationala information portal for Dutch scientific data and
+publications.</p>
+<p>For each professor, we collect the following data:</p>
+<ul>
+<li>Publication, citation, affiliation, topic, concept, and grant data
+from <a href="https://openalex.org/">OpenAlex</a></li>
+<li>Printed news articles containing a professors first and last names
+and a set of keyword related to their academic roles from <a
+href="https://www.lexisnexis.com/">LexisNexis</a>.</li>
+<li>Online news mentions and number of Tweets pertaining to their
+publications from <a
+href="https://www.altmetric.com/">Altmetric</a></li>
+<li>Dutch grant data from <a href="https://www.nwo.nl/">NWO</a> and ERC
+grant data from the <a
+href="https://erc.easme-web.eu?mode=7&amp;countries=NL">ERC
+datahub</a>:</li>
+</ul>
 <p><br></p>
 <p>Before beginning, make sure you install the groundhog package:</p>
 <pre class="r test"><code>install.packages(&quot;groundhog&quot;)</code></pre>
@@ -364,12 +402,30 @@ $(document).ready(function () {
 <div id="contents" class="section level2">
 <h2>Contents</h2>
 <p><br></p>
-<p>Use the top menu to navigate through the currently finished
-scripts.</p>
+<p>Use the top menu to navigate through the currently finished scripts,
+including:</p>
+<ul>
+<li>An introduction to accessing our database using SQL</li>
+<li>Prep. 1: A script including Open Alex and Altmetric data
+download</li>
+<li>Prep. 2: A script for gender inference</li>
+<li>Prep. 3: A script parsing grant data retrieved from the NWO</li>
+<li>Prep. 4: A script parsing data retrieved from LexisNexis (no access
+to LexisNexis retrieval code is available)</li>
+<li>Prep. 5: Compilation of a panel dataset following professor’s
+careers over years</li>
+<li>Main analyses</li>
+<li>Suppl. 1: Descriptives on our database and comparison of publication
+coverage between OpenAlex and NARCIS publication data</li>
+<li>Suppl. 2: Data descriptives presented in the first subsection of the
+Online Supplement</li>
+<li>Suppl. 3: Additional analyses and regression robustness checks</li>
+<li>Suppl. 4: Additional functions used in other scripts</li>
+</ul>
 <hr />
 </div>
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIkR1dGNoIG1lZGlhIHByb2ZzIHNjcmlwdHMiDQpvdXRwdXQ6DQogIGh0bWxfZG9jdW1lbnQ6DQogICAgdG9jOiBmYWxzZQ0KICAgIG51bWJlcl9zZWN0aW9uczogZmFsc2UNCmF1dGhvcjogImJ5OiBBbmEgTWFjYW5vdmljIGFuZCBCYXMgSG9mc3RyYSINCmJpYmxpb2dyYXBoeTogcmVmZXJlbmNlcy5iaWINCg0KLS0tDQoNCg0KYGBge3IsIGluc3RhbGwgcmVtb3RlbHksIGdsb2JhbHNldHRpbmdzLCBlY2hvPUZBTFNFLCB3YXJuaW5nPUZBTFNFLCByZXN1bHRzPSdoaWRlJ30NCiMgaW5zdGFsbC5wYWNrYWdlcygicmVtb3RlcyIpDQojcmVtb3Rlczo6aW5zdGFsbF9naXRodWIoInJsZXN1ci9rbGlwcHkiKQ0KYGBgIA0KDQpgYGB7ciwgZ2xvYmFsc2V0dGluZ3MsIGVjaG89RkFMU0UsIHdhcm5pbmc9RkFMU0UsIHJlc3VsdHM9J2hpZGUnfQ0KbGlicmFyeShrbml0cikNCg0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KGVjaG8gPSBUUlVFKQ0Kb3B0c19jaHVuayRzZXQodGlkeS5vcHRzPWxpc3Qod2lkdGguY3V0b2ZmPTEwMCksdGlkeT1UUlVFLCB3YXJuaW5nID0gRkFMU0UsIG1lc3NhZ2UgPSBGQUxTRSxjb21tZW50ID0gIiM+IiwgY2FjaGU9VFJVRSwgY2xhc3Muc291cmNlPWMoInRlc3QiKSwgY2xhc3Mub3V0cHV0PWMoInRlc3QyIikpDQpvcHRpb25zKHdpZHRoID0gMTAwKQ0KcmdsOjpzZXR1cEtuaXRyKCkNCg0KY29sb3JpemUgPC0gZnVuY3Rpb24oeCwgY29sb3IpIHtzcHJpbnRmKCI8c3BhbiBzdHlsZT0nY29sb3I6ICVzOyc+JXM8L3NwYW4+IiwgY29sb3IsIHgpIH0NCg0KYGBgDQoNCmBgYHtyIGtsaXBweSwgZWNobz1GQUxTRSwgaW5jbHVkZT1UUlVFfQ0Ka2xpcHB5OjprbGlwcHkocG9zaXRpb24gPSBjKCd0b3AnLCAncmlnaHQnKSkNCiNrbGlwcHk6OmtsaXBweShjb2xvciA9ICdkYXJrcmVkJykNCiNrbGlwcHk6OmtsaXBweSh0b29sdGlwX21lc3NhZ2UgPSAnQ2xpY2sgdG8gY29weScsIHRvb2x0aXBfc3VjY2VzcyA9ICdEb25lJykNCmBgYA0KDQoNCi0tLS0NCg0KOjo6Ojo6Ojo6Ojo6Ojogey5jb2x1bW5zfQ0KOjo6IHsuY29sdW1uIHdpZHRoPSI4MCUifQ0KDQojIFJlcG9zaXRvcnkgRGVzY3JpcHRpb24NCkxhc3QgY29tcGlsZWQgb24gYHIgZm9ybWF0KFN5cy50aW1lKCksICclQiAlZCwgJVknKWAgIA0KDQpUaGlzIHdlYnNpdGUgc2hvd3MgdGhlIHNjcmlwdCBmb3IgdGhlIER1dGNoIE1lZGlhIFByb2ZzIHByb2plY3QuDQoNCkl0IGlzIHN0aWxsIGluIHByb2dyZXNzLg0KDQo8YnI+DQoNCkJlZm9yZSBiZWdpbm5pbmcsIG1ha2Ugc3VyZSB5b3UgaW5zdGFsbCB0aGUgZ3JvdW5kaG9nIHBhY2thZ2U6DQpgYGB7ciBldmFsID0gRkFMU0V9DQppbnN0YWxsLnBhY2thZ2VzKCJncm91bmRob2ciKQ0KYGBgDQoNCg0KLS0tLQ0KDQoNCjo6Og0KOjo6IHsuY29sdW1uIHdpZHRoPSI4MCUifQ0KDQoNCjo6Og0KOjo6Ojo6Ojo6Ojo6OjoNCg0KDQoNCiMjIENvbnRlbnRzDQoNCjxicj4NCg0KVXNlIHRoZSB0b3AgbWVudSB0byBuYXZpZ2F0ZSB0aHJvdWdoIHRoZSBjdXJyZW50bHkgZmluaXNoZWQgc2NyaXB0cy4NCg0KDQotLS0tDQoNCg0KDQoNCg0KDQo=</div>
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIkR1dGNoIG1lZGlhIHByb2ZzIHNjcmlwdHMiDQpvdXRwdXQ6DQogIGh0bWxfZG9jdW1lbnQ6DQogICAgdG9jOiBmYWxzZQ0KICAgIG51bWJlcl9zZWN0aW9uczogZmFsc2UNCmF1dGhvcjogImJ5OiBBbmEgTWFjYW5vdmljIGFuZCBCYXMgSG9mc3RyYSINCmJpYmxpb2dyYXBoeTogcmVmZXJlbmNlcy5iaWINCg0KLS0tDQoNCg0KYGBge3IsIGluc3RhbGwgcmVtb3RlbHksIGdsb2JhbHNldHRpbmdzLCBlY2hvPUZBTFNFLCB3YXJuaW5nPUZBTFNFLCByZXN1bHRzPSdoaWRlJ30NCiMgaW5zdGFsbC5wYWNrYWdlcygicmVtb3RlcyIpDQojcmVtb3Rlczo6aW5zdGFsbF9naXRodWIoInJsZXN1ci9rbGlwcHkiKQ0KYGBgIA0KDQpgYGB7ciwgZ2xvYmFsc2V0dGluZ3MsIGVjaG89RkFMU0UsIHdhcm5pbmc9RkFMU0UsIHJlc3VsdHM9J2hpZGUnfQ0KbGlicmFyeShrbml0cikNCg0Kb3B0c19jaHVuayRzZXQoZWNobyA9IFRSVUUpDQpvcHRzX2NodW5rJHNldCh0aWR5Lm9wdHM9bGlzdCh3aWR0aC5jdXRvZmY9MTAwKSx0aWR5PVRSVUUsIHdhcm5pbmcgPSBGQUxTRSwgbWVzc2FnZSA9IEZBTFNFLGNvbW1lbnQgPSAiIz4iLCBjYWNoZT1UUlVFLCBjbGFzcy5zb3VyY2U9YygidGVzdCIpLCBjbGFzcy5vdXRwdXQ9YygidGVzdDIiKSkNCm9wdGlvbnMod2lkdGggPSAxMDApDQpyZ2w6OnNldHVwS25pdHIoKQ0KDQpjb2xvcml6ZSA8LSBmdW5jdGlvbih4LCBjb2xvcikge3NwcmludGYoIjxzcGFuIHN0eWxlPSdjb2xvcjogJXM7Jz4lczwvc3Bhbj4iLCBjb2xvciwgeCkgfQ0KDQpgYGANCg0KYGBge3Iga2xpcHB5LCBlY2hvPUZBTFNFLCBpbmNsdWRlPVRSVUV9DQprbGlwcHk6OmtsaXBweShwb3NpdGlvbiA9IGMoJ3RvcCcsICdyaWdodCcpKQ0KI2tsaXBweTo6a2xpcHB5KGNvbG9yID0gJ2RhcmtyZWQnKQ0KI2tsaXBweTo6a2xpcHB5KHRvb2x0aXBfbWVzc2FnZSA9ICdDbGljayB0byBjb3B5JywgdG9vbHRpcF9zdWNjZXNzID0gJ0RvbmUnKQ0KYGBgDQoNCg0KLS0tLQ0KDQo6Ojo6Ojo6Ojo6Ojo6OiB7LmNvbHVtbnN9DQo6Ojogey5jb2x1bW4gd2lkdGg9IjgwJSJ9DQoNCiMgUmVwb3NpdG9yeSBEZXNjcmlwdGlvbg0KTGFzdCBjb21waWxlZCBvbiBgciBmb3JtYXQoU3lzLnRpbWUoKSwgJyVCICVkLCAlWScpYCAgDQoNClRoaXMgd2Vic2l0ZSBzaG93cyB0aGUgc2NyaXB0IGZvciB0aGUgRHV0Y2ggTWVkaWEgUHJvZnMgcHJvamVjdC4NClRoaXMgcHJvamVjdCBleHBsb3JlcyBnZW5kZXIgaW5lcXVhbGl0aWVzIGluIG1lZGlhIHJlcHJlc2VudGF0aW9uIGJldHdlZW4gbWVuIGFuZCB3b21lbiANCnByb2Zlc3NvcnMgaW4gdGhlIE5ldGhlcmxhbmRzLg0KDQpUaGUgcHJvamVjdCBpcyBjb25kdWN0ZWQgYnkgW0JhcyBIb2ZzdHJhXShodHRwczovL3d3dy5iYXNob2ZzdHJhLmNvbSkgYW5kIFtBbmEgTWFjYW5vdmljXShodHRwczovL2FtYWNhbm92aWMuZ2l0aHViLmlvLykNCmF0IHRoZSBbUmFkYm91ZCBVbml2ZXJzaXR5XShodHRwczovL3d3dy5ydS5ubC9lbikuDQoNClRoaXMgcHJvamVjdCBhbnN3ZXJzIHRoZXNlIHF1ZXN0aW9ucyBieSBjb25zaWRlcmluZyB3aGV0aGVyIGFuZCB3aHkgd29tZW4gcHJvZmVzc29ycyANCmFyZSByZXByZXNlbnRlZCBpbiBuZXdzIGFuZCBzb2NpYWwgbWVkaWEgYXQgZGlmZmVyZW50IG51bWJlcnMgdGhhbiBtZW4gcHJvZmVzc29ycy4gDQpUaGlzIHJlcHJlc2VudGF0aW9uIGluIHRoZSBwdWJsaWMgYXJlbmEgaGFzIGJlY29tZSBpbmNyZWFzaW5nbHkgaW1wb3J0YW50IGZvciANCnByb2Zlc3NvcnMgYXMgdGhlIGRpc3NlbWluYXRpb24gb2Ygc2NpZW50aWZpYyBrbm93bGVkZ2UgdG8gdGhlIGdlbmVyYWwgcHVibGljIGlzIA0KYSBncm93aW5nIGFuZCBlc3NlbnRpYWwgcGFydCBvZiBwcm9mZXNzb3Jz4oCZIGFjdGl2aXRpZXMgYW5kIGV2YWx1YXRpb24uIFRoaXMgcHJvamVjdA0Kc2V0cyBvdXQgdG8gc3R1ZHkgdGhpcyBhbW9uZyBhbGwgRHV0Y2ggcHJvZmVzc29ycyAoMTk5MC0yMDIxKSB0aHJvdWdoIGEgc2VyaWVzIG9mIA0KbmV3IGRhdGFiYXNlIGxpbmthZ2VzIGFuZCBjb21wdXRhdGlvbmFsIG1ldGhvZHMuDQoNCldlIHN0YXJ0IHdpdGggYSBkYXRhc2V0IG9mIDY4MzAgcHJvZmVzc29ycyBhcyBwZXIgTkFSQ0lTIChOYXRpb25hbCBBY2FkZW1pYyBSZXNlYXJjaA0KYW5kIENvbGxhYm9yYXRpb24gSW5mb3JtYXRpb24gU3lzdGVtKSwgYSBmb3JtZXIgRHV0Y2ggbmF0aW9uYWxhIGluZm9ybWF0aW9uIHBvcnRhbA0KZm9yIER1dGNoIHNjaWVudGlmaWMgZGF0YSBhbmQgcHVibGljYXRpb25zLiANCg0KRm9yIGVhY2ggcHJvZmVzc29yLCB3ZSBjb2xsZWN0IHRoZSBmb2xsb3dpbmcgZGF0YToNCg0KLSBQdWJsaWNhdGlvbiwgY2l0YXRpb24sIGFmZmlsaWF0aW9uLCB0b3BpYywgY29uY2VwdCwgYW5kIGdyYW50IGRhdGEgZnJvbSBbT3BlbkFsZXhdKGh0dHBzOi8vb3BlbmFsZXgub3JnLykNCi0gUHJpbnRlZCBuZXdzIGFydGljbGVzIGNvbnRhaW5pbmcgYSBwcm9mZXNzb3JzIGZpcnN0IGFuZCBsYXN0IG5hbWVzIGFuZCBhIHNldCBvZg0Ka2V5d29yZCByZWxhdGVkIHRvIHRoZWlyIGFjYWRlbWljIHJvbGVzIGZyb20gW0xleGlzTmV4aXNdKGh0dHBzOi8vd3d3LmxleGlzbmV4aXMuY29tLykuDQotIE9ubGluZSBuZXdzIG1lbnRpb25zIGFuZCBudW1iZXIgb2YgVHdlZXRzIHBlcnRhaW5pbmcgdG8gdGhlaXIgcHVibGljYXRpb25zIGZyb20gW0FsdG1ldHJpY10oaHR0cHM6Ly93d3cuYWx0bWV0cmljLmNvbS8pDQotIER1dGNoIGdyYW50IGRhdGEgZnJvbSBbTldPXShodHRwczovL3d3dy5ud28ubmwvKSBhbmQgRVJDIGdyYW50IGRhdGEgZnJvbSB0aGUgW0VSQyBkYXRhaHViXShodHRwczovL2VyYy5lYXNtZS13ZWIuZXU/bW9kZT03JmNvdW50cmllcz1OTCk6DQoNCg0KPGJyPg0KDQpCZWZvcmUgYmVnaW5uaW5nLCBtYWtlIHN1cmUgeW91IGluc3RhbGwgdGhlIGdyb3VuZGhvZyBwYWNrYWdlOg0KYGBge3IgZXZhbCA9IEZBTFNFfQ0KaW5zdGFsbC5wYWNrYWdlcygiZ3JvdW5kaG9nIikNCmBgYA0KDQoNCi0tLS0NCg0KDQo6OjoNCjo6OiB7LmNvbHVtbiB3aWR0aD0iODAlIn0NCg0KDQo6OjoNCjo6Ojo6Ojo6Ojo6Ojo6DQoNCg0KDQojIyBDb250ZW50cw0KDQo8YnI+DQoNClVzZSB0aGUgdG9wIG1lbnUgdG8gbmF2aWdhdGUgdGhyb3VnaCB0aGUgY3VycmVudGx5IGZpbmlzaGVkIHNjcmlwdHMsIGluY2x1ZGluZzoNCg0KLSBBbiBpbnRyb2R1Y3Rpb24gdG8gYWNjZXNzaW5nIG91ciBkYXRhYmFzZSB1c2luZyBTUUwNCi0gUHJlcC4gMTogQSBzY3JpcHQgaW5jbHVkaW5nIE9wZW4gQWxleCBhbmQgQWx0bWV0cmljIGRhdGEgZG93bmxvYWQNCi0gUHJlcC4gMjogQSBzY3JpcHQgZm9yIGdlbmRlciBpbmZlcmVuY2UNCi0gUHJlcC4gMzogQSBzY3JpcHQgcGFyc2luZyBncmFudCBkYXRhIHJldHJpZXZlZCBmcm9tIHRoZSBOV08NCi0gUHJlcC4gNDogQSBzY3JpcHQgcGFyc2luZyBkYXRhIHJldHJpZXZlZCBmcm9tIExleGlzTmV4aXMgKG5vIGFjY2VzcyB0byBMZXhpc05leGlzIHJldHJpZXZhbCBjb2RlIGlzIGF2YWlsYWJsZSkNCi0gUHJlcC4gNTogQ29tcGlsYXRpb24gb2YgYSBwYW5lbCBkYXRhc2V0IGZvbGxvd2luZyBwcm9mZXNzb3IncyBjYXJlZXJzIG92ZXIgeWVhcnMNCi0gTWFpbiBhbmFseXNlcw0KLSBTdXBwbC4gMTogRGVzY3JpcHRpdmVzIG9uIG91ciBkYXRhYmFzZSBhbmQgY29tcGFyaXNvbiBvZiBwdWJsaWNhdGlvbiBjb3ZlcmFnZSBiZXR3ZWVuIE9wZW5BbGV4IGFuZCBOQVJDSVMgcHVibGljYXRpb24gZGF0YQ0KLSBTdXBwbC4gMjogRGF0YSBkZXNjcmlwdGl2ZXMgcHJlc2VudGVkIGluIHRoZSBmaXJzdCBzdWJzZWN0aW9uIG9mIHRoZSBPbmxpbmUgU3VwcGxlbWVudA0KLSBTdXBwbC4gMzogQWRkaXRpb25hbCBhbmFseXNlcyBhbmQgcmVncmVzc2lvbiByb2J1c3RuZXNzIGNoZWNrcw0KLSBTdXBwbC4gNDogQWRkaXRpb25hbCBmdW5jdGlvbnMgdXNlZCBpbiBvdGhlciBzY3JpcHRzDQoNCi0tLS0NCg0KDQoNCg0KDQoNCg==</div>
 
 
 

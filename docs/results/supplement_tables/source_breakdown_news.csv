@@ -1,0 +1,21 @@
+general_field,news_type,n_total_m,n_total_w,total_m,total_w,ave_m,ave_w,p_sig,share_m,share_w
+STEM,All printed news,1841,381,117908,14562,64.29,38.22,***,1,1
+STEM,International news,1841,381,22896,1909,12.48,5.01,***,0.19,0.13
+STEM,National news,1841,381,5044,742,2.75,1.95,,0.04,0.05
+STEM,Regional news,1841,381,32753,4881,17.86,12.81,,0.28,0.34
+STEM,Other news,1841,381,57215,7030,31.2,18.45,**,0.49,0.48
+Medicine,All printed news,1283,546,80031,19129,62.92,35.16,***,1,1
+Medicine,International news,1283,546,18887,4313,14.85,7.93,**,0.24,0.23
+Medicine,National news,1283,546,3222,612,2.53,1.12,*,0.04,0.03
+Medicine,Regional news,1283,546,24587,7050,19.33,12.96,**,0.31,0.37
+Medicine,Other news,1283,546,33335,7154,26.21,13.15,***,0.42,0.37
+Social sciences,All printed news,1619,764,163802,49372,101.55,64.71,***,1,1
+Social sciences,International news,1619,764,47608,13770,29.52,18.05,**,0.29,0.28
+Social sciences,National news,1619,764,3504,737,2.17,0.97,***,0.02,0.01
+Social sciences,Regional news,1619,764,79855,25249,49.51,33.09,***,0.49,0.51
+Social sciences,Other news,1619,764,32835,9616,20.36,12.6,***,0.2,0.19
+Arts & Humanities,All printed news,247,110,17718,3194,72.02,29.04,***,1,1
+Arts & Humanities,International news,247,110,5125,628,20.83,5.71,***,0.29,0.2
+Arts & Humanities,National news,247,110,338,43,1.37,0.39,**,0.02,0.01
+Arts & Humanities,Regional news,247,110,9973,1805,40.54,16.41,***,0.56,0.57
+Arts & Humanities,Other news,247,110,2282,718,9.28,6.53,,0.13,0.22

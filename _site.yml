@@ -17,6 +17,9 @@ exclude:
   - "old_panel_datasets"
   - "temp_altm"
   - "Old_scripts"
+  - "results_may"
+  - "Plots_april"
+  - "pending"
 
   
 bibliography: references.bib
@@ -30,23 +33,26 @@ navbar:
       menu:
       - text: "Intro: SQL tutorial"
         href: SQL_tutorial.html
-      - text: "1. Open Alex and Altmetric data download"
+      - text: "Prep. 1: Open Alex and Altmetric data download"
         href: OpenAlex_Altmetric_data_download.html
-      - text: "2. Gender inference"
+      - text: "Prep. 2: Gender inference"
         href: Gender_inference.html
-      - text: "3. Grant parsing"
+      - text: "Prep. 3: Grant parsing"
         href: Grant_parsing.html
-      - text: "4. Lexis data parser"
+      - text: "Prep. 4: Lexis data parser"
         href: Lexis_nexis_parser.html
-      - text: "5. Mention URL extraction"
-        href: Mention_url_extraction.html
-      - text: "5. Database description and coverage"
-        href: Data_descriptives.html
-      - text: "6. Panel data compilation"
+      - text: "Prep. 5: Panel data compilation"
         href: Panel_data_compilation.html
-      - text: "7. Various analyses"
-        href: analyses.html
-
+      - text: "Main analyses"
+        href: Analyses_main.html
+      - text: "Supplement 1: Database description and coverage"
+        href: Supplement_data_information.html    
+      - text: "Supplement 2: NARCIS and OA database comparison"
+        href: Data_coverage.html
+      - text: "Supplement 3: Additional analyses and robustness checks"
+        href: Analyses_supplemental.html
+      - text: "Supplement 4: Additional resources and functions"
+        href: News_classification_other_functions.html
 
   right:
   - icon: fab fa-github
