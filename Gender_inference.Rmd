@@ -16,23 +16,25 @@ Therefore, we can assume that, in many cases, professors could have adjusted the
 name in the database from their name given at birth to the "roepnaam" that best reflected
 their gender identity. We, then, base our inference on this entry.
 
-Load the libraries that we need:
-```{r warning = F, message = F, eval = T, echo = F, results = 'hide'}
-# load the helper function file
-source("helper_functions.R")
-packages_to_load <- c("readr", "dplyr", "jsonlite",
-                      "stringr", "ggplot2", "RPostgres", 
-                      "digest","DBI", "RODBC", "odbc", "knitr")
-
-fpackage_check(packages_to_load)
-
-# For full reproducibility, load the packages with groundhog using the code below instead
-# of the fpackage_check function
-
-# library(groundhog)
-# groundhog.library(packages_to_load, date = "2023-12-01")
+```{r include = F}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
 ```
 
+Load the libraries that we need:
+```{r warning = F, message = F, eval = T}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "jsonlite",
+                      "stringr", "ggplot2", "RPostgres", 
+                      "digest","DBI", "RODBC", "odbc")
+groundhog.library(packages_to_load, date = "2023-12-01")
+# load the helper function file
+source("helper_functions.R")
+```
+
+<<<<<<< HEAD
 ```{r include = F}
 opts_chunk$set(echo = TRUE)
 opts_chunk$set(eval = FALSE)
@@ -58,6 +60,8 @@ con <- dbConnect(Postgres(),
 con # Checks connection is working
 ```
 
+=======
+>>>>>>> parent of 00d84a7 (code update)
 # Professors
 ## Tidy up professor data from NARCIS
 
@@ -298,19 +302,17 @@ predictions_combined$agreement <- ifelse(is.na(predictions_combined$gender_voorn
 table(predictions_combined$agreement)
 ```
 
-There is only 38 instances of disagreement, and 211 missing instances. 
+There is only 38 instances of disagreement, and 212 missing instances. 
 For the missing instances, choose the one that is present. For the missing ones or
 disagreements, resolve manually:
 ```{r}
 predictions_combined$final_decision <- ifelse(predictions_combined$agreement == "yes",
                                               predictions_combined$gender_voornamenbank,
-                                              ifelse(is.na(predictions_combined$gender_voornamenbank) & is.na(predictions_combined$gender_genderize),
-                                                     "none",
-                                                     ifelse(is.na(predictions_combined$gender_genderize),
-                                                            predictions_combined$gender_voornamenbank,
-                                                            ifelse(is.na(predictions_combined$gender_voornamenbank),
-                                                                   predictions_combined$gender_genderize, 
-                                                                   "disagreement"))))
+                                              ifelse(is.na(predictions_combined$gender_genderize),
+                                                     predictions_combined$gender_voornamenbank,
+                                                     ifelse(is.na(predictions_combined$gender_voornamenbank),
+                                                            predictions_combined$gender_genderize, 
+                                                            ifelse(is.na(predictions_combined$gender_voornamenbank) & is.na(predictions_combined$gender_genderize),"missing", "missing"))))
 
 predictions_combined$final_decision <- ifelse(is.na(predictions_combined$final_decision), "missing", predictions_combined$final_decision)
 
@@ -327,7 +329,7 @@ profs_full_gender <- merge(profs_full,
 
 # get the missing ones
 profs_full_gender_missing <- filter(profs_full_gender,
-                                    inferred_gender %in% c("none", "disagreement")| is.na(inferred_gender))
+                                    inferred_gender == "missing"| is.na(inferred_gender))
 ```
 
 For the people with missing names, manually double check (e.g., Jose can be a woman's or a man's
@@ -410,7 +412,7 @@ profs_full_gender_missing <- profs_full_gender_missing[colnames(profs_full_gende
 Combine the full prof list again:
 ```{r}
 profs_full_gender <- filter(profs_full_gender,
-                            inferred_gender %in% c("m", "w"))
+                            inferred_gender != "missing")
 
 profs_full_gender <- rbind(profs_full_gender,
                            profs_full_gender_missing)
@@ -432,7 +434,7 @@ profs_full_gender <- dbReadTable(con, "gender_table")
 Proportions:
 
 ```{r}
-round(prop.table(table(profs_full_gender$inferred_gender))*100)
+round(prop.table(table(profs_full_gender$inferred_gender))*100,)
 ```
 
 Plot the proportions:
@@ -452,6 +454,26 @@ ggplot(profs_full_gender, aes(format(inferred_gender))) +
 
 # Coauthors
 
+<<<<<<< HEAD
+=======
+Connect to the postgres database.
+Use own credentials.
+```{r}
+port <- 
+user <- ""
+password <- ""
+database_name <- ""
+
+con <- RPostgres::dbConnect(RPostgres::Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+
+con # Checks connection is working
+```
+
+>>>>>>> parent of 00d84a7 (code update)
 Retrieve the full list of coauthor names from the database:
 ```{r}
 coauthor_names <- dbReadTable(con, "oa_coauthor_name_list")

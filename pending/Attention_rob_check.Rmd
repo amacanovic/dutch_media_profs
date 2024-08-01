@@ -1,0 +1,333 @@
+---
+title: "Untitled"
+author: "Ana Macanovic"
+date: "2024-06-12"
+output: html_document
+---
+
+Robustness check for attention correlation in Altmetric online attention counts.
+
+Comparison on a random sample of a 100 professors in our dataset.
+
+Load the necessary packages:
+```{r message=  F, warning = F, eval = T}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "knitr",
+                      "ggplot2", "stringr", "tidyr",
+                      "jsonlite", "xml2", "tidyverse",
+                      "RPostgres", "lubridate","digest",
+                      "DBI", "RODBC", "odbc")
+groundhog.library(packages_to_load, date = "2023-12-01")
+
+# we've also added our email to the "polite pool" of OpenAlex by
+# adding a line in the .Rprofile
+# keep openalexR updated to the most recent version for API compatibility!
+library("openalexR")
+# load the helper function file
+source("helper_functions.R")
+```
+
+```{r include=FALSE}
+opts_chunk$set(echo = TRUE)
+opts_chunk$set(eval = FALSE)
+opts_chunk$set(warning = FALSE)
+opts_chunk$set(message = FALSE)
+```
+
+Connect to the databset:
+```{r eval = TRUE}
+port <- 5432
+user <- "postgres"
+password <- "dutchmediaprofssql"
+database_name <- "postgres"
+
+con <- dbConnect(Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+
+con # Checks connection is working
+```
+
+This script was run on 24/6/2024.
+
+# Professor checks
+
+
+Retrieve OA IDs of professors in our data and sample 50 professors for our 
+robustness check:
+```{r eval = TRUE}
+professor_oa_ids <- dbReadTable(con, "oa_id_mapping")
+# retrieve the ORCID table
+prof_orcids <- dbReadTable(conn = con, "orcid_mapping")
+
+# get unique IDs and sample a 100
+profile_ids <- professor_oa_ids %>%
+  distinct(profile_id, .keep_all = TRUE)
+
+set.seed(123)
+profile_ids_sample <- sample_n(profile_ids, 50)
+```
+
+For these professors, get the OA IDs of their coauthors:
+```{r eval = TRUE}
+profile_id_list <- paste0("(", paste(paste0("'", profile_ids_sample$profile_id, "'"), collapse = ","), ")")
+coauthor_query <- paste("select * from oa_coauthor_info where \"profile_id\" in", profile_id_list)
+
+coauthor_info <- dbGetQuery(conn = con, coauthor_query)
+
+# unique coauthor IDs
+coauthor_info_filter <- coauthor_info %>%
+  distinct(au_id, .keep_all = TRUE)
+```
+
+Leave those professors and coauthors with an ORCID and get the list of their
+OA IDs:
+```{r eval = TRUE}
+profile_ids_sample <- merge(profile_ids_sample,
+                            prof_orcids,
+                            all.x= TRUE,
+                            by = "profile_id")
+
+profile_ids_sample <- filter(profile_ids_sample, !is.na(ORCID))
+
+coauthor_info_filter <- filter(coauthor_info_filter,
+                               !is.na(au_orcid))
+
+oa_ids_combi <- c(profile_ids_sample$oa_id, coauthor_info_filter$au_id)
+
+orcid_ids_combi <- c(profile_ids_sample$ORCID, coauthor_info_filter$au_orcid)
+```
+
+Now, get the DOIs of these professors and their coauthors:
+```{r}
+prof_coa_works <- data.frame(matrix(NA, nrow = 0, ncol = 3))
+# fetch publications from OA
+for (i in 1:length(oa_ids_combi)){
+  works <- NA
+  id <- oa_ids_combi[i]
+  # get all their works
+  try(works <- oa_fetch(
+    entity = "works", 
+    author.id = id,
+    options = list(select = c("doi", "id"))))
+  
+  if(!all(is.na(works))){
+    
+    works$au_id <- id
+    
+    prof_coa_works <- rbind(prof_coa_works,
+                            works)
+  }
+  print(i)
+}
+```
+
+Fill in the Altmetric keys:
+```{r}
+# api key for the Details API
+altmetric_details_api_key <- ''
+
+# get the Altmetric Explorer API api keys (fill in own)
+api_secret <- ''
+api_key <- ''
+```
+
+## Per DOI:
+
+```{r, echo=FALSE, message= FALSE, warning = F, eval = TRUE}
+prof_coa_works <- read_csv("processed_data/prof_coa_works_check_all.csv")
+
+```
+
+Retrieve Altmetric mentions per publication and write this into our database:
+```{r}
+# get a unique list of publications to fetch mentions for
+doi_list <- filter(prof_coa_works, !is.na(doi))%>%
+  distinct(doi, .keep_all = TRUE)
+
+# loop through the dois
+for(i in 1:nrow(doi_list)){
+  doi <- doi_list[i,]
+  
+  altmetric_mention_retriever_rob(api_key = altmetric_details_api_key,
+                                  doi = doi,
+                                  include_twitter = FALSE)
+  
+  print(paste("done with", i, "out of", nrow(doi_list)))
+}
+
+# these mentions are written into the database "rob_altmetric_pub_att_news"
+```
+
+Summarise the mentions per year:
+```{r eval = TRUE}
+# load in the mentions
+doi_altmetrics_news <- dbReadTable(con, "rob_altmetric_pub_att_news")
+doi_altmetrics_blogs <- dbReadTable(con, "rob_altmetric_pub_att_blogs")
+
+# get the year extracted from the posted date
+doi_altmetrics_news$year <- year(ymd_hms(doi_altmetrics_news$posted_on))
+doi_altmetrics_blogs$year <- year(ymd_hms(doi_altmetrics_blogs$posted_on))
+
+# group the mentions per year and work ID
+doi_yearly_news <- doi_altmetrics_news %>%
+  group_by(id, year)%>%
+  summarise(count = n())
+doi_yearly_news$type <- "online_news"
+
+doi_yearly_blogs <- doi_altmetrics_blogs %>%
+  group_by(id, year)%>%
+  summarise(count = n())
+doi_yearly_blogs$type <- "blog"
+
+# combine the two sources
+doi_yearly_combi <- rbind(doi_yearly_news,
+                          doi_yearly_blogs)
+
+# now, match the work ids with author IDs
+doi_yearly_combi_match <- merge(doi_yearly_combi,
+                                prof_coa_works[c("id", "au_id")],
+                                by = "id",
+                                all.x = TRUE)
+
+# and get yearly attention per AU ID, excluding 2024
+doi_yearly_au <- doi_yearly_combi_match %>%
+  filter(year < 2024)%>%
+  group_by(au_id, year, type)%>%
+  summarise(count_doi = sum(count))
+```
+
+## Attention per AU ID
+
+Now, extract attention per individual ORCID:
+```{r}
+orcid_altmetrics_list <- data.frame(matrix(NA, nrow = 0, ncol = 4))
+
+for (i in 1:length(orcid_ids_combi)){
+  # not sure this is correct!
+  orcid <- str_remove(orcid_ids_combi[i], "https://orcid.org/")
+  orcid_altmetrics <- NA
+  # query the info
+  try(orcid_altmetrics <- altmetric_api_orcid_caller(orcid = orcid,
+                                                     api_secret = api_secret,
+                                                     api_key = api_key,
+                                                     endpoint = "attention"))
+  
+  # if any data, unnest twice to unravel the info
+  if (!all(is.na(orcid_altmetrics))){
+    orcid_altmetrics <- orcid_altmetrics %>% distinct(id, .keep_all = TRUE)
+    orcid_altmetrics <- unnest(orcid_altmetrics, cols = c("meta"))
+    orcid_altmetrics <- unnest(orcid_altmetrics, cols = c("dates"))
+    # now, extract the year and group mentions by year
+    orcid_altmetrics$year <- year(ymd(orcid_altmetrics$date))
+    orcid_altmetrics_year <- orcid_altmetrics %>%
+      group_by(id, year)%>%
+      summarise(yearly_count = sum(count))
+    # tidy up the column names
+    colnames(orcid_altmetrics_year)[1] <- c("mention_type")
+    # add in the coauthor OA ID
+    orcid_altmetrics_year$orcid <- orcid
+    
+    # only leave in "msm" (mainstream media) and "blogs"
+    orcid_altmetrics_year <- filter(orcid_altmetrics_year,
+                                    mention_type %in% c("msm", "blog"))
+    
+    if (nrow(orcid_altmetrics_year)>0){
+      # filter out the duplicates
+      orcid_altmetrics_year <- filter(orcid_altmetrics_year, 
+                                      ! orcid %in% orcid_altmetrics_list$orcid)
+      
+      orcid_altmetrics_list <- rbind(orcid_altmetrics_list,
+                                     orcid_altmetrics_year)
+    }
+  }
+  print(paste("done with", i, "out of", length(orcid_ids_combi)))
+}
+
+```
+
+```{r, echo=FALSE, message= FALSE, warning = F, eval = TRUE}
+orcid_altmetrics_list <- read_csv("processed_data/prof_coa_orcid_altm_check.csv")
+```
+
+Pair up the ORCIDs with au_ids:
+```{r eval = TRUE}
+coa_ids <- coauthor_info_filter[c("au_id", "au_orcid")]
+prof_ids <- profile_ids_sample[c("oa_id", "ORCID")]
+colnames(coa_ids) <- c("au_id", "orcid")
+colnames(prof_ids) <- c("au_id", "orcid")
+
+au_id_orcid <- rbind(prof_ids,
+                     coa_ids)
+
+au_id_orcid$orcid <- str_remove(au_id_orcid$orcid, "https://orcid.org/")
+
+orcid_altmetrics_list_au <- merge(orcid_altmetrics_list,
+                                  au_id_orcid,
+                                  by = "orcid")
+
+colnames(orcid_altmetrics_list_au)[2] <- "type"
+```
+
+And get the yearly counts:
+```{r eval = TRUE}
+orcid_yearly_au <- orcid_altmetrics_list_au %>%
+  filter(year < 2024)
+
+colnames(orcid_yearly_au)[4] <- "count_orcid" 
+
+# rename the type
+orcid_yearly_au$type <- ifelse(orcid_yearly_au$type == "msm", 
+                               "online_news",
+                               orcid_yearly_au$type)
+```
+
+## Combine the two
+
+Combining the two sources:
+```{r eval = TRUE}
+altmetric_combined <- merge(doi_yearly_au,
+                            orcid_yearly_au[, c(2:5)],
+                            by = c("au_id", "year", "type"))
+
+altmetric_combined$more_doi <- ifelse(altmetric_combined$count_doi > altmetric_combined$count_orcid,
+                                      "more doi", 
+                                      ifelse(altmetric_combined$count_doi == altmetric_combined$count_orcid,
+                                             "same",
+                                      "more orcid"))
+# split blogs and news:
+altmetric_combined_news <- filter(altmetric_combined, type == "online_news")
+altmetric_combined_blogs <- filter(altmetric_combined, type != "online_news")
+
+```
+
+Correlation between the two is 0.67 at the source-professor-year level:
+```{r eval = TRUE}
+round(cor(altmetric_combined$count_doi, altmetric_combined$count_orcid), 2)
+```
+Or, 0.65 for online news and 0.71 for online blogs at the professor-year level:
+```{r eval = TRUE}
+round(cor(altmetric_combined_news$count_doi, altmetric_combined_news$count_orcid), 2)
+round(cor(altmetric_combined_blogs$count_doi, altmetric_combined_blogs$count_orcid), 2)
+```
+
+And there are more mentiones we retrieve from DOIs, on average,
+with ORCID coverage being 96%:
+```{r eval = TRUE}
+sum(altmetric_combined$count_doi)
+sum(altmetric_combined$count_orcid)
+
+sum(altmetric_combined$count_orcid)/sum(altmetric_combined$count_doi)*100
+```
+
+In around 52% of professor-year online news attention combinations and around 60% of
+professor-year blog combinations we have the same amount of mentions retrieved
+by using the two methods. In 27% of the combinations, we have more online news mentions
+coming from the DOI method; the difference is more balanced for the online blogs.
+
+```{r eval = TRUE}
+round(prop.table(table(altmetric_combined_news$more_doi)), 3)*100
+round(prop.table(table(altmetric_combined_blogs$more_doi)), 3)*100
+```

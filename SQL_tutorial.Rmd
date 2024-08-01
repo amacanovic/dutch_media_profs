@@ -6,32 +6,11 @@ date: "2024-01-16"
 
 This script explains how to load the database and query it using R.
 
-
-Load the necessary packages:
-```{r message=  F, warning = F, eval = T}
-# load the helper function file
-source("helper_functions.R")
-
-packages_to_load <- c("readr", "dplyr", "openalexR",
-                      "ggplot2", "stringr", "tidyr",
-                      "jsonlite", "xml2", "tidyverse",
-                      "RPostgres", "knitr",
-                      "DBI", "RODBC", "odbc")
-
-fpackage_check(packages_to_load)
-
-# For full reproducibility, load the packages with groundhog using the code below instead
-# of the fpackage_check function
-
-# library(groundhog)
-# groundhog.library(packages_to_load, date = "2023-12-01")
-```
-
 ```{r include=FALSE}
-opts_chunk$set(echo = TRUE)
-opts_chunk$set(eval = FALSE)
-opts_chunk$set(warning = FALSE)
-opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
 ```
 
 
@@ -72,6 +51,17 @@ the only error you get, it's a harmless warning, as the database has been loaded
 You can easily query our professor data from R using the RPostgres package. 
 All of the data is coded by Narcis IDs.
 
+Load the necessary packages:
+```{r message=  F, warning = F, eval = T}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "openalexR",
+                      "ggplot2", "stringr", "tidyr",
+                      "jsonlite", "xml2", "tidyverse",
+                      "RPostgres",
+                      "DBI", "RODBC", "odbc")
+groundhog.library(packages_to_load, date = "2023-12-01")
+```
+
 Connect to the postgres database.
 Use own credentials chosen during the PostgreSQL setup:
 ```{r}
@@ -84,7 +74,7 @@ password <- ""
 # database name
 database_name <- ""
 
-con <- dbConnect(Postgres(),
+con <- RPostgres::dbConnect(RPostgres::Postgres(),
                  dbname= database_name,
                  port = port,
                  user = user, 

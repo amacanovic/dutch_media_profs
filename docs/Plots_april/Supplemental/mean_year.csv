@@ -1,0 +1,5 @@
+field,profs,pubs_total,citations_total,news_total,online_news_total,twitter_total
+STEM,2222,0,7.1e-4,0.00893,0.04188,0.7568
+Social sciences,2383,4e-5,0.01423,0,6.2e-4,0.04203
+Arts & Humanities,357,0.34198,0.46744,4.3e-4,0.51329,0.13016
+Medicine,1829,0,0,4.3e-4,0.41862,0.44272

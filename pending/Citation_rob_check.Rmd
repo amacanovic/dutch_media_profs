@@ -1,0 +1,329 @@
+---
+title: "Untitled"
+author: "Ana Macanovic"
+date: "2024-06-12"
+output: html_document
+---
+
+Robustness check for citation counts in OpenAlex person object vs citations
+in individual publications.
+
+Comparison for professors in our dataset and a random sample of 10k coauthors.
+
+Load the necessary packages:
+```{r message=  F, warning = F, eval = T}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "knitr",
+                      "ggplot2", "stringr", "tidyr",
+                      "jsonlite", "xml2", "tidyverse",
+                      "RPostgres", "lubridate","digest",
+                      "DBI", "RODBC", "odbc", "cowplot")
+groundhog.library(packages_to_load, date = "2023-12-01")
+
+# we've also added our email to the "polite pool" of OpenAlex by
+# adding a line in the .Rprofile
+# keep openalexR updated to the most recent version for API compatibility!
+library("openalexR")
+# load the helper function file
+source("helper_functions.R")
+```
+
+```{r include=FALSE}
+opts_chunk$set(echo = TRUE)
+opts_chunk$set(eval = FALSE)
+opts_chunk$set(warning = FALSE)
+opts_chunk$set(message = FALSE)
+```
+
+Connect to the databset:
+```{r}
+port <- 5432
+user <- "postgres"
+password <- "dutchmediaprofssql"
+database_name <- "postgres"
+
+con <- dbConnect(Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+
+con # Checks connection is working
+```
+
+This script was run on 19/6/2024.
+
+# Professor checks
+
+Retrieve OA IDs of professors in our data.
+
+```{r}
+professor_oa_ids <- dbReadTable(con, "oa_id_mapping")
+```
+
+Loop through OA IDs and retrieve professor objects:
+```{r}
+author_info <- oa_fetch(entity = "author", 
+                          openalex_id = professor_oa_ids$oa_id)
+
+author_info_unravel <- unnest(author_info, cols = c(counts_by_year), names_sep = "_")%>%
+        select(-x_concepts)%>%
+        select(id, works_count:counts_by_year_cited_by_count)
+
+
+# remove duplicates
+author_info_unravel_merge <- author_info_unravel
+author_info_unravel_merge$dupl <- duplicated(author_info_unravel_merge)
+author_info_unravel_merge <- author_info_unravel_merge %>%
+  filter(dupl == FALSE)%>%
+  select(-dupl)
+
+# tidy up the IDs and fix one wrong one
+ids <- professor_oa_ids[,1:2]
+colnames(ids)[2] <- "id"
+ids$remove <- ifelse(ids$profile_id == "https://www.narcis.nl/person/RecordID/PRS1255865" & 
+                       ids$id == "https://openalex.org/A5041383050", 1, 0 )
+
+ids <- ids %>%
+  filter(remove == 0)%>%
+  select(-remove)
+
+# filter out any profs with names that could cause problems in our data
+# because of the duplicates
+narcis_prof_info <- dbReadTable(con, "narcis_prof_info")
+narcis_prof_info$dupl <- duplicated(narcis_prof_info[, 11])
+exclude <- filter(narcis_prof_info, dupl == TRUE)
+exclude <-  filter(narcis_prof_info, full %in% exclude$full)
+
+ids <- filter(ids, !profile_id %in% exclude$profile_id)
+
+author_info_unravel_merge2 <- merge(author_info_unravel_merge,
+                                   ids,
+                                   by = "id")
+```
+
+Compile citation counts:
+```{r}
+professor_counts_aut <- author_info_unravel_merge %>%
+  filter(.,counts_by_year_year < 2024)%>%
+  group_by(id, counts_by_year_year)%>%
+  summarise(count_pubs_auth = sum(counts_by_year_works_count),
+            cited_by_auth = sum(counts_by_year_cited_by_count))%>%
+  arrange(id, counts_by_year_year)
+
+colnames(professor_counts_aut)[2] <- "year" 
+```
+
+Get the citation counts based on publications for 2000 randomly chosen professor IDs.
+```{r}
+professor_counts_pub <- data.frame(matrix(NA, nrow = 0, ncol = 13))
+
+set.seed(123)
+sample_ids <- sample_n(ids, 2000)
+
+# fetch publications from OA
+for (i in 1:length(sample_ids$id)){
+  works <- NA
+  id <- sample_ids$id[i]
+  # get all their works
+  try(works <- oa_fetch(
+    entity = "works", 
+    author.id = id))
+  
+  if(!all(is.na(works))){
+    
+    works_unravel <- NA
+    
+    try(works_unravel <- works %>%
+          select(id, cited_by_count, counts_by_year)%>%
+          unnest(cols = c(counts_by_year), names_sep = "_"))
+    
+    if (!all(is.na(works_unravel)) & "counts_by_year_year" %in% colnames(works_unravel)){
+      works_unravel_1 <- works_unravel%>%
+        #filter(!is.na(counts_by_year_year))%>%
+        group_by(counts_by_year_year)%>%
+        summarise(cited_by = sum(counts_by_year_cited_by_count, na.rm = TRUE))
+      
+      works_unravel_1$counts_by_year_year <- ifelse(is.na(works_unravel_1$counts_by_year_year), 9999, 
+                                                    works_unravel_1$counts_by_year_year)
+      
+      works_unravel_2 <- works %>%
+        filter(publication_year >= 2012)%>%
+        group_by(publication_year)%>%
+        summarise(count_pubs = n())
+      
+      works_unravel_2$publication_year <- ifelse(is.na(works_unravel_2$publication_year), 9999, 
+                                                    works_unravel_2$publication_year)
+      
+      colnames(works_unravel_1)[1] <- "year"
+      colnames(works_unravel_2)[1] <- "year"
+      
+      works_unravel <- merge(works_unravel_1,
+                             works_unravel_2,
+                             by = "year")
+      
+      if (nrow(works_unravel) > 0){
+        
+        works_unravel$id <- id
+        
+        professor_counts_pub <- rbind(professor_counts_pub,
+                                      works_unravel)
+      }
+    }
+  }
+  
+  print(i)
+  
+}
+
+```
+Tidy up:
+```{r}
+professor_counts_pub <- professor_counts_pub[c("id", "year", "count_pubs", "cited_by")]
+colnames(professor_counts_pub)[1:2] <- c("id", "year")
+
+# merge with profile IDs:
+professor_counts_pub_merge <- merge(professor_counts_pub,
+                                    ids,
+                                    by = "id")
+```
+
+Combine the two and save:
+```{r}
+comparison_auth_pub <- merge(professor_counts_pub,
+                             professor_counts_aut,
+                             by = c("id", "year"))
+
+write_csv(comparison_auth_pub, "results/data_robustness/author_work_objects_comparison.csv")
+```
+
+And save overall professor citation counts:
+```{r}
+author_overall_count <- author_info_unravel %>%
+  distinct(id, .keep_all = TRUE)%>%
+  select(id:cited_by_count)
+
+write_csv(author_overall_count, "results/data_robustness/author_total_counts.csv")
+```
+
+## Per ID
+
+```{r, echo=FALSE, message= FALSE, warning = F, eval = TRUE}
+comparison_auth_pub <- read_csv("results/data_robustness/author_work_objects_comparison.csv")
+author_overall_count <- read_csv("results/data_robustness/author_total_counts.csv")
+
+```
+
+
+Compiling coverage per ID:
+```{r eval=TRUE}
+comparison_id <- comparison_auth_pub %>%
+  group_by(id)%>%
+  summarise(count_pubs = sum(count_pubs),
+            count_pubs_auth = sum(count_pubs_auth),
+            cited_by = sum(cited_by),
+            cited_by_auth = sum(cited_by_auth))
+
+comparison_id$coverage_pubs_au_work <- round(comparison_id$count_pubs_auth/comparison_id$count_pubs*100, 0)
+comparison_id$coverage_pubs_work_au <- round(comparison_id$count_pubs/comparison_id$count_pubs_auth*100, 0)
+
+
+comparison_id$coverage_cit_au_work <- round(comparison_id$cited_by_auth/comparison_id$cited_by*100, 0)
+comparison_id$coverage_cit_work_au <- round(comparison_id$cited_by/comparison_id$cited_by_auth*100, 0)
+
+# how many more in author than works?
+comparison_id$citations_excess_au <- comparison_id$cited_by_auth - comparison_id$cited_by
+```
+
+
+Sum of publications:
+```{r eval=TRUE}
+sum(comparison_auth_pub$count_pubs, na.rm = TRUE)
+sum(comparison_auth_pub$count_pubs_auth, na.rm = TRUE)
+```
+```{r eval=TRUE}
+sum(comparison_auth_pub$cited_by, na.rm = TRUE)
+sum(comparison_auth_pub$cited_by_auth, na.rm = TRUE)
+```
+And on average, per OA ID, we have an excess of 2552 citations:
+```{r}
+sum(comparison_auth_pub$cited_by, na.rm = TRUE)/length(unique(comparison_auth_pub$id))
+sum(comparison_auth_pub$cited_by_auth, na.rm = TRUE)/length(unique(comparison_auth_pub$id))
+
+mean(comparison_id$citations_excess_au)
+```
+So, publication coverage seems to be rather good, but we see quite some gaps for citations.
+
+Most of the time, if the count of works coverage matches across the two API endpoints,
+the citations are correct when summed up across works objects, and overestimated when
+summerd up across author objects. When works coverage is mismatched, it's more difficult 
+to say where the problem lies and which object is more accurate.
+
+Below, we see that works objects have a good coverage of publication counts compared
+to the author object when it comes to publication counts, in the final sample of 1728 OA IDs:
+```{r eval=TRUE}
+comparison_id %>%
+  ggplot(aes(x=coverage_pubs_work_au)) + 
+  geom_histogram(binwidth=1)+
+  ylab("OA IDs")+
+  xlab("Coverage works/author (in %)")+
+  theme_minimal_vgrid()+
+  theme(plot.title = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.y = element_text(size = 11),
+        axis.text.x = element_text(size = 10) ,
+        axis.title.x = element_text(size = 11),
+        legend.title=element_text(size=11), 
+        legend.text=element_text(size=10))
+```
+
+But less so when it comes to citation counts, in the final sample of 1728 OA IDs:
+```{r eval=TRUE}
+comparison_id %>%
+  ggplot(aes(x=coverage_cit_work_au)) + 
+  geom_histogram(binwidth=1)+
+  ylab("OA IDs")+
+  xlab("Coverage works/author (in %)")+
+  theme_minimal_vgrid()+
+  theme(plot.title = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.y = element_text(size = 11),
+        axis.text.x = element_text(size = 10) ,
+        axis.title.x = element_text(size = 11),
+        legend.title=element_text(size=11), 
+        legend.text=element_text(size=10))
+```
+This suggests that, if works are counted correctly, the author object is
+"overcounting" citations. 
+
+Check for how many professors in our sample the sum of yearly breakdowns is larger
+than the total citation count in the author object:
+```{r eval=TRUE}
+excess_check <- merge(comparison_id,
+                      author_overall_count,
+                      by = "id")
+
+excess_check$excess_author_citations <- excess_check$cited_by_auth - excess_check$cited_by_count
+
+excess_check$excess_binary <- ifelse(excess_check$excess_author_citations < -0, 1, 0)
+
+round(prop.table(table(excess_check$excess_binary))*100, 0)
+```
+For 66% of professors in this sample, we have a problem with the yearly
+breakdown of citation counts in the author sample. 
+
+What is the correlation between yearly citations from two sources?
+It is still very high at 0.93.
+```{r eval=TRUE}
+cor(comparison_auth_pub$cited_by, comparison_auth_pub$cited_by_auth)
+```
+Overall correlation per ID?
+Even higher, at 0.95.
+```{r eval=TRUE}
+cor(comparison_id$cited_by, comparison_id$cited_by_auth)
+
+```
+So, while individual numbers might be rather high, high correlations 
+suggest that, as long as we do not use author object citations for
+accurate predictions, our estimates should be qualitatively similar to
+those that are obtained when accumulating citations over works objects.

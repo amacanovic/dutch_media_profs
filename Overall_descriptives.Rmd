@@ -1,0 +1,406 @@
+---
+title: "Professor-level descriptives"
+author: "Ana Macanovic"
+date: "2024-02-19"
+---
+
+Get an overview of our dataset at the professor level.
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(cache = FALSE, cache.lazy = FALSE)
+```
+
+Loding the packages, and connecting to the database first. 
+```{r message=  F, warning = F}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "tidyr", "ggpubr",
+                      "ggplot2", "knitr",
+                      "tidyverse", "RPostgres", "lubridate",
+                      "digest", "DBI", "RODBC", "odbc")
+groundhog.library(packages_to_load, date = "2023-12-01")
+
+# load the helper function file
+source("helper_functions.R")
+
+# fill in own credentials
+port <- 5432
+user <- "postgres"
+password <- "dutchmediaprofssql"
+database_name <- "postgres"
+
+con <- RPostgres::dbConnect(RPostgres::Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+
+con # Checks connection is working
+```
+
+# Data preparation
+
+Loading professor profiles.
+```{r message = F, warning = F}
+narcis_prof_info <- dbReadTable(con, "narcis_prof_info")
+```
+
+Then, loading all the publications of professors from "oa_prof_pubs", getting 
+unique publications, and getting professor totals.
+```{r}
+oa_pubs <- dbReadTable(con, "oa_prof_pubs")
+
+oa_distinct_pubs <- oa_pubs%>%
+  distinct(., id, .keep_all = TRUE)%>%
+    select(-counts_by_year_year, -counts_by_year_cited_by_count)
+
+profs_pubs_citations <- oa_distinct_pubs %>%
+  group_by(profile_id)%>%
+  summarise(
+    pubs_total = n(),
+    cited_by_total = sum(cited_by_count)
+  )
+```
+
+Retrieving professors' coauthors from "oa_coauthor_info", getting their unique
+coauthors (at least coauthored once), and getting a total.
+```{r}
+oa_coauthors <- dbReadTable(con, "oa_coauthor_info")
+
+profs_coauthors <- oa_coauthors %>%
+  distinct(., au_id, profile_id, .keep_all = TRUE)%>%
+  group_by(profile_id)%>%
+  summarise(
+    coauthors_total = n())
+```
+
+Finally, get professor news media attention from "altmetric_pub_att_news" table,
+and get the totals.
+```{r}
+altmetric_pub_att_news <- dbReadTable(con, "altmetric_pub_att_news")
+
+altmetric_pub_att_news <- merge(altmetric_pub_att_news,
+                                oa_distinct_pubs, 
+                                by = "id",
+                                all.x = TRUE)
+
+profs_attention <- altmetric_pub_att_news %>%
+  group_by(profile_id)%>%
+  summarise(
+    attention_total = n())
+  
+```
+
+Combine these datasets and merge with professors' inferred gender table ("gender_table"),
+```{r}
+prof_table <- merge(profs_pubs_citations,
+                    profs_coauthors,
+                    by = "profile_id",
+                    all.x = TRUE,
+                    all.y = TRUE)
+
+prof_table <- merge(prof_table,
+                    profs_attention,
+                    by = "profile_id",
+                    all.x = TRUE,
+                    all.y = TRUE)
+
+gender_inference_table <- dbReadTable(con, "gender_table")
+
+prof_table <- merge(prof_table,
+                    gender_inference_table[c("profile_id", "inferred_gender")],
+                    by = "profile_id",
+                    all.x = TRUE,
+                    all.y = TRUE)
+
+
+prof_table <- prof_table %>%
+  replace(is.na(.), 0)
+```
+
+Get some group means to plot mean lines in our histograms, and get separate
+dataframes for men and women for mean testing.
+```{r}
+# get some means for lines in our histograms
+means_prof_table <- prof_table %>%
+  group_by(inferred_gender)%>%
+  summarise(mean_pubs = mean(pubs_total),
+            mean_coauthors = mean(coauthors_total),
+            mean_attention = mean(attention_total))
+
+men_profs <- filter(prof_table, inferred_gender == "m")
+women_profs <- filter(prof_table, inferred_gender == "w")
+```
+
+Get, for each professor, the year of first publication in our dataset,
+filtering out anything older than 50 years and anything published "after" 2024.
+Then, calculate the number of years that have passed since their first publication. 
+```{r}
+# limit to the last 50 years and can't go into the future
+prof_entry <- oa_distinct_pubs %>%
+  filter(publication_year > 1974 & publication_year <= 2024)%>%
+  group_by(profile_id)%>%
+  slice(which.min(publication_year))%>%
+  select(profile_id, publication_year)
+
+colnames(prof_entry)[2] <- "entry"
+
+prof_entry$years_since_entry <- 2024 - prof_entry$entry
+
+prof_table <- merge(prof_table,
+                    prof_entry,
+                    by = "profile_id",
+                    all.x = TRUE)
+```
+
+Assign professors into groups based on the years since their first publication in
+our dataset - in groups of 10 years.
+```{r}
+prof_table$year_group <- cut(prof_table$years_since_entry, c(0, 10, 20, 30, 40, 50))
+prof_table$year_group <- paste("up to", str_remove(str_split_i(prof_table$year_group, ",", 2), "\\]"))
+
+men_profs_year_group <- filter(prof_table, inferred_gender == "m")
+women_profs_year_group <- filter(prof_table, inferred_gender == "w")
+```
+
+And get averages per year group, per gender, to plot the means later.
+```{r warning = F, message= F}
+year_group_stats <- prof_table %>%
+  filter(., !is.na(inferred_gender) & year_group != "up to NA")%>%
+  group_by(year_group, inferred_gender)%>%
+  summarise(
+    n = n(),
+    mean_pubs = mean(pubs_total),
+    mean_coauthors = mean(coauthors_total),
+    mean_attention = mean(attention_total))
+```
+
+# Year-group and gender table
+
+Prepare the data and then manually get the table comparing means of different
+age groups.
+```{r}
+year_group_stats_men <- men_profs_year_group %>%  
+  filter(., !is.na(inferred_gender) & year_group != "up to NA")%>%
+  group_by(year_group)%>%
+  summarise(
+    n = n(),
+    mean_pubs = mean(pubs_total),
+    mean_coauthors = mean(coauthors_total),
+    mean_attention = mean(attention_total))
+
+colnames(year_group_stats_men)[2:5] <- paste0(colnames(year_group_stats_men)[2:5], "_men")
+  
+year_group_stats_women <- women_profs_year_group %>%  
+  filter(., !is.na(inferred_gender) & year_group != "up to NA")%>%
+  group_by(year_group)%>%
+  summarise(
+    n = n(),
+    mean_pubs = mean(pubs_total),
+    mean_coauthors = mean(coauthors_total),
+    mean_attention = mean(attention_total))
+
+colnames(year_group_stats_women)[2:5] <- paste0(colnames(year_group_stats_women)[2:5], "_women")
+
+
+# mean comparisons
+categories <- c("up to 10", "up to 20", "up to 30", "up to 40", "up to 50")
+pub_test <- c()
+pub_stars <- c()
+coauthor_test <- c()
+coauthor_stars <- c()
+news_att_test <- c()
+news_att_stars <- c()
+for(i in 1:length(categories)){
+  cat <- categories[i]
+  
+  pub <- wilcox.test(filter(men_profs_year_group, year_group == cat)$pubs_total, 
+                             filter(women_profs_year_group, year_group == cat)$pubs_total, 
+                             alternative = "two.sided")
+  
+  pub_test[i] <- pub$p.value
+  pub_stars[i] <- ifelse(pub$p.value <= 0.01, 
+                         "***",
+                         ifelse(pub$p.value <= 0.05,
+                                "**",
+                                ifelse(pub$p.value <= 0.1,
+                                "*", "")))
+  
+  coauthor <- wilcox.test(filter(men_profs_year_group, year_group == cat)$coauthors_total, 
+                             filter(women_profs_year_group, year_group == cat)$coauthors_total, 
+                             alternative = "two.sided")
+  
+  coauthor_test[i] <- coauthor$p.value
+  coauthor_stars[i] <- ifelse(coauthor$p.value <= 0.01, 
+                              "***",
+                              ifelse(coauthor$p.value <= 0.05,
+                                     "**",
+                                     ifelse(coauthor$p.value <= 0.1,
+                                     "*", "")))
+  
+  attention <- wilcox.test(filter(men_profs_year_group, year_group == cat)$attention_total, 
+                             filter(women_profs_year_group, year_group == cat)$attention_total, 
+                             alternative = "two.sided")
+  
+  news_att_test[i] <- attention$p.value
+  news_att_stars[i] <- ifelse(attention$p.value <= 0.01, 
+                              "***",
+                              ifelse(attention$p.value <= 0.05,
+                                     "**",
+                                     ifelse(attention$p.value <= 0.1,
+                                     "*", "")))
+  
+  
+  
+}
+
+full_table <- cbind.data.frame("Year group" = year_group_stats_men$year_group,
+                               "N men" = year_group_stats_men$n_men,
+                               "N women" = year_group_stats_women$n_women,
+                               "% women" = year_group_stats_women$n_women / (year_group_stats_women$n_women + year_group_stats_men$n_men)*100,
+                               "Avg. pub. men" = year_group_stats_men$mean_pubs_men,
+                               "Avg. pub. women" = year_group_stats_women$mean_pubs_women,
+                               "p" = pub_test,
+                               "sig" = pub_stars,
+                               "Avg. coauthor men" = year_group_stats_men$mean_coauthors_men,
+                               "Avg. coauthor women" = year_group_stats_women$mean_coauthors_women,
+                               "p coauthor" = coauthor_test,
+                               "sig coauthor" = coauthor_stars,
+                               "Avg. att. men" = year_group_stats_men$mean_attention_men,
+                               "Avg. att. women" = year_group_stats_women$mean_attention_women,
+                               "p attention" = news_att_test,
+                               "sig attention" = news_att_stars)
+
+full_table <- full_table %>%
+  mutate(across(c("% women",
+                  "Avg. pub. men", "Avg. pub. women",
+                  "Avg. coauthor men", "Avg. coauthor women",
+                  "Avg. att. men", "Avg. att. women"), \(x) round(x, 2)))%>%
+  mutate(across(c("p", "p coauthor", "p attention"), \(x) round(x, 3)))
+
+```
+
+```{r fig.width = 12}
+knitr::kable(full_table, caption = "Table 1. Means per year-entry group")
+```
+
+
+# Year-group and gender plots
+
+## Total publications
+
+```{r fig.width= 12, fig.heght = 8, cache = T}
+prof_table %>%
+  filter(year_group != "up to NA")%>%
+ggplot(., aes(x=pubs_total, color=inferred_gender)) +
+  geom_histogram(fill="white", position="dodge", bins = 40)+
+  geom_vline(data=year_group_stats, aes(xintercept=mean_pubs, color=inferred_gender),
+             linetype="dashed")+
+  xlab("Total Publications")+
+  ylab("Count")+
+  labs(color='Inferred gender')+
+  ggtitle("Histograms: publications per years since entry")+
+  facet_wrap(. ~ year_group, nrow = 2)
+```
+
+2. Total coauthors - facet by the N years since first publication:
+
+```{r fig.width= 12, fig.heght = 8, cache = T}
+prof_table %>%
+  filter(year_group != "up to NA")%>%
+ggplot(., aes(x=coauthors_total, color=inferred_gender)) +
+  geom_histogram(fill="white", position="dodge", bins = 40)+
+  geom_vline(data=means_prof_table, aes(xintercept=mean_coauthors, color=inferred_gender),
+             linetype="dashed")+
+  xlab("Total Coauthors")+
+  ylab("Count")+
+  labs(color='Inferred gender')+
+  ggtitle("Histograms: coauthors per years since entry")+
+  facet_wrap(. ~ year_group, nrow = 2)
+```
+3. Total news mentions - facet by the N years since first publication:
+
+```{r fig.width= 12, fig.heght = 8, cache = T, warning = F, message = F}
+prof_table %>%
+  filter(year_group != "up to NA")%>%
+ggplot(., aes(x=attention_total, color=inferred_gender)) +
+  geom_histogram(fill="white", position="dodge", bins = 40)+
+  geom_vline(data=means_prof_table, aes(xintercept=mean_attention, color=inferred_gender),
+             linetype="dashed")+
+  xlim(0,1500)+
+  ylim(0, 600)+
+  xlab("Total Coauthors")+
+  ylab("Count")+
+  labs(color='Inferred gender')+
+  ggtitle("Histograms: news attention per years since entry")+
+  facet_wrap(. ~ year_group, nrow = 2)
+```
+
+
+## Per gender
+
+Histograms of total publications, coauthors, and news attention.
+```{r cache = T, fig.height = 9, fig.width=6}
+p1 <- ggplot(prof_table, aes(x=pubs_total, color=inferred_gender)) +
+  geom_histogram(fill="white", position="dodge", bins = 40)+
+  geom_vline(data=means_prof_table, aes(xintercept=mean_pubs, color=inferred_gender),
+             linetype="dashed")+
+  xlab("Total Publications")+
+  ylab("Count")+
+  labs(color='Inferred gender')+
+  ggtitle("Histograms: publications")
+
+p2 <- ggplot(prof_table, aes(x=coauthors_total, color=inferred_gender)) +
+  geom_histogram(fill="white", position="dodge", bins = 40)+
+  geom_vline(data=means_prof_table, aes(xintercept=mean_coauthors, color=inferred_gender),
+             linetype="dashed")+
+  xlab("Total Coauthors")+
+  ylab("Count")+
+  labs(color='Inferred gender')+
+  ggtitle("Histograms: coauthors")
+
+p3 <- ggplot(prof_table, aes(x=attention_total, color=inferred_gender)) +
+  geom_histogram(fill="white", position="dodge", bins = 40)+
+  geom_vline(data=means_prof_table, aes(xintercept=mean_attention, color=inferred_gender),
+             linetype="dashed")+
+  xlab("Total News Mentions")+
+  ylab("Count")+
+  labs(color='Inferred gender')+
+  ggtitle("Histograms: news attention")
+
+ggarrange(p1, p2, p3, nrow = 3)
+```
+
+Box plots of total publications, coauthors, and news attention.
+```{r cache = T, fig.height = 9, fig.width=6}
+b1 <- ggboxplot(prof_table, x = "inferred_gender", y = "pubs_total", 
+          color = "inferred_gender",
+          ylab = "Average N publications", xlab = "Inferred gender")
+
+b2 <- ggboxplot(prof_table, x = "inferred_gender", y = "coauthors_total", 
+          color = "inferred_gender", 
+          ylab = "Average N Coauthors", xlab = "Inferred gender")
+
+b3 <- ggboxplot(prof_table, x = "inferred_gender", y = "attention_total", 
+          color = "inferred_gender",
+          ylab = "Average N news mentions", xlab = "Inferred gender")
+
+ggarrange(b1, b2, b3, nrow = 3)
+```
+
+
+
+Mean comparisons.
+```{r, cache = T}
+print("total publications")
+wilcox.test(men_profs$pubs_total, women_profs$pubs_total, alternative = "greater")
+
+print("total coauthors")
+wilcox.test(men_profs$coauthors_total, women_profs$coauthors_total, alternative = "greater")
+
+print("total news mentions")
+wilcox.test(men_profs$attention_total, women_profs$attention_total, alternative = "greater")
+```

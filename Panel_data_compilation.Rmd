@@ -8,32 +8,26 @@ output: html_document
 This script compiles our various data resources into a panel data of professors'
 publications, citations, mentions, and coauthorships per year.
 
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
 Load the packages:
 ```{r message=  F, warning = F, eval = T}
-# load the helper function file
-source("helper_functions.R")
+library(groundhog)
 packages_to_load <- c("readr", "dplyr", "tidyr", "PerformanceAnalytics",
                       "tidyverse", "RPostgres", "lubridate", "psych",
                       "digest", "DBI", "RODBC", "odbc", "gridExtra",
-                      "panelr", "skimr", "foreach", "vegan", "knitr",
+                      "panelr", "skimr", "foreach", "vegan",
                       "doParallel")
+groundhog.library(packages_to_load, date = "2023-12-01")
 
-fpackage_check(packages_to_load)
-
-# For full reproducibility, load the packages with groundhog using the code below instead
-# of the fpackage_check function
-
-# library(groundhog)
-# groundhog.library(packages_to_load, date = "2023-12-01")
+# load the helper function file
+source("helper_functions.R")
 ```
-
-```{r include=FALSE}
-opts_chunk$set(echo = TRUE)
-opts_chunk$set(eval = FALSE)
-opts_chunk$set(warning = FALSE)
-opts_chunk$set(message = FALSE)
-```
-
 
 Connect to the database:
 ```{r}
@@ -44,7 +38,7 @@ password <- "dutchmediaprofssql"
 database_name <- "postgres"
 
 
-con <- dbConnect(Postgres(),
+con <- RPostgres::dbConnect(RPostgres::Postgres(),
                  dbname= database_name,
                  port = port,
                  user = user, 

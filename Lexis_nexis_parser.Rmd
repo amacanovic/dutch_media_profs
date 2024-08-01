@@ -3,31 +3,26 @@ title: "Nexis_data_handling"
 author: "Ana Macanovic"
 date: "2023-12-06"
 ---
+This script reads in and parses data from LexisNexis.
 
-This script reads in and parses printed news data from LexisNexis.
 
-
-Load the packages:
-```{r eval = T, echo=FALSE, results='hide', message = F, warning=F}
-source("helper_functions.R")
-packages_to_load <- c("readr", "dplyr", "stringr", "tidyr", "tidyverse",
-                      "RPostgres", "lubridate", "readtext", "knitr",
-                      "DBI", "RODBC", "odbc")
-fpackage_check(packages_to_load)
-
-# For full reproducibility, load the packages with groundhog using the code below instead
-# of the fpackage_check function
-
-# library(groundhog)
-# groundhog.library(packages_to_load, date = "2023-12-01")
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
 ```
 
+Load the packages:
+```{r message=  F, warning = F}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "stringr", "tidyr", "tidyverse",
+                      "RPostgres", "lubridate", "readtext",
+                      "DBI", "RODBC", "odbc")
+groundhog.library(packages_to_load, date = "2023-12-01")
 
-```{r}
-opts_chunk$set(echo = TRUE)
-opts_chunk$set(eval = FALSE)
-opts_chunk$set(warning = FALSE)
-opts_chunk$set(message = FALSE)
+packages_to_load <- c("openalexR")
+groundhog.library(packages_to_load, date = "2024-03-01")
 ```
 
 Load the R package by J. Grubber that conveniently tidies up the LexisNexis data:
@@ -49,7 +44,7 @@ password <- ""
 # database name
 database_name <- ""
 
-con <- dbConnect(Postgres(),
+con <- RPostgres::dbConnect(RPostgres::Postgres(),
                  dbname= database_name,
                  port = port,
                  user = user, 
@@ -113,7 +108,7 @@ meta_data$date_eng <- str_replace(meta_data$date_eng,
                                   "december")
 
 # convert the dates
-meta_data$date_tidy <- parse_date_time(meta_data$date_eng,  c("dmy", "md,y"))
+meta_data$date_tidy <- lubridate::parse_date_time(meta_data$date_eng,  c("dmy", "md,y"))
 
 # get the year
 meta_data$year <- year(meta_data$date_tidy)
@@ -307,9 +302,12 @@ news_mentions_profs <- news_mentions_profs %>%
     select(-string_match_names, -last, -article_lowercase, -string_match_names_lower)
 ```
 
+
 Write this out to our database:
 ```{r}
 dbWriteTable(con, "lexis_nexis_mentions", news_mentions_profs)
+```
+
 ```
 
 

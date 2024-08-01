@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Ana Macanovic" />
+
+<meta name="date" content="2024-02-19" />
+
+<title>Professor-level descriptives</title>
+
+<script src="site_libs/header-attrs-2.25/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<script src="site_libs/navigation-1.1/sourceembed.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.4.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+<style type="text/css">
+#rmd-source-code {
+  display: none;
+}
+</style>
+
+
+<link rel="stylesheet" href="tweaks.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html"></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a>
+    <span class="fa fa-home"></span>
+     
+  </a>
+</li>
+<li>
+  <a href="index.html">Code homepage</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="glyphicon glyphicon glyphicon glyphicon-list"></span>
+     
+    Scripts
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="SQL_tutorial.html">Intro: SQL tutorial</a>
+    </li>
+    <li>
+      <a href="OpenAlex_Altmetric_data_download.html">1. Open Alex and Altmetric data download</a>
+    </li>
+    <li>
+      <a href="Gender_inference.html">2. Gender inference</a>
+    </li>
+    <li>
+      <a href="Grant_parsing.html">3. Grant parsing</a>
+    </li>
+    <li>
+      <a href="Lexis_nexis_parser.html">4. Lexis data parser</a>
+    </li>
+    <li>
+      <a href="Mention_url_extraction.html">5. Mention URL extraction</a>
+    </li>
+    <li>
+      <a href="Data_descriptives.html">5. Database description and coverage</a>
+    </li>
+    <li>
+      <a href="Panel_data_compilation.html">6. Panel data compilation</a>
+    </li>
+    <li>
+      <a href="analyses.html">7. Various analyses</a>
+    </li>
+  </ul>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/amacanovic/dutch_media_profs">
+    <span class="fab fa-github"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+<li role="separator" class="divider"></li>
+<li><a id="rmd-download-source" href="#">Download Rmd</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Professor-level descriptives</h1>
+<h4 class="author">Ana Macanovic</h4>
+<h4 class="date">2024-02-19</h4>
+
+</div>
+
+
+<p>Get an overview of our dataset at the professor level.</p>
+<p>Loding the packages, and connecting to the database first.</p>
+<pre class="r"><code>library(groundhog)
+packages_to_load &lt;- c(&quot;readr&quot;, &quot;dplyr&quot;, &quot;tidyr&quot;, &quot;ggpubr&quot;,
+                      &quot;ggplot2&quot;, &quot;knitr&quot;,
+                      &quot;tidyverse&quot;, &quot;RPostgres&quot;, &quot;lubridate&quot;,
+                      &quot;digest&quot;, &quot;DBI&quot;, &quot;RODBC&quot;, &quot;odbc&quot;)
+groundhog.library(packages_to_load, date = &quot;2023-12-01&quot;)
+
+# load the helper function file
+source(&quot;helper_functions.R&quot;)
+
+# fill in own credentials
+port &lt;- 5432
+user &lt;- &quot;postgres&quot;
+password &lt;- &quot;dutchmediaprofssql&quot;
+database_name &lt;- &quot;postgres&quot;
+
+con &lt;- RPostgres::dbConnect(RPostgres::Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+
+con # Checks connection is working</code></pre>
+<div id="data-preparation" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Data preparation</h1>
+<p>Loading professor profiles.</p>
+<pre class="r"><code>narcis_prof_info &lt;- dbReadTable(con, &quot;narcis_prof_info&quot;)</code></pre>
+<p>Then, loading all the publications of professors from “oa_prof_pubs”,
+getting unique publications, and getting professor totals.</p>
+<pre class="r"><code>oa_pubs &lt;- dbReadTable(con, &quot;oa_prof_pubs&quot;)
+
+oa_distinct_pubs &lt;- oa_pubs%&gt;%
+  distinct(., id, .keep_all = TRUE)%&gt;%
+    select(-counts_by_year_year, -counts_by_year_cited_by_count)
+
+profs_pubs_citations &lt;- oa_distinct_pubs %&gt;%
+  group_by(profile_id)%&gt;%
+  summarise(
+    pubs_total = n(),
+    cited_by_total = sum(cited_by_count)
+  )</code></pre>
+<p>Retrieving professors’ coauthors from “oa_coauthor_info”, getting
+their unique coauthors (at least coauthored once), and getting a
+total.</p>
+<pre class="r"><code>oa_coauthors &lt;- dbReadTable(con, &quot;oa_coauthor_info&quot;)
+
+profs_coauthors &lt;- oa_coauthors %&gt;%
+  distinct(., au_id, profile_id, .keep_all = TRUE)%&gt;%
+  group_by(profile_id)%&gt;%
+  summarise(
+    coauthors_total = n())</code></pre>
+<p>Finally, get professor news media attention from
+“altmetric_pub_att_news” table, and get the totals.</p>
+<pre class="r"><code>altmetric_pub_att_news &lt;- dbReadTable(con, &quot;altmetric_pub_att_news&quot;)
+
+altmetric_pub_att_news &lt;- merge(altmetric_pub_att_news,
+                                oa_distinct_pubs, 
+                                by = &quot;id&quot;,
+                                all.x = TRUE)
+
+profs_attention &lt;- altmetric_pub_att_news %&gt;%
+  group_by(profile_id)%&gt;%
+  summarise(
+    attention_total = n())</code></pre>
+<p>Combine these datasets and merge with professors’ inferred gender
+table (“gender_table”),</p>
+<pre class="r"><code>prof_table &lt;- merge(profs_pubs_citations,
+                    profs_coauthors,
+                    by = &quot;profile_id&quot;,
+                    all.x = TRUE,
+                    all.y = TRUE)
+
+prof_table &lt;- merge(prof_table,
+                    profs_attention,
+                    by = &quot;profile_id&quot;,
+                    all.x = TRUE,
+                    all.y = TRUE)
+
+gender_inference_table &lt;- dbReadTable(con, &quot;gender_table&quot;)
+
+prof_table &lt;- merge(prof_table,
+                    gender_inference_table[c(&quot;profile_id&quot;, &quot;inferred_gender&quot;)],
+                    by = &quot;profile_id&quot;,
+                    all.x = TRUE,
+                    all.y = TRUE)
+
+
+prof_table &lt;- prof_table %&gt;%
+  replace(is.na(.), 0)</code></pre>
+<p>Get some group means to plot mean lines in our histograms, and get
+separate dataframes for men and women for mean testing.</p>
+<pre class="r"><code># get some means for lines in our histograms
+means_prof_table &lt;- prof_table %&gt;%
+  group_by(inferred_gender)%&gt;%
+  summarise(mean_pubs = mean(pubs_total),
+            mean_coauthors = mean(coauthors_total),
+            mean_attention = mean(attention_total))
+
+men_profs &lt;- filter(prof_table, inferred_gender == &quot;m&quot;)
+women_profs &lt;- filter(prof_table, inferred_gender == &quot;w&quot;)</code></pre>
+<p>Get, for each professor, the year of first publication in our
+dataset, filtering out anything older than 50 years and anything
+published “after” 2024. Then, calculate the number of years that have
+passed since their first publication.</p>
+<pre class="r"><code># limit to the last 50 years and can&#39;t go into the future
+prof_entry &lt;- oa_distinct_pubs %&gt;%
+  filter(publication_year &gt; 1974 &amp; publication_year &lt;= 2024)%&gt;%
+  group_by(profile_id)%&gt;%
+  slice(which.min(publication_year))%&gt;%
+  select(profile_id, publication_year)
+
+colnames(prof_entry)[2] &lt;- &quot;entry&quot;
+
+prof_entry$years_since_entry &lt;- 2024 - prof_entry$entry
+
+prof_table &lt;- merge(prof_table,
+                    prof_entry,
+                    by = &quot;profile_id&quot;,
+                    all.x = TRUE)</code></pre>
+<p>Assign professors into groups based on the years since their first
+publication in our dataset - in groups of 10 years.</p>
+<pre class="r"><code>prof_table$year_group &lt;- cut(prof_table$years_since_entry, c(0, 10, 20, 30, 40, 50))
+prof_table$year_group &lt;- paste(&quot;up to&quot;, str_remove(str_split_i(prof_table$year_group, &quot;,&quot;, 2), &quot;\\]&quot;))
+
+men_profs_year_group &lt;- filter(prof_table, inferred_gender == &quot;m&quot;)
+women_profs_year_group &lt;- filter(prof_table, inferred_gender == &quot;w&quot;)</code></pre>
+<p>And get averages per year group, per gender, to plot the means
+later.</p>
+<pre class="r"><code>year_group_stats &lt;- prof_table %&gt;%
+  filter(., !is.na(inferred_gender) &amp; year_group != &quot;up to NA&quot;)%&gt;%
+  group_by(year_group, inferred_gender)%&gt;%
+  summarise(
+    n = n(),
+    mean_pubs = mean(pubs_total),
+    mean_coauthors = mean(coauthors_total),
+    mean_attention = mean(attention_total))</code></pre>
+</div>
+<div id="year-group-and-gender-table" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Year-group and gender
+table</h1>
+<p>Prepare the data and then manually get the table comparing means of
+different age groups.</p>
+<pre class="r"><code>year_group_stats_men &lt;- men_profs_year_group %&gt;%  
+  filter(., !is.na(inferred_gender) &amp; year_group != &quot;up to NA&quot;)%&gt;%
+  group_by(year_group)%&gt;%
+  summarise(
+    n = n(),
+    mean_pubs = mean(pubs_total),
+    mean_coauthors = mean(coauthors_total),
+    mean_attention = mean(attention_total))
+
+colnames(year_group_stats_men)[2:5] &lt;- paste0(colnames(year_group_stats_men)[2:5], &quot;_men&quot;)
+  
+year_group_stats_women &lt;- women_profs_year_group %&gt;%  
+  filter(., !is.na(inferred_gender) &amp; year_group != &quot;up to NA&quot;)%&gt;%
+  group_by(year_group)%&gt;%
+  summarise(
+    n = n(),
+    mean_pubs = mean(pubs_total),
+    mean_coauthors = mean(coauthors_total),
+    mean_attention = mean(attention_total))
+
+colnames(year_group_stats_women)[2:5] &lt;- paste0(colnames(year_group_stats_women)[2:5], &quot;_women&quot;)
+
+
+# mean comparisons
+categories &lt;- c(&quot;up to 10&quot;, &quot;up to 20&quot;, &quot;up to 30&quot;, &quot;up to 40&quot;, &quot;up to 50&quot;)
+pub_test &lt;- c()
+pub_stars &lt;- c()
+coauthor_test &lt;- c()
+coauthor_stars &lt;- c()
+news_att_test &lt;- c()
+news_att_stars &lt;- c()
+for(i in 1:length(categories)){
+  cat &lt;- categories[i]
+  
+  pub &lt;- wilcox.test(filter(men_profs_year_group, year_group == cat)$pubs_total, 
+                             filter(women_profs_year_group, year_group == cat)$pubs_total, 
+                             alternative = &quot;two.sided&quot;)
+  
+  pub_test[i] &lt;- pub$p.value
+  pub_stars[i] &lt;- ifelse(pub$p.value &lt;= 0.01, 
+                         &quot;***&quot;,
+                         ifelse(pub$p.value &lt;= 0.05,
+                                &quot;**&quot;,
+                                ifelse(pub$p.value &lt;= 0.1,
+                                &quot;*&quot;, &quot;&quot;)))
+  
+  coauthor &lt;- wilcox.test(filter(men_profs_year_group, year_group == cat)$coauthors_total, 
+                             filter(women_profs_year_group, year_group == cat)$coauthors_total, 
+                             alternative = &quot;two.sided&quot;)
+  
+  coauthor_test[i] &lt;- coauthor$p.value
+  coauthor_stars[i] &lt;- ifelse(coauthor$p.value &lt;= 0.01, 
+                              &quot;***&quot;,
+                              ifelse(coauthor$p.value &lt;= 0.05,
+                                     &quot;**&quot;,
+                                     ifelse(coauthor$p.value &lt;= 0.1,
+                                     &quot;*&quot;, &quot;&quot;)))
+  
+  attention &lt;- wilcox.test(filter(men_profs_year_group, year_group == cat)$attention_total, 
+                             filter(women_profs_year_group, year_group == cat)$attention_total, 
+                             alternative = &quot;two.sided&quot;)
+  
+  news_att_test[i] &lt;- attention$p.value
+  news_att_stars[i] &lt;- ifelse(attention$p.value &lt;= 0.01, 
+                              &quot;***&quot;,
+                              ifelse(attention$p.value &lt;= 0.05,
+                                     &quot;**&quot;,
+                                     ifelse(attention$p.value &lt;= 0.1,
+                                     &quot;*&quot;, &quot;&quot;)))
+  
+  
+  
+}
+
+full_table &lt;- cbind.data.frame(&quot;Year group&quot; = year_group_stats_men$year_group,
+                               &quot;N men&quot; = year_group_stats_men$n_men,
+                               &quot;N women&quot; = year_group_stats_women$n_women,
+                               &quot;% women&quot; = year_group_stats_women$n_women / (year_group_stats_women$n_women + year_group_stats_men$n_men)*100,
+                               &quot;Avg. pub. men&quot; = year_group_stats_men$mean_pubs_men,
+                               &quot;Avg. pub. women&quot; = year_group_stats_women$mean_pubs_women,
+                               &quot;p&quot; = pub_test,
+                               &quot;sig&quot; = pub_stars,
+                               &quot;Avg. coauthor men&quot; = year_group_stats_men$mean_coauthors_men,
+                               &quot;Avg. coauthor women&quot; = year_group_stats_women$mean_coauthors_women,
+                               &quot;p coauthor&quot; = coauthor_test,
+                               &quot;sig coauthor&quot; = coauthor_stars,
+                               &quot;Avg. att. men&quot; = year_group_stats_men$mean_attention_men,
+                               &quot;Avg. att. women&quot; = year_group_stats_women$mean_attention_women,
+                               &quot;p attention&quot; = news_att_test,
+                               &quot;sig attention&quot; = news_att_stars)
+
+full_table &lt;- full_table %&gt;%
+  mutate(across(c(&quot;% women&quot;,
+                  &quot;Avg. pub. men&quot;, &quot;Avg. pub. women&quot;,
+                  &quot;Avg. coauthor men&quot;, &quot;Avg. coauthor women&quot;,
+                  &quot;Avg. att. men&quot;, &quot;Avg. att. women&quot;), \(x) round(x, 2)))%&gt;%
+  mutate(across(c(&quot;p&quot;, &quot;p coauthor&quot;, &quot;p attention&quot;), \(x) round(x, 3)))</code></pre>
+<pre class="r"><code>knitr::kable(full_table, caption = &quot;Table 1. Means per year-entry group&quot;)</code></pre>
+</div>
+<div id="year-group-and-gender-plots" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Year-group and gender
+plots</h1>
+<div id="total-publications" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Total
+publications</h2>
+<pre class="r"><code>prof_table %&gt;%
+  filter(year_group != &quot;up to NA&quot;)%&gt;%
+ggplot(., aes(x=pubs_total, color=inferred_gender)) +
+  geom_histogram(fill=&quot;white&quot;, position=&quot;dodge&quot;, bins = 40)+
+  geom_vline(data=year_group_stats, aes(xintercept=mean_pubs, color=inferred_gender),
+             linetype=&quot;dashed&quot;)+
+  xlab(&quot;Total Publications&quot;)+
+  ylab(&quot;Count&quot;)+
+  labs(color=&#39;Inferred gender&#39;)+
+  ggtitle(&quot;Histograms: publications per years since entry&quot;)+
+  facet_wrap(. ~ year_group, nrow = 2)</code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>Total coauthors - facet by the N years since first publication:</li>
+</ol>
+<pre class="r"><code>prof_table %&gt;%
+  filter(year_group != &quot;up to NA&quot;)%&gt;%
+ggplot(., aes(x=coauthors_total, color=inferred_gender)) +
+  geom_histogram(fill=&quot;white&quot;, position=&quot;dodge&quot;, bins = 40)+
+  geom_vline(data=means_prof_table, aes(xintercept=mean_coauthors, color=inferred_gender),
+             linetype=&quot;dashed&quot;)+
+  xlab(&quot;Total Coauthors&quot;)+
+  ylab(&quot;Count&quot;)+
+  labs(color=&#39;Inferred gender&#39;)+
+  ggtitle(&quot;Histograms: coauthors per years since entry&quot;)+
+  facet_wrap(. ~ year_group, nrow = 2)</code></pre>
+<ol start="3" style="list-style-type: decimal">
+<li>Total news mentions - facet by the N years since first
+publication:</li>
+</ol>
+<pre class="r"><code>prof_table %&gt;%
+  filter(year_group != &quot;up to NA&quot;)%&gt;%
+ggplot(., aes(x=attention_total, color=inferred_gender)) +
+  geom_histogram(fill=&quot;white&quot;, position=&quot;dodge&quot;, bins = 40)+
+  geom_vline(data=means_prof_table, aes(xintercept=mean_attention, color=inferred_gender),
+             linetype=&quot;dashed&quot;)+
+  xlim(0,1500)+
+  ylim(0, 600)+
+  xlab(&quot;Total Coauthors&quot;)+
+  ylab(&quot;Count&quot;)+
+  labs(color=&#39;Inferred gender&#39;)+
+  ggtitle(&quot;Histograms: news attention per years since entry&quot;)+
+  facet_wrap(. ~ year_group, nrow = 2)</code></pre>
+</div>
+<div id="per-gender" class="section level2" number="3.2">
+<h2><span class="header-section-number">3.2</span> Per gender</h2>
+<p>Histograms of total publications, coauthors, and news attention.</p>
+<pre class="r"><code>p1 &lt;- ggplot(prof_table, aes(x=pubs_total, color=inferred_gender)) +
+  geom_histogram(fill=&quot;white&quot;, position=&quot;dodge&quot;, bins = 40)+
+  geom_vline(data=means_prof_table, aes(xintercept=mean_pubs, color=inferred_gender),
+             linetype=&quot;dashed&quot;)+
+  xlab(&quot;Total Publications&quot;)+
+  ylab(&quot;Count&quot;)+
+  labs(color=&#39;Inferred gender&#39;)+
+  ggtitle(&quot;Histograms: publications&quot;)
+
+p2 &lt;- ggplot(prof_table, aes(x=coauthors_total, color=inferred_gender)) +
+  geom_histogram(fill=&quot;white&quot;, position=&quot;dodge&quot;, bins = 40)+
+  geom_vline(data=means_prof_table, aes(xintercept=mean_coauthors, color=inferred_gender),
+             linetype=&quot;dashed&quot;)+
+  xlab(&quot;Total Coauthors&quot;)+
+  ylab(&quot;Count&quot;)+
+  labs(color=&#39;Inferred gender&#39;)+
+  ggtitle(&quot;Histograms: coauthors&quot;)
+
+p3 &lt;- ggplot(prof_table, aes(x=attention_total, color=inferred_gender)) +
+  geom_histogram(fill=&quot;white&quot;, position=&quot;dodge&quot;, bins = 40)+
+  geom_vline(data=means_prof_table, aes(xintercept=mean_attention, color=inferred_gender),
+             linetype=&quot;dashed&quot;)+
+  xlab(&quot;Total News Mentions&quot;)+
+  ylab(&quot;Count&quot;)+
+  labs(color=&#39;Inferred gender&#39;)+
+  ggtitle(&quot;Histograms: news attention&quot;)
+
+ggarrange(p1, p2, p3, nrow = 3)</code></pre>
+<p>Box plots of total publications, coauthors, and news attention.</p>
+<pre class="r"><code>b1 &lt;- ggboxplot(prof_table, x = &quot;inferred_gender&quot;, y = &quot;pubs_total&quot;, 
+          color = &quot;inferred_gender&quot;,
+          ylab = &quot;Average N publications&quot;, xlab = &quot;Inferred gender&quot;)
+
+b2 &lt;- ggboxplot(prof_table, x = &quot;inferred_gender&quot;, y = &quot;coauthors_total&quot;, 
+          color = &quot;inferred_gender&quot;, 
+          ylab = &quot;Average N Coauthors&quot;, xlab = &quot;Inferred gender&quot;)
+
+b3 &lt;- ggboxplot(prof_table, x = &quot;inferred_gender&quot;, y = &quot;attention_total&quot;, 
+          color = &quot;inferred_gender&quot;,
+          ylab = &quot;Average N news mentions&quot;, xlab = &quot;Inferred gender&quot;)
+
+ggarrange(b1, b2, b3, nrow = 3)</code></pre>
+<p>Mean comparisons.</p>
+<pre class="r"><code>print(&quot;total publications&quot;)
+wilcox.test(men_profs$pubs_total, women_profs$pubs_total, alternative = &quot;greater&quot;)
+
+print(&quot;total coauthors&quot;)
+wilcox.test(men_profs$coauthors_total, women_profs$coauthors_total, alternative = &quot;greater&quot;)
+
+print(&quot;total news mentions&quot;)
+wilcox.test(men_profs$attention_total, women_profs$attention_total, alternative = &quot;greater&quot;)</code></pre>
+</div>
+</div>
+
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIlByb2Zlc3Nvci1sZXZlbCBkZXNjcmlwdGl2ZXMiDQphdXRob3I6ICJBbmEgTWFjYW5vdmljIg0KZGF0ZTogIjIwMjQtMDItMTkiDQotLS0NCg0KR2V0IGFuIG92ZXJ2aWV3IG9mIG91ciBkYXRhc2V0IGF0IHRoZSBwcm9mZXNzb3IgbGV2ZWwuDQoNCmBgYHtyIGluY2x1ZGU9RkFMU0V9DQprbml0cjo6b3B0c19jaHVuayRzZXQoZWNobyA9IFRSVUUpDQprbml0cjo6b3B0c19jaHVuayRzZXQoZXZhbCA9IEZBTFNFKQ0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KHdhcm5pbmcgPSBGQUxTRSkNCmtuaXRyOjpvcHRzX2NodW5rJHNldChtZXNzYWdlID0gRkFMU0UpDQprbml0cjo6b3B0c19jaHVuayRzZXQoY2FjaGUgPSBGQUxTRSwgY2FjaGUubGF6eSA9IEZBTFNFKQ0KYGBgDQoNCkxvZGluZyB0aGUgcGFja2FnZXMsIGFuZCBjb25uZWN0aW5nIHRvIHRoZSBkYXRhYmFzZSBmaXJzdC4gDQpgYGB7ciBtZXNzYWdlPSAgRiwgd2FybmluZyA9IEZ9DQpsaWJyYXJ5KGdyb3VuZGhvZykNCnBhY2thZ2VzX3RvX2xvYWQgPC0gYygicmVhZHIiLCAiZHBseXIiLCAidGlkeXIiLCAiZ2dwdWJyIiwNCiAgICAgICAgICAgICAgICAgICAgICAiZ2dwbG90MiIsICJrbml0ciIsDQogICAgICAgICAgICAgICAgICAgICAgInRpZHl2ZXJzZSIsICJSUG9zdGdyZXMiLCAibHVicmlkYXRlIiwNCiAgICAgICAgICAgICAgICAgICAgICAiZGlnZXN0IiwgIkRCSSIsICJST0RCQyIsICJvZGJjIikNCmdyb3VuZGhvZy5saWJyYXJ5KHBhY2thZ2VzX3RvX2xvYWQsIGRhdGUgPSAiMjAyMy0xMi0wMSIpDQoNCiMgbG9hZCB0aGUgaGVscGVyIGZ1bmN0aW9uIGZpbGUNCnNvdXJjZSgiaGVscGVyX2Z1bmN0aW9ucy5SIikNCg0KIyBmaWxsIGluIG93biBjcmVkZW50aWFscw0KcG9ydCA8LSA1NDMyDQp1c2VyIDwtICJwb3N0Z3JlcyINCnBhc3N3b3JkIDwtICJkdXRjaG1lZGlhcHJvZnNzcWwiDQpkYXRhYmFzZV9uYW1lIDwtICJwb3N0Z3JlcyINCg0KY29uIDwtIFJQb3N0Z3Jlczo6ZGJDb25uZWN0KFJQb3N0Z3Jlczo6UG9zdGdyZXMoKSwNCiAgICAgICAgICAgICAgICAgZGJuYW1lPSBkYXRhYmFzZV9uYW1lLA0KICAgICAgICAgICAgICAgICBwb3J0ID0gcG9ydCwNCiAgICAgICAgICAgICAgICAgdXNlciA9IHVzZXIsIA0KICAgICAgICAgICAgICAgICBwYXNzd29yZCA9IHBhc3N3b3JkKQ0KDQpjb24gIyBDaGVja3MgY29ubmVjdGlvbiBpcyB3b3JraW5nDQpgYGANCg0KIyBEYXRhIHByZXBhcmF0aW9uDQoNCkxvYWRpbmcgcHJvZmVzc29yIHByb2ZpbGVzLg0KYGBge3IgbWVzc2FnZSA9IEYsIHdhcm5pbmcgPSBGfQ0KbmFyY2lzX3Byb2ZfaW5mbyA8LSBkYlJlYWRUYWJsZShjb24sICJuYXJjaXNfcHJvZl9pbmZvIikNCmBgYA0KDQpUaGVuLCBsb2FkaW5nIGFsbCB0aGUgcHVibGljYXRpb25zIG9mIHByb2Zlc3NvcnMgZnJvbSAib2FfcHJvZl9wdWJzIiwgZ2V0dGluZyANCnVuaXF1ZSBwdWJsaWNhdGlvbnMsIGFuZCBnZXR0aW5nIHByb2Zlc3NvciB0b3RhbHMuDQpgYGB7cn0NCm9hX3B1YnMgPC0gZGJSZWFkVGFibGUoY29uLCAib2FfcHJvZl9wdWJzIikNCg0Kb2FfZGlzdGluY3RfcHVicyA8LSBvYV9wdWJzJT4lDQogIGRpc3RpbmN0KC4sIGlkLCAua2VlcF9hbGwgPSBUUlVFKSU+JQ0KICAgIHNlbGVjdCgtY291bnRzX2J5X3llYXJfeWVhciwgLWNvdW50c19ieV95ZWFyX2NpdGVkX2J5X2NvdW50KQ0KDQpwcm9mc19wdWJzX2NpdGF0aW9ucyA8LSBvYV9kaXN0aW5jdF9wdWJzICU+JQ0KICBncm91cF9ieShwcm9maWxlX2lkKSU+JQ0KICBzdW1tYXJpc2UoDQogICAgcHVic190b3RhbCA9IG4oKSwNCiAgICBjaXRlZF9ieV90b3RhbCA9IHN1bShjaXRlZF9ieV9jb3VudCkNCiAgKQ0KYGBgDQoNClJldHJpZXZpbmcgcHJvZmVzc29ycycgY29hdXRob3JzIGZyb20gIm9hX2NvYXV0aG9yX2luZm8iLCBnZXR0aW5nIHRoZWlyIHVuaXF1ZQ0KY29hdXRob3JzIChhdCBsZWFzdCBjb2F1dGhvcmVkIG9uY2UpLCBhbmQgZ2V0dGluZyBhIHRvdGFsLg0KYGBge3J9DQpvYV9jb2F1dGhvcnMgPC0gZGJSZWFkVGFibGUoY29uLCAib2FfY29hdXRob3JfaW5mbyIpDQoNCnByb2ZzX2NvYXV0aG9ycyA8LSBvYV9jb2F1dGhvcnMgJT4lDQogIGRpc3RpbmN0KC4sIGF1X2lkLCBwcm9maWxlX2lkLCAua2VlcF9hbGwgPSBUUlVFKSU+JQ0KICBncm91cF9ieShwcm9maWxlX2lkKSU+JQ0KICBzdW1tYXJpc2UoDQogICAgY29hdXRob3JzX3RvdGFsID0gbigpKQ0KYGBgDQoNCkZpbmFsbHksIGdldCBwcm9mZXNzb3IgbmV3cyBtZWRpYSBhdHRlbnRpb24gZnJvbSAiYWx0bWV0cmljX3B1Yl9hdHRfbmV3cyIgdGFibGUsDQphbmQgZ2V0IHRoZSB0b3RhbHMuDQpgYGB7cn0NCmFsdG1ldHJpY19wdWJfYXR0X25ld3MgPC0gZGJSZWFkVGFibGUoY29uLCAiYWx0bWV0cmljX3B1Yl9hdHRfbmV3cyIpDQoNCmFsdG1ldHJpY19wdWJfYXR0X25ld3MgPC0gbWVyZ2UoYWx0bWV0cmljX3B1Yl9hdHRfbmV3cywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgb2FfZGlzdGluY3RfcHVicywgDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGJ5ID0gImlkIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFKQ0KDQpwcm9mc19hdHRlbnRpb24gPC0gYWx0bWV0cmljX3B1Yl9hdHRfbmV3cyAlPiUNCiAgZ3JvdXBfYnkocHJvZmlsZV9pZCklPiUNCiAgc3VtbWFyaXNlKA0KICAgIGF0dGVudGlvbl90b3RhbCA9IG4oKSkNCiAgDQpgYGANCg0KQ29tYmluZSB0aGVzZSBkYXRhc2V0cyBhbmQgbWVyZ2Ugd2l0aCBwcm9mZXNzb3JzJyBpbmZlcnJlZCBnZW5kZXIgdGFibGUgKCJnZW5kZXJfdGFibGUiKSwNCmBgYHtyfQ0KcHJvZl90YWJsZSA8LSBtZXJnZShwcm9mc19wdWJzX2NpdGF0aW9ucywNCiAgICAgICAgICAgICAgICAgICAgcHJvZnNfY29hdXRob3JzLA0KICAgICAgICAgICAgICAgICAgICBieSA9ICJwcm9maWxlX2lkIiwNCiAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFLA0KICAgICAgICAgICAgICAgICAgICBhbGwueSA9IFRSVUUpDQoNCnByb2ZfdGFibGUgPC0gbWVyZ2UocHJvZl90YWJsZSwNCiAgICAgICAgICAgICAgICAgICAgcHJvZnNfYXR0ZW50aW9uLA0KICAgICAgICAgICAgICAgICAgICBieSA9ICJwcm9maWxlX2lkIiwNCiAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFLA0KICAgICAgICAgICAgICAgICAgICBhbGwueSA9IFRSVUUpDQoNCmdlbmRlcl9pbmZlcmVuY2VfdGFibGUgPC0gZGJSZWFkVGFibGUoY29uLCAiZ2VuZGVyX3RhYmxlIikNCg0KcHJvZl90YWJsZSA8LSBtZXJnZShwcm9mX3RhYmxlLA0KICAgICAgICAgICAgICAgICAgICBnZW5kZXJfaW5mZXJlbmNlX3RhYmxlW2MoInByb2ZpbGVfaWQiLCAiaW5mZXJyZWRfZ2VuZGVyIildLA0KICAgICAgICAgICAgICAgICAgICBieSA9ICJwcm9maWxlX2lkIiwNCiAgICAgICAgICAgICAgICAgICAgYWxsLnggPSBUUlVFLA0KICAgICAgICAgICAgICAgICAgICBhbGwueSA9IFRSVUUpDQoNCg0KcHJvZl90YWJsZSA8LSBwcm9mX3RhYmxlICU+JQ0KICByZXBsYWNlKGlzLm5hKC4pLCAwKQ0KYGBgDQoNCkdldCBzb21lIGdyb3VwIG1lYW5zIHRvIHBsb3QgbWVhbiBsaW5lcyBpbiBvdXIgaGlzdG9ncmFtcywgYW5kIGdldCBzZXBhcmF0ZQ0KZGF0YWZyYW1lcyBmb3IgbWVuIGFuZCB3b21lbiBmb3IgbWVhbiB0ZXN0aW5nLg0KYGBge3J9DQojIGdldCBzb21lIG1lYW5zIGZvciBsaW5lcyBpbiBvdXIgaGlzdG9ncmFtcw0KbWVhbnNfcHJvZl90YWJsZSA8LSBwcm9mX3RhYmxlICU+JQ0KICBncm91cF9ieShpbmZlcnJlZF9nZW5kZXIpJT4lDQogIHN1bW1hcmlzZShtZWFuX3B1YnMgPSBtZWFuKHB1YnNfdG90YWwpLA0KICAgICAgICAgICAgbWVhbl9jb2F1dGhvcnMgPSBtZWFuKGNvYXV0aG9yc190b3RhbCksDQogICAgICAgICAgICBtZWFuX2F0dGVudGlvbiA9IG1lYW4oYXR0ZW50aW9uX3RvdGFsKSkNCg0KbWVuX3Byb2ZzIDwtIGZpbHRlcihwcm9mX3RhYmxlLCBpbmZlcnJlZF9nZW5kZXIgPT0gIm0iKQ0Kd29tZW5fcHJvZnMgPC0gZmlsdGVyKHByb2ZfdGFibGUsIGluZmVycmVkX2dlbmRlciA9PSAidyIpDQpgYGANCg0KR2V0LCBmb3IgZWFjaCBwcm9mZXNzb3IsIHRoZSB5ZWFyIG9mIGZpcnN0IHB1YmxpY2F0aW9uIGluIG91ciBkYXRhc2V0LA0KZmlsdGVyaW5nIG91dCBhbnl0aGluZyBvbGRlciB0aGFuIDUwIHllYXJzIGFuZCBhbnl0aGluZyBwdWJsaXNoZWQgImFmdGVyIiAyMDI0Lg0KVGhlbiwgY2FsY3VsYXRlIHRoZSBudW1iZXIgb2YgeWVhcnMgdGhhdCBoYXZlIHBhc3NlZCBzaW5jZSB0aGVpciBmaXJzdCBwdWJsaWNhdGlvbi4gDQpgYGB7cn0NCiMgbGltaXQgdG8gdGhlIGxhc3QgNTAgeWVhcnMgYW5kIGNhbid0IGdvIGludG8gdGhlIGZ1dHVyZQ0KcHJvZl9lbnRyeSA8LSBvYV9kaXN0aW5jdF9wdWJzICU+JQ0KICBmaWx0ZXIocHVibGljYXRpb25feWVhciA+IDE5NzQgJiBwdWJsaWNhdGlvbl95ZWFyIDw9IDIwMjQpJT4lDQogIGdyb3VwX2J5KHByb2ZpbGVfaWQpJT4lDQogIHNsaWNlKHdoaWNoLm1pbihwdWJsaWNhdGlvbl95ZWFyKSklPiUNCiAgc2VsZWN0KHByb2ZpbGVfaWQsIHB1YmxpY2F0aW9uX3llYXIpDQoNCmNvbG5hbWVzKHByb2ZfZW50cnkpWzJdIDwtICJlbnRyeSINCg0KcHJvZl9lbnRyeSR5ZWFyc19zaW5jZV9lbnRyeSA8LSAyMDI0IC0gcHJvZl9lbnRyeSRlbnRyeQ0KDQpwcm9mX3RhYmxlIDwtIG1lcmdlKHByb2ZfdGFibGUsDQogICAgICAgICAgICAgICAgICAgIHByb2ZfZW50cnksDQogICAgICAgICAgICAgICAgICAgIGJ5ID0gInByb2ZpbGVfaWQiLA0KICAgICAgICAgICAgICAgICAgICBhbGwueCA9IFRSVUUpDQpgYGANCg0KQXNzaWduIHByb2Zlc3NvcnMgaW50byBncm91cHMgYmFzZWQgb24gdGhlIHllYXJzIHNpbmNlIHRoZWlyIGZpcnN0IHB1YmxpY2F0aW9uIGluDQpvdXIgZGF0YXNldCAtIGluIGdyb3VwcyBvZiAxMCB5ZWFycy4NCmBgYHtyfQ0KcHJvZl90YWJsZSR5ZWFyX2dyb3VwIDwtIGN1dChwcm9mX3RhYmxlJHllYXJzX3NpbmNlX2VudHJ5LCBjKDAsIDEwLCAyMCwgMzAsIDQwLCA1MCkpDQpwcm9mX3RhYmxlJHllYXJfZ3JvdXAgPC0gcGFzdGUoInVwIHRvIiwgc3RyX3JlbW92ZShzdHJfc3BsaXRfaShwcm9mX3RhYmxlJHllYXJfZ3JvdXAsICIsIiwgMiksICJcXF0iKSkNCg0KbWVuX3Byb2ZzX3llYXJfZ3JvdXAgPC0gZmlsdGVyKHByb2ZfdGFibGUsIGluZmVycmVkX2dlbmRlciA9PSAibSIpDQp3b21lbl9wcm9mc195ZWFyX2dyb3VwIDwtIGZpbHRlcihwcm9mX3RhYmxlLCBpbmZlcnJlZF9nZW5kZXIgPT0gInciKQ0KYGBgDQoNCkFuZCBnZXQgYXZlcmFnZXMgcGVyIHllYXIgZ3JvdXAsIHBlciBnZW5kZXIsIHRvIHBsb3QgdGhlIG1lYW5zIGxhdGVyLg0KYGBge3Igd2FybmluZyA9IEYsIG1lc3NhZ2U9IEZ9DQp5ZWFyX2dyb3VwX3N0YXRzIDwtIHByb2ZfdGFibGUgJT4lDQogIGZpbHRlciguLCAhaXMubmEoaW5mZXJyZWRfZ2VuZGVyKSAmIHllYXJfZ3JvdXAgIT0gInVwIHRvIE5BIiklPiUNCiAgZ3JvdXBfYnkoeWVhcl9ncm91cCwgaW5mZXJyZWRfZ2VuZGVyKSU+JQ0KICBzdW1tYXJpc2UoDQogICAgbiA9IG4oKSwNCiAgICBtZWFuX3B1YnMgPSBtZWFuKHB1YnNfdG90YWwpLA0KICAgIG1lYW5fY29hdXRob3JzID0gbWVhbihjb2F1dGhvcnNfdG90YWwpLA0KICAgIG1lYW5fYXR0ZW50aW9uID0gbWVhbihhdHRlbnRpb25fdG90YWwpKQ0KYGBgDQoNCiMgWWVhci1ncm91cCBhbmQgZ2VuZGVyIHRhYmxlDQoNClByZXBhcmUgdGhlIGRhdGEgYW5kIHRoZW4gbWFudWFsbHkgZ2V0IHRoZSB0YWJsZSBjb21wYXJpbmcgbWVhbnMgb2YgZGlmZmVyZW50DQphZ2UgZ3JvdXBzLg0KYGBge3J9DQp5ZWFyX2dyb3VwX3N0YXRzX21lbiA8LSBtZW5fcHJvZnNfeWVhcl9ncm91cCAlPiUgIA0KICBmaWx0ZXIoLiwgIWlzLm5hKGluZmVycmVkX2dlbmRlcikgJiB5ZWFyX2dyb3VwICE9ICJ1cCB0byBOQSIpJT4lDQogIGdyb3VwX2J5KHllYXJfZ3JvdXApJT4lDQogIHN1bW1hcmlzZSgNCiAgICBuID0gbigpLA0KICAgIG1lYW5fcHVicyA9IG1lYW4ocHVic190b3RhbCksDQogICAgbWVhbl9jb2F1dGhvcnMgPSBtZWFuKGNvYXV0aG9yc190b3RhbCksDQogICAgbWVhbl9hdHRlbnRpb24gPSBtZWFuKGF0dGVudGlvbl90b3RhbCkpDQoNCmNvbG5hbWVzKHllYXJfZ3JvdXBfc3RhdHNfbWVuKVsyOjVdIDwtIHBhc3RlMChjb2xuYW1lcyh5ZWFyX2dyb3VwX3N0YXRzX21lbilbMjo1XSwgIl9tZW4iKQ0KICANCnllYXJfZ3JvdXBfc3RhdHNfd29tZW4gPC0gd29tZW5fcHJvZnNfeWVhcl9ncm91cCAlPiUgIA0KICBmaWx0ZXIoLiwgIWlzLm5hKGluZmVycmVkX2dlbmRlcikgJiB5ZWFyX2dyb3VwICE9ICJ1cCB0byBOQSIpJT4lDQogIGdyb3VwX2J5KHllYXJfZ3JvdXApJT4lDQogIHN1bW1hcmlzZSgNCiAgICBuID0gbigpLA0KICAgIG1lYW5fcHVicyA9IG1lYW4ocHVic190b3RhbCksDQogICAgbWVhbl9jb2F1dGhvcnMgPSBtZWFuKGNvYXV0aG9yc190b3RhbCksDQogICAgbWVhbl9hdHRlbnRpb24gPSBtZWFuKGF0dGVudGlvbl90b3RhbCkpDQoNCmNvbG5hbWVzKHllYXJfZ3JvdXBfc3RhdHNfd29tZW4pWzI6NV0gPC0gcGFzdGUwKGNvbG5hbWVzKHllYXJfZ3JvdXBfc3RhdHNfd29tZW4pWzI6NV0sICJfd29tZW4iKQ0KDQoNCiMgbWVhbiBjb21wYXJpc29ucw0KY2F0ZWdvcmllcyA8LSBjKCJ1cCB0byAxMCIsICJ1cCB0byAyMCIsICJ1cCB0byAzMCIsICJ1cCB0byA0MCIsICJ1cCB0byA1MCIpDQpwdWJfdGVzdCA8LSBjKCkNCnB1Yl9zdGFycyA8LSBjKCkNCmNvYXV0aG9yX3Rlc3QgPC0gYygpDQpjb2F1dGhvcl9zdGFycyA8LSBjKCkNCm5ld3NfYXR0X3Rlc3QgPC0gYygpDQpuZXdzX2F0dF9zdGFycyA8LSBjKCkNCmZvcihpIGluIDE6bGVuZ3RoKGNhdGVnb3JpZXMpKXsNCiAgY2F0IDwtIGNhdGVnb3JpZXNbaV0NCiAgDQogIHB1YiA8LSB3aWxjb3gudGVzdChmaWx0ZXIobWVuX3Byb2ZzX3llYXJfZ3JvdXAsIHllYXJfZ3JvdXAgPT0gY2F0KSRwdWJzX3RvdGFsLCANCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZmlsdGVyKHdvbWVuX3Byb2ZzX3llYXJfZ3JvdXAsIHllYXJfZ3JvdXAgPT0gY2F0KSRwdWJzX3RvdGFsLCANCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWx0ZXJuYXRpdmUgPSAidHdvLnNpZGVkIikNCiAgDQogIHB1Yl90ZXN0W2ldIDwtIHB1YiRwLnZhbHVlDQogIHB1Yl9zdGFyc1tpXSA8LSBpZmVsc2UocHViJHAudmFsdWUgPD0gMC4wMSwgDQogICAgICAgICAgICAgICAgICAgICAgICAgIioqKiIsDQogICAgICAgICAgICAgICAgICAgICAgICAgaWZlbHNlKHB1YiRwLnZhbHVlIDw9IDAuMDUsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICIqKiIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmZWxzZShwdWIkcC52YWx1ZSA8PSAwLjEsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICIqIiwgIiIpKSkNCiAgDQogIGNvYXV0aG9yIDwtIHdpbGNveC50ZXN0KGZpbHRlcihtZW5fcHJvZnNfeWVhcl9ncm91cCwgeWVhcl9ncm91cCA9PSBjYXQpJGNvYXV0aG9yc190b3RhbCwgDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIGZpbHRlcih3b21lbl9wcm9mc195ZWFyX2dyb3VwLCB5ZWFyX2dyb3VwID09IGNhdCkkY29hdXRob3JzX3RvdGFsLCANCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYWx0ZXJuYXRpdmUgPSAidHdvLnNpZGVkIikNCiAgDQogIGNvYXV0aG9yX3Rlc3RbaV0gPC0gY29hdXRob3IkcC52YWx1ZQ0KICBjb2F1dGhvcl9zdGFyc1tpXSA8LSBpZmVsc2UoY29hdXRob3IkcC52YWx1ZSA8PSAwLjAxLCANCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICIqKioiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaWZlbHNlKGNvYXV0aG9yJHAudmFsdWUgPD0gMC4wNSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiKioiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmZWxzZShjb2F1dGhvciRwLnZhbHVlIDw9IDAuMSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiKiIsICIiKSkpDQogIA0KICBhdHRlbnRpb24gPC0gd2lsY294LnRlc3QoZmlsdGVyKG1lbl9wcm9mc195ZWFyX2dyb3VwLCB5ZWFyX2dyb3VwID09IGNhdCkkYXR0ZW50aW9uX3RvdGFsLCANCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZmlsdGVyKHdvbWVuX3Byb2ZzX3llYXJfZ3JvdXAsIHllYXJfZ3JvdXAgPT0gY2F0KSRhdHRlbnRpb25fdG90YWwsIA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICBhbHRlcm5hdGl2ZSA9ICJ0d28uc2lkZWQiKQ0KICANCiAgbmV3c19hdHRfdGVzdFtpXSA8LSBhdHRlbnRpb24kcC52YWx1ZQ0KICBuZXdzX2F0dF9zdGFyc1tpXSA8LSBpZmVsc2UoYXR0ZW50aW9uJHAudmFsdWUgPD0gMC4wMSwgDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiKioqIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmZWxzZShhdHRlbnRpb24kcC52YWx1ZSA8PSAwLjA1LA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICIqKiIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaWZlbHNlKGF0dGVudGlvbiRwLnZhbHVlIDw9IDAuMSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiKiIsICIiKSkpDQogIA0KICANCiAgDQp9DQoNCmZ1bGxfdGFibGUgPC0gY2JpbmQuZGF0YS5mcmFtZSgiWWVhciBncm91cCIgPSB5ZWFyX2dyb3VwX3N0YXRzX21lbiR5ZWFyX2dyb3VwLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJOIG1lbiIgPSB5ZWFyX2dyb3VwX3N0YXRzX21lbiRuX21lbiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiTiB3b21lbiIgPSB5ZWFyX2dyb3VwX3N0YXRzX3dvbWVuJG5fd29tZW4sDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIiUgd29tZW4iID0geWVhcl9ncm91cF9zdGF0c193b21lbiRuX3dvbWVuIC8gKHllYXJfZ3JvdXBfc3RhdHNfd29tZW4kbl93b21lbiArIHllYXJfZ3JvdXBfc3RhdHNfbWVuJG5fbWVuKSoxMDAsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIkF2Zy4gcHViLiBtZW4iID0geWVhcl9ncm91cF9zdGF0c19tZW4kbWVhbl9wdWJzX21lbiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiQXZnLiBwdWIuIHdvbWVuIiA9IHllYXJfZ3JvdXBfc3RhdHNfd29tZW4kbWVhbl9wdWJzX3dvbWVuLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJwIiA9IHB1Yl90ZXN0LA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJzaWciID0gcHViX3N0YXJzLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJBdmcuIGNvYXV0aG9yIG1lbiIgPSB5ZWFyX2dyb3VwX3N0YXRzX21lbiRtZWFuX2NvYXV0aG9yc19tZW4sDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIkF2Zy4gY29hdXRob3Igd29tZW4iID0geWVhcl9ncm91cF9zdGF0c193b21lbiRtZWFuX2NvYXV0aG9yc193b21lbiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAicCBjb2F1dGhvciIgPSBjb2F1dGhvcl90ZXN0LA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJzaWcgY29hdXRob3IiID0gY29hdXRob3Jfc3RhcnMsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIkF2Zy4gYXR0LiBtZW4iID0geWVhcl9ncm91cF9zdGF0c19tZW4kbWVhbl9hdHRlbnRpb25fbWVuLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJBdmcuIGF0dC4gd29tZW4iID0geWVhcl9ncm91cF9zdGF0c193b21lbiRtZWFuX2F0dGVudGlvbl93b21lbiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAicCBhdHRlbnRpb24iID0gbmV3c19hdHRfdGVzdCwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAic2lnIGF0dGVudGlvbiIgPSBuZXdzX2F0dF9zdGFycykNCg0KZnVsbF90YWJsZSA8LSBmdWxsX3RhYmxlICU+JQ0KICBtdXRhdGUoYWNyb3NzKGMoIiUgd29tZW4iLA0KICAgICAgICAgICAgICAgICAgIkF2Zy4gcHViLiBtZW4iLCAiQXZnLiBwdWIuIHdvbWVuIiwNCiAgICAgICAgICAgICAgICAgICJBdmcuIGNvYXV0aG9yIG1lbiIsICJBdmcuIGNvYXV0aG9yIHdvbWVuIiwNCiAgICAgICAgICAgICAgICAgICJBdmcuIGF0dC4gbWVuIiwgIkF2Zy4gYXR0LiB3b21lbiIpLCBcKHgpIHJvdW5kKHgsIDIpKSklPiUNCiAgbXV0YXRlKGFjcm9zcyhjKCJwIiwgInAgY29hdXRob3IiLCAicCBhdHRlbnRpb24iKSwgXCh4KSByb3VuZCh4LCAzKSkpDQoNCmBgYA0KDQpgYGB7ciBmaWcud2lkdGggPSAxMn0NCmtuaXRyOjprYWJsZShmdWxsX3RhYmxlLCBjYXB0aW9uID0gIlRhYmxlIDEuIE1lYW5zIHBlciB5ZWFyLWVudHJ5IGdyb3VwIikNCmBgYA0KDQoNCiMgWWVhci1ncm91cCBhbmQgZ2VuZGVyIHBsb3RzDQoNCiMjIFRvdGFsIHB1YmxpY2F0aW9ucw0KDQpgYGB7ciBmaWcud2lkdGg9IDEyLCBmaWcuaGVnaHQgPSA4LCBjYWNoZSA9IFR9DQpwcm9mX3RhYmxlICU+JQ0KICBmaWx0ZXIoeWVhcl9ncm91cCAhPSAidXAgdG8gTkEiKSU+JQ0KZ2dwbG90KC4sIGFlcyh4PXB1YnNfdG90YWwsIGNvbG9yPWluZmVycmVkX2dlbmRlcikpICsNCiAgZ2VvbV9oaXN0b2dyYW0oZmlsbD0id2hpdGUiLCBwb3NpdGlvbj0iZG9kZ2UiLCBiaW5zID0gNDApKw0KICBnZW9tX3ZsaW5lKGRhdGE9eWVhcl9ncm91cF9zdGF0cywgYWVzKHhpbnRlcmNlcHQ9bWVhbl9wdWJzLCBjb2xvcj1pbmZlcnJlZF9nZW5kZXIpLA0KICAgICAgICAgICAgIGxpbmV0eXBlPSJkYXNoZWQiKSsNCiAgeGxhYigiVG90YWwgUHVibGljYXRpb25zIikrDQogIHlsYWIoIkNvdW50IikrDQogIGxhYnMoY29sb3I9J0luZmVycmVkIGdlbmRlcicpKw0KICBnZ3RpdGxlKCJIaXN0b2dyYW1zOiBwdWJsaWNhdGlvbnMgcGVyIHllYXJzIHNpbmNlIGVudHJ5IikrDQogIGZhY2V0X3dyYXAoLiB+IHllYXJfZ3JvdXAsIG5yb3cgPSAyKQ0KYGBgDQoNCjIuIFRvdGFsIGNvYXV0aG9ycyAtIGZhY2V0IGJ5IHRoZSBOIHllYXJzIHNpbmNlIGZpcnN0IHB1YmxpY2F0aW9uOg0KDQpgYGB7ciBmaWcud2lkdGg9IDEyLCBmaWcuaGVnaHQgPSA4LCBjYWNoZSA9IFR9DQpwcm9mX3RhYmxlICU+JQ0KICBmaWx0ZXIoeWVhcl9ncm91cCAhPSAidXAgdG8gTkEiKSU+JQ0KZ2dwbG90KC4sIGFlcyh4PWNvYXV0aG9yc190b3RhbCwgY29sb3I9aW5mZXJyZWRfZ2VuZGVyKSkgKw0KICBnZW9tX2hpc3RvZ3JhbShmaWxsPSJ3aGl0ZSIsIHBvc2l0aW9uPSJkb2RnZSIsIGJpbnMgPSA0MCkrDQogIGdlb21fdmxpbmUoZGF0YT1tZWFuc19wcm9mX3RhYmxlLCBhZXMoeGludGVyY2VwdD1tZWFuX2NvYXV0aG9ycywgY29sb3I9aW5mZXJyZWRfZ2VuZGVyKSwNCiAgICAgICAgICAgICBsaW5ldHlwZT0iZGFzaGVkIikrDQogIHhsYWIoIlRvdGFsIENvYXV0aG9ycyIpKw0KICB5bGFiKCJDb3VudCIpKw0KICBsYWJzKGNvbG9yPSdJbmZlcnJlZCBnZW5kZXInKSsNCiAgZ2d0aXRsZSgiSGlzdG9ncmFtczogY29hdXRob3JzIHBlciB5ZWFycyBzaW5jZSBlbnRyeSIpKw0KICBmYWNldF93cmFwKC4gfiB5ZWFyX2dyb3VwLCBucm93ID0gMikNCmBgYA0KMy4gVG90YWwgbmV3cyBtZW50aW9ucyAtIGZhY2V0IGJ5IHRoZSBOIHllYXJzIHNpbmNlIGZpcnN0IHB1YmxpY2F0aW9uOg0KDQpgYGB7ciBmaWcud2lkdGg9IDEyLCBmaWcuaGVnaHQgPSA4LCBjYWNoZSA9IFQsIHdhcm5pbmcgPSBGLCBtZXNzYWdlID0gRn0NCnByb2ZfdGFibGUgJT4lDQogIGZpbHRlcih5ZWFyX2dyb3VwICE9ICJ1cCB0byBOQSIpJT4lDQpnZ3Bsb3QoLiwgYWVzKHg9YXR0ZW50aW9uX3RvdGFsLCBjb2xvcj1pbmZlcnJlZF9nZW5kZXIpKSArDQogIGdlb21faGlzdG9ncmFtKGZpbGw9IndoaXRlIiwgcG9zaXRpb249ImRvZGdlIiwgYmlucyA9IDQwKSsNCiAgZ2VvbV92bGluZShkYXRhPW1lYW5zX3Byb2ZfdGFibGUsIGFlcyh4aW50ZXJjZXB0PW1lYW5fYXR0ZW50aW9uLCBjb2xvcj1pbmZlcnJlZF9nZW5kZXIpLA0KICAgICAgICAgICAgIGxpbmV0eXBlPSJkYXNoZWQiKSsNCiAgeGxpbSgwLDE1MDApKw0KICB5bGltKDAsIDYwMCkrDQogIHhsYWIoIlRvdGFsIENvYXV0aG9ycyIpKw0KICB5bGFiKCJDb3VudCIpKw0KICBsYWJzKGNvbG9yPSdJbmZlcnJlZCBnZW5kZXInKSsNCiAgZ2d0aXRsZSgiSGlzdG9ncmFtczogbmV3cyBhdHRlbnRpb24gcGVyIHllYXJzIHNpbmNlIGVudHJ5IikrDQogIGZhY2V0X3dyYXAoLiB+IHllYXJfZ3JvdXAsIG5yb3cgPSAyKQ0KYGBgDQoNCg0KIyMgUGVyIGdlbmRlcg0KDQpIaXN0b2dyYW1zIG9mIHRvdGFsIHB1YmxpY2F0aW9ucywgY29hdXRob3JzLCBhbmQgbmV3cyBhdHRlbnRpb24uDQpgYGB7ciBjYWNoZSA9IFQsIGZpZy5oZWlnaHQgPSA5LCBmaWcud2lkdGg9Nn0NCnAxIDwtIGdncGxvdChwcm9mX3RhYmxlLCBhZXMoeD1wdWJzX3RvdGFsLCBjb2xvcj1pbmZlcnJlZF9nZW5kZXIpKSArDQogIGdlb21faGlzdG9ncmFtKGZpbGw9IndoaXRlIiwgcG9zaXRpb249ImRvZGdlIiwgYmlucyA9IDQwKSsNCiAgZ2VvbV92bGluZShkYXRhPW1lYW5zX3Byb2ZfdGFibGUsIGFlcyh4aW50ZXJjZXB0PW1lYW5fcHVicywgY29sb3I9aW5mZXJyZWRfZ2VuZGVyKSwNCiAgICAgICAgICAgICBsaW5ldHlwZT0iZGFzaGVkIikrDQogIHhsYWIoIlRvdGFsIFB1YmxpY2F0aW9ucyIpKw0KICB5bGFiKCJDb3VudCIpKw0KICBsYWJzKGNvbG9yPSdJbmZlcnJlZCBnZW5kZXInKSsNCiAgZ2d0aXRsZSgiSGlzdG9ncmFtczogcHVibGljYXRpb25zIikNCg0KcDIgPC0gZ2dwbG90KHByb2ZfdGFibGUsIGFlcyh4PWNvYXV0aG9yc190b3RhbCwgY29sb3I9aW5mZXJyZWRfZ2VuZGVyKSkgKw0KICBnZW9tX2hpc3RvZ3JhbShmaWxsPSJ3aGl0ZSIsIHBvc2l0aW9uPSJkb2RnZSIsIGJpbnMgPSA0MCkrDQogIGdlb21fdmxpbmUoZGF0YT1tZWFuc19wcm9mX3RhYmxlLCBhZXMoeGludGVyY2VwdD1tZWFuX2NvYXV0aG9ycywgY29sb3I9aW5mZXJyZWRfZ2VuZGVyKSwNCiAgICAgICAgICAgICBsaW5ldHlwZT0iZGFzaGVkIikrDQogIHhsYWIoIlRvdGFsIENvYXV0aG9ycyIpKw0KICB5bGFiKCJDb3VudCIpKw0KICBsYWJzKGNvbG9yPSdJbmZlcnJlZCBnZW5kZXInKSsNCiAgZ2d0aXRsZSgiSGlzdG9ncmFtczogY29hdXRob3JzIikNCg0KcDMgPC0gZ2dwbG90KHByb2ZfdGFibGUsIGFlcyh4PWF0dGVudGlvbl90b3RhbCwgY29sb3I9aW5mZXJyZWRfZ2VuZGVyKSkgKw0KICBnZW9tX2hpc3RvZ3JhbShmaWxsPSJ3aGl0ZSIsIHBvc2l0aW9uPSJkb2RnZSIsIGJpbnMgPSA0MCkrDQogIGdlb21fdmxpbmUoZGF0YT1tZWFuc19wcm9mX3RhYmxlLCBhZXMoeGludGVyY2VwdD1tZWFuX2F0dGVudGlvbiwgY29sb3I9aW5mZXJyZWRfZ2VuZGVyKSwNCiAgICAgICAgICAgICBsaW5ldHlwZT0iZGFzaGVkIikrDQogIHhsYWIoIlRvdGFsIE5ld3MgTWVudGlvbnMiKSsNCiAgeWxhYigiQ291bnQiKSsNCiAgbGFicyhjb2xvcj0nSW5mZXJyZWQgZ2VuZGVyJykrDQogIGdndGl0bGUoIkhpc3RvZ3JhbXM6IG5ld3MgYXR0ZW50aW9uIikNCg0KZ2dhcnJhbmdlKHAxLCBwMiwgcDMsIG5yb3cgPSAzKQ0KYGBgDQoNCkJveCBwbG90cyBvZiB0b3RhbCBwdWJsaWNhdGlvbnMsIGNvYXV0aG9ycywgYW5kIG5ld3MgYXR0ZW50aW9uLg0KYGBge3IgY2FjaGUgPSBULCBmaWcuaGVpZ2h0ID0gOSwgZmlnLndpZHRoPTZ9DQpiMSA8LSBnZ2JveHBsb3QocHJvZl90YWJsZSwgeCA9ICJpbmZlcnJlZF9nZW5kZXIiLCB5ID0gInB1YnNfdG90YWwiLCANCiAgICAgICAgICBjb2xvciA9ICJpbmZlcnJlZF9nZW5kZXIiLA0KICAgICAgICAgIHlsYWIgPSAiQXZlcmFnZSBOIHB1YmxpY2F0aW9ucyIsIHhsYWIgPSAiSW5mZXJyZWQgZ2VuZGVyIikNCg0KYjIgPC0gZ2dib3hwbG90KHByb2ZfdGFibGUsIHggPSAiaW5mZXJyZWRfZ2VuZGVyIiwgeSA9ICJjb2F1dGhvcnNfdG90YWwiLCANCiAgICAgICAgICBjb2xvciA9ICJpbmZlcnJlZF9nZW5kZXIiLCANCiAgICAgICAgICB5bGFiID0gIkF2ZXJhZ2UgTiBDb2F1dGhvcnMiLCB4bGFiID0gIkluZmVycmVkIGdlbmRlciIpDQoNCmIzIDwtIGdnYm94cGxvdChwcm9mX3RhYmxlLCB4ID0gImluZmVycmVkX2dlbmRlciIsIHkgPSAiYXR0ZW50aW9uX3RvdGFsIiwgDQogICAgICAgICAgY29sb3IgPSAiaW5mZXJyZWRfZ2VuZGVyIiwNCiAgICAgICAgICB5bGFiID0gIkF2ZXJhZ2UgTiBuZXdzIG1lbnRpb25zIiwgeGxhYiA9ICJJbmZlcnJlZCBnZW5kZXIiKQ0KDQpnZ2FycmFuZ2UoYjEsIGIyLCBiMywgbnJvdyA9IDMpDQpgYGANCg0KDQoNCk1lYW4gY29tcGFyaXNvbnMuDQpgYGB7ciwgY2FjaGUgPSBUfQ0KcHJpbnQoInRvdGFsIHB1YmxpY2F0aW9ucyIpDQp3aWxjb3gudGVzdChtZW5fcHJvZnMkcHVic190b3RhbCwgd29tZW5fcHJvZnMkcHVic190b3RhbCwgYWx0ZXJuYXRpdmUgPSAiZ3JlYXRlciIpDQoNCnByaW50KCJ0b3RhbCBjb2F1dGhvcnMiKQ0Kd2lsY294LnRlc3QobWVuX3Byb2ZzJGNvYXV0aG9yc190b3RhbCwgd29tZW5fcHJvZnMkY29hdXRob3JzX3RvdGFsLCBhbHRlcm5hdGl2ZSA9ICJncmVhdGVyIikNCg0KcHJpbnQoInRvdGFsIG5ld3MgbWVudGlvbnMiKQ0Kd2lsY294LnRlc3QobWVuX3Byb2ZzJGF0dGVudGlvbl90b3RhbCwgd29tZW5fcHJvZnMkYXR0ZW50aW9uX3RvdGFsLCBhbHRlcm5hdGl2ZSA9ICJncmVhdGVyIikNCmBgYA0K</div>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeSourceEmbed("Overall_descriptives.Rmd");
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

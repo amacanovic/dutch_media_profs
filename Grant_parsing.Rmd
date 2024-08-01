@@ -7,6 +7,7 @@ date: "2023-12-20"
 In this script, we tidy up the grant information on Veni/Vidi/Vici grants parsed
 from the NWO website, and match the grant recipients with professors in our data.
 
+<<<<<<< HEAD
 Load the libraries that we need:
 ```{r eval = T, echo=FALSE, results='hide', message = F, warning=F}
 source("helper_functions.R")
@@ -20,13 +21,20 @@ fpackage_check(packages_to_load)
 
 # library(groundhog)
 # groundhog.library(packages_to_load, date = "2023-12-01")
+=======
+```{r include = F}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+>>>>>>> parent of 00d84a7 (code update)
 ```
 
-```{r}
-opts_chunk$set(echo = TRUE)
-opts_chunk$set(eval = FALSE)
-opts_chunk$set(warning = FALSE)
-opts_chunk$set(message = FALSE)
+Load the libraries that we need:
+```{r warning = F, message = F}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", 
+                      "stringr", "ggplot2")
+groundhog.library(packages_to_load, date = "2023-12-01")
 ```
 
 Connect to the database:

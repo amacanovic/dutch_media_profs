@@ -1,0 +1,433 @@
+---
+title: "Extraction of URL mentions"
+author: "Ana Macanovic"
+date: "2023-12-22"
+---
+
+Getting the news data mention URLs based on professors' papers.
+We will then use the URLs to retrieve, wherever available, the full text 
+of the article. 
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+Load the packages:
+```{r message=  F, warning = F}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "tidyr", "stringr",
+                      "tidyverse", "RPostgres", "lubridate",
+                      "digest", "DBI", "RODBC", "odbc",
+                      "NLP", "openNLP", "rvest", "xml2")
+# might need to install Java for openNLP
+groundhog.library(packages_to_load, date = "2023-12-01")
+```
+
+# Tidy up professor data from NARCIS
+
+Load the professor profiles:
+```{r message = F, warning = F}
+load("raw_data/media_profs_profiles.rda")
+profs <- read_csv("raw_data/dutch_profs_urls.csv")
+
+# merge the profs with their ORCIDs
+colnames(profs)[c(1,7)] <- c("id", "profile_id")
+
+profs_full <- merge(profs,
+                    metadf[, c(1:4, 361)],
+                    by = "profile_id")
+```
+
+
+# Step 1: Extract URLs
+
+Connect to the database:
+```{r}
+port <- 
+user <- ""
+password <- ""
+database_name <- ""
+
+con <- RPostgres::dbConnect(RPostgres::Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+```
+
+
+Get the URLs from news mentions of each DOI:
+```{r}
+news_mentions <- dbGetQuery(con, "select * from altmetric_pub_att_news;")
+```
+
+Identify broken ct.moreover links (see more [here](https://help.altmetric.com/support/solutions/articles/6000241413-unclickable-links-on-a-detail-page)):
+```{r}
+news_mentions$broken_link <- str_detect(news_mentions$url, "ct.moreover")
+
+news_mentions$broken_link <- ifelse(is.na(news_mentions$broken_link), TRUE, news_mentions$broken_link )
+```
+
+How many URLs, unique titles, and outlets?
+```{r}
+nrow(news_mentions)
+length(unique(news_mentions$title))
+length(unique(news_mentions$author_name))
+```
+How many broken links? Unfortunately, around 38%. This leaves us with 359 693 links we can
+try to retrieve. 
+```{r}
+table(news_mentions$broken_link)
+prop.table(table(news_mentions$broken_link))
+```
+How many papers?
+```{r}
+length(unique(news_mentions$id))
+```
+
+Write the data out:
+```{r}
+write_csv(news_mentions, "processed_data/news_mentions_urls.csv")
+```
+
+# Step 2: Scrape the mentions
+
+After this, we run the python script to collect the unpaywalled non-broken links.
+
+# Step 3: Tidy up the full mention text
+
+Below, we do the following:
+Extract the relevant data from headers, cleaning up the content,
+and determining the language using the [fastText](https://cran.r-project.org/web/packages/fastText/vignettes/language_identification.html) R package:
+
+```{r}
+# load the scraped data
+prof_mention_scraped_data <- read_csv("../dutch_media_profs_python/news_mentions/news_mentions_content_scrape.csv")
+
+prof_mention_extracted_data <- data.frame(matrix(NA, ncol = 14, nrow = 0))
+  
+for (i in 1:nrow(prof_mention_scraped_data)){
+  row_of_interest <- prof_mention_scraped_data[i, c("url", "response")]
+  
+  text <- as.character(prof_mention_scraped_data$content[i])
+  sitename <- NA
+  title <- NA
+  date <- NA
+  description <- NA 
+  author <- NA
+  categories <- NA 
+  tags <- NA
+  content <- NA
+  language <- NA
+  
+  if (!all(is.na(text))){
+    header <- str_split(text, "<main>")[[1]][1]
+    
+    header_elements <- as.character(str_split(header, '\" ', simplify = TRUE))
+    # loop through header elements to  get the info we want
+    # try to find the following elements, that are by default set to NA
+    for (element in header_elements){
+      # remove backslashes from the element to make splitting easier
+      
+      # seek different aspects in the element and fill in if applicable
+      if (str_detect(element, "sitename")){
+        sitename <- str_replace(str_split_i(element, '=', 2), '"', '')
+      }
+      if (str_detect(element, "title")){
+        title <- str_replace(str_split_i(element, '=', 2), '"', '')
+      }
+      if (str_detect(element, "author")){
+        author <- str_replace(str_split_i(element, '=', 2), '"', '')
+      }
+      if (str_detect(element, "date")){
+        date <- str_replace(str_split_i(element, '=', 2), '"', '')
+      }
+      if (str_detect(element, "description")){
+        description <- str_replace(str_split_i(element, '=', 2), '"', '')
+      }
+      if (str_detect(element, "categories")){
+        categories <- str_replace(str_split_i(element, '=', 2), '"', '')
+      }
+      if (str_detect(element, "tags")){
+        tags <- str_replace(str_split_i(element, '=', 2), '"', '')
+      }
+    }
+    
+    # get the textual content
+    content <- str_split(text, "<main>")[[1]][2]
+    # remove the paragraphs and line breaks
+    content <- str_replace_all(content, "[\r\n]" , "")
+    content <- gsub("<.*?>", "", content)
+    content <- str_replace_all(content, '\"' , "")
+    # and remove any redundant white spaces
+    content <- str_squish(content)
+    
+    # now, identify the language based on the first 300 characters of the content,
+    # or, if shorter, the whole string
+    if (nchar(content)>300){
+      language <- fastText::language_identification(input_obj = substr(content, 1, 20),
+                                                    pre_trained_language_model_path = "resources/lid.176.ftz",
+                                                    k = 1,
+                                                    th = 0.0,
+                                                    verbose = FALSE)
+      language <- as.character(language$iso_lang_1)
+      
+    }else{
+      language <- fastText::language_identification(input_obj = content,
+                                                    pre_trained_language_model_path = "resources/lid.176.ftz",
+                                                    k = 1,
+                                                    th = 0.0,
+                                                    verbose = FALSE)
+      language <- as.character(language$iso_lang_1)
+    }
+    
+    
+  }
+  
+  row_content <- data.frame(sitename, 
+                            title,
+                            author,
+                            date,
+                            description,
+                            categories,
+                            tags,
+                            language,
+                            content)
+  
+  row_combined <- cbind(row_of_interest,
+                        row_content)
+  
+  prof_mention_extracted_data <- rbind(prof_mention_extracted_data,
+                                             row_combined)
+  
+  print(paste("done with", i, "out of", nrow(prof_mention_scraped_data)))
+}
+
+```
+
+Write this to our database:
+```{r}
+dbWriteTable(con, "pub_att_news_full_text", prof_mention_extracted_data, row.names=FALSE, append=TRUE) 
+```
+
+How many were ok and how many had errors?
+```{r}
+prof_mention_extracted_data$code <- ifelse(prof_mention_extracted_data$response == "200", "ok", "error")
+table(prof_mention_extracted_data$code)
+```
+
+Most common response codes?
+```{r}
+prof_mention_extracted_data %>%
+  group_by(response)%>%
+  summarise(n = n(),
+            prop = round(n()/nrow(prof_mention_extracted_data)*100,2))%>%
+  arrange(-n)
+```
+
+
+Tidy up the data a bit, dropping any error codes and dropping some of the
+results that did not return the actual news articles:
+```{r}
+# only sucessful responses
+prof_mention_extracted_data_clean <- filter(prof_mention_extracted_data,
+                                            response == "200")
+
+# seek out erroneous content
+erroneous_content <- prof_mention_extracted_data_clean %>%
+  group_by(content)%>%
+  summarise(n = n())%>%
+  arrange(-n)
+```
+
+Filter out the most frequent pieces of content that are not containing actual
+news articles:
+```{r}
+# indices of content that is not actual news and has appeared at least 5 times
+filter_out_indices <- c(1:38, 40:42, 47:48, 50, 56, 57, 49:60, 65, 66, 70,
+                        71, 73:74, 81, 963, 101, 103, 106:108, 115, 119, 126,
+                        137, 138, 156, 187, 225, 238, 249, 259, 261, 273,
+                        274, 288, 289, 303, 307, 308, 316, 341, 342, 349, 
+                        354, 361, 362, 367, 370, 373, 386, 387, 406, 413, 
+                        418, 423, 431, 436, 451, 464, 511:512, 528, 529,
+                        533, 534, 539, 540, 544, 545, 595, 603:605, 622,
+                        623, 628)
+
+filter_out_strings <- erroneous_content$content[filter_out_indices]
+
+# filter those mentions out
+prof_mention_extracted_data_clean <- filter(prof_mention_extracted_data_clean,
+                                            ! content %in% filter_out_strings)
+```
+
+
+## Identify journalist names
+Now, to identify people's names, use the database of US and Dutch first names.
+
+1. US data - top 1000 baby names provided by the Social Security [website](https://www.ssa.gov/oact/babynames/limits.html)
+2. NL data - names that are held by more than 500 people in the NL in 2017 from the [Nederlandse Voornamenbank](https://nvb.meertens.knaw.nl/veelgesteldevragen) 
+
+```{r}
+# list the files with Social Security data
+us_names_files <- list.files(path = "resources/ssa_names",
+                        pattern = "*.txt",
+                        full.names = TRUE)
+us_names_all <- data.frame(matrix(NA, ncol = 4, nrow = 0))
+
+# read them in:
+for (file in us_names_files){
+  file_read <- read.delim(file, header = FALSE, sep = ",", dec = ".")
+  file_read$year <- str_remove(str_remove(file, "resources/ssa_names/yob"), ".txt")
+  us_names_all <- rbind(us_names_all,
+                        file_read)
+}
+
+# and only keep names carried by at least 500 people (like in the dutch dataset)
+us_names_all_500 <- filter(us_names_all, 
+                              V3 >= 500)
+# we need only the unique name list
+us_names_unique <- distinct(us_names_all_500, V1)
+us_names_unique <- tolower(us_names_unique$V1)
+
+
+# dutch names
+nl_names <- read_delim("resources/Top_eerste_voornamen_NL_2017.csv", 
+                       delim = ";", escape_double = FALSE, trim_ws = TRUE,
+                       locale = locale(encoding = "windows-1252"))
+# tidy this up
+nl_names <- nl_names[-1, ]
+nl_names_unique <- unique(tolower(as.character(rbind(nl_names$Female,
+                                                   nl_names$Males))))
+
+# remove a problematic name (encoding issue in the original file?)
+nl_names_unique <- nl_names_unique[-which(nl_names_unique == "?erife")]
+
+```
+
+Now, search for matching names in the column with authors of texts in our 
+mentions dataset.
+First, tidy the data up a bit:
+```{r}
+prof_mention_extracted_data_authors <- filter(prof_mention_extracted_data_clean,
+                                              !is.na(author))
+# clean up the author column a bit
+prof_mention_extracted_data_authors$author_match <- tolower(prof_mention_extracted_data_authors$author)
+
+# separate mutliple authors with ";"
+author_list <- prof_mention_extracted_data_authors %>%
+  separate(author_match, paste0("col_", (c(1:50))), sep = ';', extra = "merge", fill = "right")
+
+# tidy this up into a long list
+author_list <- author_list %>%
+  select(url, col_1:col_50)%>%
+  pivot_longer(!url, names_to = "col", values_to = "names")%>%
+  filter(!is.na(names))%>%
+  select(-col)
+
+# trim whitespaces
+author_list$names <- trimws(author_list$names)
+
+# remove anything with more than 10 words
+author_list$words <-  str_count(author_list$names, '\\w+')
+
+author_list_filt <- filter(author_list,
+                           words <= 10)%>%
+  select(-words)
+```
+
+Now, search for relevant strings:
+```{r}
+# us names
+us_names_string <- paste0(paste0("\\b", us_names_unique), "\\b")
+
+author_list_filt$string_us <- str_extract(author_list_filt$names,
+                                  paste(us_names_string, collapse = "|"))
+
+# nl names
+nl_names_string <- paste0(paste0("\\b", nl_names_unique), "\\b")
+
+author_list_filt$string_nl <- str_extract(author_list_filt$names,
+                                     paste(nl_names_string, collapse = "|"))
+
+# select ones where we find some names
+author_list_filt_names <- filter(author_list_filt,
+                                 !is.na(string_us)|!is.na(string_nl))
+
+# drop some words that are not actual names
+filter_us_strings <- c("january", "the", "story",
+                       "science", "de", "der", "el", "europa", "di", "york", "leiden",
+                       "may", "battle", "ice", "infant", "glacier", "tennis", "universe", 
+                       "can", "el", "games", "madrid", "washington", "press", "guardian", 
+                       "theory", "male", "not", "brain", "you", "no", "method", "novel",
+                       "paying", "key", "gene","speed", "male", "stress", "hang", "speed",
+                       "success", "you", "or", "penn", "three", "viral", "canada", "wild",
+                       "science", "december", "april", "october", "march", "january", "kaiser",
+                       "de", "king", "duke", "cornell", "de", "oxford", "berlin", "ludwig", 
+                       "boston", "german", "british", "st", "london", "dublin", "imperial", 
+                       "baylor", "columbia", "harvard", "michigan","in", "st", "rockefeller",
+                       "pa", "media", "author", "jr", "la", "sky", "aj", "rd", "me", "do", 
+                       "royal", "mit", "sa", "al", "queen", "san", "jj", "ya", "ba", "ra", 
+                       "jd", "press", "vanderbilt", "saint", "ok", "great", "autumn", "yo",
+                       "urban", "november", "july", "regional", "cj", "ya", "life", "sy", "mr",
+                       "great")
+
+author_list_filt_names <- filter(author_list_filt_names,
+                                 ! string_us %in% filter_us_strings)
+
+author_list_filt_names <- filter(author_list_filt_names,
+                                 ! string_nl %in% c("van"))
+
+# get a unique list, keeping only the first name
+author_list_filt_names_unique <- distinct(author_list_filt_names, names,
+                                          .keep_all = TRUE)
+
+# tidy up the list
+author_list_filt_names_unique$final_name <- ifelse(is.na(author_list_filt_names_unique$string_nl) & !is.na(author_list_filt_names_unique$string_us),
+                                                   author_list_filt_names_unique$string_us,
+                                                   ifelse(is.na(author_list_filt_names_unique$string_us) & !is.na(author_list_filt_names_unique$string_nl),
+                                                          author_list_filt_names_unique$string_nl,
+                                                          ifelse(author_list_filt_names_unique$string_us == author_list_filt_names_unique$string_nl,
+                                                                 author_list_filt_names_unique$string_us,
+                                                                 ifelse(author_list_filt_names_unique$string_us != author_list_filt_names_unique$string_nl,
+                                                                 author_list_filt_names_unique$string_us, 
+                                                                 NA))))
+# select the first name
+author_list_filt_names_unique <-  author_list_filt_names_unique %>%
+  select(-string_us, -string_nl)
+
+
+# rename columns for merge
+colnames(author_list_filt_names_unique) <- c("url", "author_tidy", "author_first_name")
+```
+
+Combine these names with the full mention list:
+```{r}
+# get a first merge to link our names to the original "web_author" field
+first_merge <- merge(prof_mention_extracted_data_authors,
+                     author_list_filt_names_unique,
+                     by = "url")
+
+
+full_mention_data_names <- merge(prof_mention_extracted_data,
+                                 first_merge[c("author", "author_first_name")],
+                                 by = "author",
+                                 all.x = TRUE)
+
+# only select the url_id and name columns, so that we can later match this to 
+# the actual mentions content
+full_mention_data_names <- full_mention_data_names %>%
+  select(url, author_first_name)
+
+# remove a few more names that are incorrect and only select the first name appearing
+# then also only leave the URL and the name
+full_mention_data_names <- filter(full_mention_data_names,
+                                  ! author_first_name %in% c("el") & !is.na(author_first_name))%>%
+  distinct(., url, .keep_all = TRUE)%>%
+  select(url, author_first_name)
+
+dbWriteTable(con, "pub_att_news_author_names", full_mention_data_names, row.names=FALSE, append=TRUE) 
+
+```

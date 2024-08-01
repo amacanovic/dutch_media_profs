@@ -1,0 +1,21 @@
+field,year_group,printed_total_m,printed_total_w,printed_total_ttest,online_total_m,online_total_w,online_total_ttest,twitter_total_m,twitter_total_w,twitter_total_ttest
+STEM,up to 10,71.53,195.56,,7,3.44,,388.11,136.56,
+STEM,up to 20,86.02,24.44,**,95.52,78.03,,695.97,681.13,
+STEM,up to 30,51.66,50.01,,118.53,95.55,,641.55,555.87,
+STEM,up to 40,76.59,50.83,*,101.61,94.74,,402.19,339.49,
+STEM,up to 50,179.42,94.58,**,136.36,134.14,,497.2,336.06,
+Medicine,up to 10,41.33,67.33,,3.13,3.56,,26.53,73.11,
+Medicine,up to 20,76.46,40.89,,142.54,147.21,,1377.31,792.04,
+Medicine,up to 30,85.16,57.82,.,200.9,146.55,*,1194.19,668.73,**
+Medicine,up to 40,95.04,63.79,*,217.66,258.83,,1006.98,898.28,
+Medicine,up to 50,145.74,78.7,*,192.47,174.59,,989.6,988.61,
+Social sciences,up to 10,99.75,48.39,*,0.23,2.29,,4.8,10.29,
+Social sciences,up to 20,76.94,71.56,,25.88,23.18,,130.01,118.9,
+Social sciences,up to 30,170.74,96.66,***,37.57,37.83,,186.46,189.72,
+Social sciences,up to 40,161.72,138.99,,35.29,48.85,,159.95,116.45,
+Social sciences,up to 50,221.73,122.32,*,69.21,44.81,,110.67,386,
+Arts and Humanities,up to 10,59,32.5,,0,0,NA,0.14,0,NA
+Arts and Humanities,up to 20,65.85,41.74,,0.48,0.67,,14,26.06,
+Arts and Humanities,up to 30,78.05,34,***,8.14,8.5,,32.16,12.77,
+Arts and Humanities,up to 40,89.65,70.65,,4.12,3.94,,7.83,18.79,
+Arts and Humanities,up to 50,172.53,27.57,*,7.32,1.43,.,39.05,55.43,

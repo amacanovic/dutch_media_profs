@@ -1,0 +1,306 @@
+---
+title: "Untitled"
+author: "Ana Macanovic"
+date: "2024-07-19"
+output: html_document
+---
+
+Comparison of PR and other resource attention counts. 
+
+Load the necessary packages:
+```{r message=  F, warning = F, eval = T}
+library(groundhog)
+packages_to_load <- c("readr", "dplyr", "knitr",
+                      "ggplot2", "stringr", "tidyr",
+                      "jsonlite", "xml2", "tidyverse",
+                      "RPostgres", "lubridate","digest",
+                      "DBI", "RODBC", "odbc")
+groundhog.library(packages_to_load, date = "2023-12-01")
+
+# we've also added our email to the "polite pool" of OpenAlex by
+# adding a line in the .Rprofile
+# keep openalexR updated to the most recent version for API compatibility!
+library("openalexR")
+# load the helper function file
+source("../helper_functions.R")
+```
+
+```{r include=FALSE}
+opts_chunk$set(echo = TRUE)
+opts_chunk$set(eval = FALSE)
+opts_chunk$set(warning = FALSE)
+opts_chunk$set(message = FALSE)
+```
+
+Connect to the databset:
+```{r eval = T}
+port <- 5432
+user <- "postgres"
+password <- "dutchmediaprofssql"
+database_name <- "postgres"
+
+con <- dbConnect(Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+
+con # Checks connection is working
+```
+
+## Lexis Nexis
+
+Read the mentions table:
+```{r eval = T}
+lexis <- dbReadTable(con, "lexis_nexis_mentions")
+```
+
+Focus on PR-related sources:
+```{r eval = T}
+# government and press releases
+pr_sources <- c("Targeted News Service", 
+             "US Fed News",
+             "States News Service",
+             "US Official News",
+             "PR Newswire", 
+             "M2 PressWIRE", 
+             "Premium Official News",
+             "European Union News", 
+             "TendersInfo", 
+             "Impact News Service",
+             "GlobeNewswire",
+             "PR Newswire Europe",
+             "PR.com",
+             "ENP Newswire",
+             "FinancialWire",
+             "University Wire")
+
+press_releases <- filter(lexis,
+                       newspaper %in% pr_sources)
+```
+
+Retrieve professor's inferred gender info:
+```{r eval = T}
+narcis_prof_info <- dbReadTable(con, "narcis_prof_info")
+prof_gender <- dbReadTable(con, "gender_table")
+
+narcis_prof_info  <- merge(narcis_prof_info ,
+                           prof_gender[c("profile_id", "inferred_gender")],
+                           all.x = TRUE,
+                           by = "profile_id")
+```
+
+Merge professors' inferred gender with the press release info:
+```{r eval = T}
+press_releases_gender <- merge(press_releases,
+                               prof_gender[c("profile_id", "inferred_gender")],
+                               by = "profile_id")
+
+prop.table(table(press_releases_gender$inferred_gender))
+
+
+# get mentions per professor
+lexis_pr_women <- press_releases_gender %>%
+  filter(inferred_gender == "w")%>%
+  group_by(profile_id)%>%
+  summarise(n = n())
+
+lexis_pr_men <- press_releases_gender %>%
+  filter(inferred_gender == "m")%>%
+  group_by(profile_id)%>%
+  summarise(n = n())
+
+t.test(lexis_pr_women$n, lexis_pr_men$n)
+
+```
+
+For the sake of comparison, check with overall mentions:
+```{r eval = T}
+lexis_gender <- merge(lexis,
+                      prof_gender[c("profile_id", "inferred_gender")],
+                      by = "profile_id")
+
+prop.table(table(lexis_gender$inferred_gender))
+
+# get mentions per professor
+lexis_women <- lexis_gender %>%
+  filter(inferred_gender == "w")%>%
+  group_by(profile_id)%>%
+  summarise(n = n())
+
+lexis_men <- lexis_gender %>%
+  filter(inferred_gender == "m")%>%
+  group_by(profile_id)%>%
+  summarise(n = n())
+
+t.test(lexis_women$n, lexis_men$n)
+```
+Gender per PR source:
+```{r eval = T}
+pr_source_gender <- press_releases_gender %>% 
+  group_by(newspaper, inferred_gender)%>%
+  summarise(n = n())%>% 
+  pivot_wider(names_from = "inferred_gender", values_from = "n")
+
+pr_source_gender$share_w <- pr_source_gender$w / (pr_source_gender$m + pr_source_gender$w)*100
+
+pr_source_gender
+```
+## Altmetrics
+
+```{r eval = T}
+online_news <- dbReadTable(con, "altmetric_pub_att_news")
+
+online_news$pr <- str_detect(tolower(online_news$author_name), "wire")
+
+online_pr <- filter(online_news,
+                    pr == TRUE & author_name != "Wired.com")
+
+# match the works with the professor IDs:
+pub_matching <- dbReadTable(con, "oa_prof_pub_match")
+
+online_pr_match <- merge(online_pr,
+                         pub_matching[c("id", "profile_id")],
+                         by = "id")
+
+# and now with the gender
+online_pr_gender <- merge(online_pr_match,
+                          prof_gender[c("profile_id", "inferred_gender")],
+                          by = "profile_id")
+
+prop.table(table(online_pr_gender$inferred_gender))
+
+# get mentions per professor
+online_pr_women <- online_pr_gender %>%
+  filter(inferred_gender == "w")%>%
+  group_by(profile_id)%>%
+  summarise(n = n())
+
+online_pr_men <- online_pr_gender %>%
+  filter(inferred_gender == "m")%>%
+  group_by(profile_id)%>%
+  summarise(n = n())
+
+t.test(online_pr_women$n, online_pr_men$n)
+```
+
+For the reference, for all sources:
+```{r}
+online_match <- merge(online_news,
+                      pub_matching[c("id", "profile_id")],
+                      by = "id")
+
+# and now with the gender
+online_gender <- merge(online_match,
+                          prof_gender[c("profile_id", "inferred_gender")],
+                          by = "profile_id")
+
+prop.table(table(online_gender$inferred_gender))
+
+# get mentions per professor
+online_women <- online_gender %>%
+  filter(inferred_gender == "w")%>%
+  group_by(profile_id)%>%
+  summarise(n = n())
+
+online_men <- online_gender %>%
+  filter(inferred_gender == "m")%>%
+  group_by(profile_id)%>%
+  summarise(n = n())
+
+t.test(online_women$n, online_men$n)
+```
+Gender per source:
+```{r}
+online_source_gender <- online_gender %>% 
+  group_by(author_name, inferred_gender)%>%
+  summarise(n = n())%>% 
+  pivot_wider(names_from = "inferred_gender", values_from = "n")%>%
+  arrange(-m)
+
+online_source_gender$share_w <- online_source_gender$w / (online_source_gender$m + online_source_gender$w)*100
+
+online_source_gender[1:20,]
+```
+
+### Full text altmetrics
+
+Read in the full text of altmetric mentions:
+```{r}
+attention_news_profs <- online_match[c("id", "title", "url", "license", "posted_on", 
+                                               "summary", "author_name", "author_url", "profile_id")]
+```
+
+Load in news mentions with full text ("response" not an error, but 200 for success)
+and match to professors, seeking if their last name is mentioned here:
+```{r}
+attention_news_full <- dbGetQuery(con, "select * from pub_att_news_full_text where \"response\"='200'")
+
+attention_news_full_match <- merge(attention_news_full,
+                                   attention_news_profs[c("url", "profile_id", "id")],
+                                   by = c("url"))
+
+# merge this with professor last names
+attention_news_full_match <- merge(attention_news_full_match,
+                                   narcis_prof_info[c("profile_id", "last", "first")],
+                                   by = "profile_id")
+
+# remove the duplicates
+attention_news_full_match$dupl <- duplicated(attention_news_full_match[c("url", "id", "profile_id")])
+
+attention_news_full_match <- attention_news_full_match %>%
+  filter(dupl == FALSE)%>%
+  select(-dupl)
+```
+
+Seek professor last name mentions in the full texts of news articles:
+```{r}
+attention_news_full_match$name_mention <- str_detect(tolower(attention_news_full_match$content), paste0("\\b", attention_news_full_match$last, "\\b"))
+
+# Merge the name mentions with the rest of the data:
+attention_news_profs_names <- merge(attention_news_profs,
+                                    attention_news_full_match[c("profile_id", "url", "id", "name_mention")],
+                                    by = c("profile_id","url", "id"),
+                                    all.x = TRUE)
+
+# combine with the gender
+online_name_gender <- merge(attention_news_profs_names,
+                            prof_gender[c("profile_id", "inferred_gender")],
+                            by = "profile_id")
+```
+
+All the resources for which we have the full text:
+```{r}
+prop.table(table(online_name_gender$inferred_gender))
+```
+Those with names:
+```{r}
+online_name_gender_name_yes <- filter(online_name_gender,
+                                      name_mention == TRUE)
+
+prop.table(table(online_name_gender_name_yes$inferred_gender))
+```
+
+
+Seek only PR sources:
+```{r}
+online_name_gender$pr <- str_detect(tolower(online_name_gender$author_name), "wire")
+
+
+online_full_pr <- filter(online_name_gender,
+                         pr == TRUE & ! author_name %in% c("Wired.com", "The Wire") & !is.na(name_mention))
+```
+
+General share:
+```{r}
+prop.table(table(online_full_pr$inferred_gender))
+```
+Share of mentions with names:
+```{r}
+online_full_pr_name <- filter(online_name_gender,
+                         pr == TRUE & ! author_name %in% c("Wired.com", "The Wire") & name_mention == TRUE)
+
+prop.table(table(online_full_pr_name$inferred_gender))
+```
+
+
