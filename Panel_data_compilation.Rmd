@@ -377,6 +377,23 @@ Seek professor last name mentions in the full texts of news articles:
 attention_news_full_match$last_name_mention <- str_detect(tolower(attention_news_full_match$content), paste0("\\b", attention_news_full_match$last, "\\b"))
 
 attention_news_full_match$first_last_mention <- str_detect(tolower(attention_news_full_match$content), paste0("\\b", attention_news_full_match$first_last, "\\b"))
+
+keyword_list_1 <- c("hoogleraar", "universitair docent", "universitair hoofddocent", "assistant professor", "associate professor",
+                  "onderzoeker", "researcher", "universiteitshoogleraar", "professor")
+
+keyword_list_1 <- paste(paste0("\\b", keyword_list_1, "\\b"), collapse ="|")
+
+keyword_list_final <- paste(keyword_list_1, paste(c("^\\bwetenschap", "^\\bscien",  "^\\buniversit",
+                                                    "\\bdr\\.", "\\bprof\\."), collapse = "|"), collapse = "|")
+
+attention_news_full_match$keyword <- str_detect(tolower(attention_news_full_match$content), keyword_list_final)
+
+# both name and keyword!
+attention_news_full_match$first_last_key <- ifelse(attention_news_full_match$first_last_mention == TRUE & 
+                                                     attention_news_full_match$keyword == TRUE,
+                                                   TRUE,
+                                                   FALSE)
+
 ```
 
 Merge the name mentions with the rest of the data:
