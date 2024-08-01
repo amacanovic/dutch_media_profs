@@ -829,7 +829,7 @@ parsed using the [Grant_parsing.Rmd] script. Then, also load the NWO grant info
 from NARCIS:
 ```{r}
 # data scraped from the NWO website
-nwo_grants <- readRDS("~/Postdoc/Projects/dutch_media_profs_r/processed_data/nwo_grants.RDS")
+nwo_grants <- readRDS("~/Postdoc/Projects/dutch_media_profs_r/processed_data/nwo_grants_intermediate.RDS")
 
 # data from NARCIS
 load("~/Postdoc/Projects/dutch_media_profs_r/raw_data/media_profs_profiles.rda")
@@ -885,11 +885,6 @@ nwo_grants_narcis <- rbind(nwo_grants_narcis,
                            nwo_grants_check)
 
 nwo_grants_narcis <- nwo_grants_narcis[c("grant", "year", "profile_id")]
-```
-
-Overwrite the data:
-```{r}
-saveRDS(nwo_grants_narcis, "processed_data/nwo_grants.RDS")
 ```
 
 Write into a database:

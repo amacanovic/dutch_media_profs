@@ -11,7 +11,7 @@ Load the libraries that we need:
 ```{r eval = T, echo=FALSE, results='hide', message = F, warning=F}
 source("helper_functions.R")
 packages_to_load <- c("readr", "dplyr", "knitr",
-                      "stringr", "ggplot2")
+                      "stringr", "ggplot2", "DBI", "RODBC", "odbc")
 
 fpackage_check(packages_to_load)
 
@@ -27,6 +27,24 @@ opts_chunk$set(echo = TRUE)
 opts_chunk$set(eval = FALSE)
 opts_chunk$set(warning = FALSE)
 opts_chunk$set(message = FALSE)
+```
+
+Connect to the database:
+```{r}
+# fill in own credentials
+port <- 5432
+user <- "postgres"
+password <- "dutchmediaprofssql"
+database_name <- "postgres"
+
+
+con <- dbConnect(Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+
+con # Checks connection is working
 ```
 
 
@@ -352,19 +370,7 @@ professor_grant_awards_narcis_final <- rbind(professor_grant_awards_narcis_match
 
 Write this out:
 ```{r}
-saveRDS(professor_grant_awards_narcis_final, "processed_data/nwo_grants.RDS")
+saveRDS(professor_grant_awards_narcis_final, "processed_data/nwo_grants_intermediate.RDS")
 ```
 
-# Plots 
-
-And add histograms of tupes of awards and years:
-```{r}
-professor_grant_awards_narcis_final$grant <- factor(professor_grant_awards_narcis_final$grant, levels = c("veni", 
-                                                                      "vidi", 
-                                                                      "vici"))
-
-ggplot(professor_grant_awards_narcis_final, aes(x = year)) +
-geom_histogram(bins = 10) +
-facet_wrap(~ grant)
-```
 

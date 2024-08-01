@@ -388,7 +388,7 @@ prop.table(table(coauthors_unique_orcids_filter$found))
 ## Panel data info
 
 ```{r}
-prof_panel_coa <- read_csv("panel_datasets/prof_panel_tidy_1_5.csv")
+prof_panel_coa <- read_csv("panel_datasets/prof_panel_tidy_26_7.csv")
 
 prof_panel_filter <- filter(prof_panel_coa,
                             year < 2024 & !is.na(general_field))

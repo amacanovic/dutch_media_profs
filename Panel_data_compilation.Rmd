@@ -52,28 +52,27 @@ con <- dbConnect(Postgres(),
 
 con # Checks connection is working
 ```
+# NARCIS data
 
-
-Load the professor profiles:
+Load the professor NARCIS profiles to start with
 ```{r message = F, warning = F}
 narcis_prof_info <- dbReadTable(con, "narcis_prof_info")
 ```
 
 # Publications and citations
 
-Load publication info for all professors:
+Load publication info for all professors and tidy it up:
 ```{r}
-# all professors, their pubs, and the citations
+# all professors, their pubs, and the yearly citation breakdown
 oa_prof_pubs <- dbReadTable(con, "oa_prof_pubs")
 
-# unique publication info
+# detailed information about pubications
 oa_pubs_unique <- dbReadTable(con, "oa_prof_pubs_unique")
 
-#prof - pub matching
-
+# dataset matching professor IDs to publications
 oa_prof_pub_matching <- dbReadTable(con, "oa_prof_pub_match")
 
-# prof unique pub list 
+# match publication infromation with professors
 oa_prof_pubs_unique <- merge(oa_pubs_unique,
                              oa_prof_pub_matching[c("id", "au_id", "au_display_name", "profile_id")],
                              all.x = TRUE,
@@ -83,18 +82,21 @@ oa_prof_pubs_unique <- merge(oa_pubs_unique,
 
 Get single author publications only:
 ```{r}
+# get information listing coauthors (au_id) per paper (id)
 coauthor_info <- dbGetQuery(con, "select \"id\", \"au_id\" FROM oa_coauthor_info;")
 
+# leave only publications without any coauthors
 oa_prof_pubs_unique_single_au <- filter(oa_prof_pubs_unique, 
                                         ! id %in% coauthor_info$id)
 ```
 
+## Yearly publication counts 
 
 Get yearly publication counts per professor, filtering out everything but articles,
 books, book chapters:
 ```{r}
 prof_year_pubs <- oa_prof_pubs_unique %>% 
-  filter(!is.na(publication_year) & publication_year > 1973 & publication_year <= 2024 & 
+  filter(!is.na(publication_year) & publication_year >= 1973 & publication_year <= 2023 & 
            type %in% c("article", "book", "book-chapter"))%>%
   group_by(profile_id, publication_year)%>%
   summarise(count_pubs = n())%>%
@@ -108,7 +110,7 @@ colnames(prof_year_pubs)[which(colnames(prof_year_pubs) == "publication_year")] 
 Now, get their yearly citations (2012-2024):
 ```{r}
 prof_year_citations <- oa_prof_pubs %>% 
-  filter(!is.na(publication_year) & !is.na(counts_by_year_year) & publication_year > 1973 & publication_year <= 2024 &
+  filter(!is.na(publication_year) & !is.na(counts_by_year_year) & publication_year >= 1973 & publication_year <= 2023 &
            type %in% c("article", "book", "book-chapter"))%>%
   group_by(profile_id, counts_by_year_year)%>%
   summarise(cited_by = sum(counts_by_year_cited_by_count))%>%
@@ -125,7 +127,7 @@ and then generate a new column getting the pre-2012 citations + each year's cita
 ```{r}
 # total citations per prof
 prof_total_citations <- oa_prof_pubs_unique %>%
-  filter(!is.na(publication_year) & publication_year > 1973 & publication_year <= 2024 & 
+  filter(!is.na(publication_year) & publication_year >= 1973 & publication_year <= 2023 & 
            type %in% c("article", "book", "book-chapter"))%>%
   group_by(profile_id)%>%
   summarise(cited_by_since_pub_2024 = sum(cited_by_count))
@@ -151,6 +153,11 @@ prof_total_citations <- prof_total_citations %>%
 # get the citation count for profs before 2012
 prof_total_citations$cited_by_before_2012 <- prof_total_citations$cited_by_since_pub_2024 - prof_total_citations$cited_by_total_oa
   
+# if this number negative (which it can be due to OA problems), replace by 0
+prof_total_citations$cited_by_before_2012 <- ifelse(prof_total_citations$cited_by_before_2012 < 0,
+                                                    0,
+                                                    prof_total_citations$cited_by_before_2012)
+
 # merge this with citation data
 prof_year_citations <- merge(prof_year_citations,
                              prof_total_citations[c("profile_id", "cited_by_before_2012")],
@@ -183,13 +190,17 @@ prof_year_pubs_citations <- prof_year_pubs_citations %>%
   group_by(profile_id)%>%
   fill(cited_by_before_2012, .direction = "up")
 
+# publications to 0 if none that year
+prof_year_pubs_citations$count_pubs <- ifelse(is.na(prof_year_pubs_citations$count_pubs),
+                                              0,
+                                              prof_year_pubs_citations$count_pubs)
 ```
 
 For each prof, get the first publication year and merge with the rest:
 ```{r}
 # get professor entry years
 prof_entry_year <- oa_prof_pubs_unique %>%
-  filter(publication_year > 1973 & publication_year <= 2024 & 
+  filter(publication_year >= 1973 & publication_year <= 2023 & 
            type %in% c("article", "book", "book-chapter"))%>%
   group_by(profile_id)%>%
   slice(which.min(publication_year))%>%
@@ -220,7 +231,7 @@ prof_year_pubs_citations <- merge(prof_year_pubs_citations,
 
 Write this out:
 ```{r}
-write_csv(prof_year_pubs_citations, "panel_datasets/prof_year_pubs_citations_1_5.csv")
+write_csv(prof_year_pubs_citations, "panel_datasets/prof_year_pubs_citations_26_7.csv")
 ```
 
 
@@ -244,6 +255,9 @@ nwo_grants$stevin <- ifelse(nwo_grants$grant == "stevin", 1, 0)
 nwo_grants <- nwo_grants %>%
   select(year:stevin)
 
+# any grant
+nwo_grants$any_nwo <- ifelse(rowSums(nwo_grants[, 3:7]) > 0, 1, 0)
+
 # for ERC
 erc_grants$advanced <- ifelse(erc_grants$grant == "Advanced grants", 1, 0)
 erc_grants$consolidator <- ifelse(erc_grants$grant == "Consolidator grants", 1, 0)
@@ -252,38 +266,31 @@ erc_grants$synergy <- ifelse(erc_grants$grant == "Synergy grants", 1, 0)
 # select only the necessary columns
 erc_grants <- erc_grants %>%
   select(profile_id:synergy)
+
+# any grant
+erc_grants$any_erc <- ifelse(rowSums(erc_grants[, 3:6]) > 0, 1, 0)
 ```
 
-Accumulate these:
+Accumulate grants, make sure there are no duplicates, and arrange nicely:
 ```{r}
 nwo_cumulative <- nwo_grants %>%
-  pivot_longer(veni:stevin, names_to = "grant")%>%
+  filter(year >= 1973 & year <= 2023)%>%
   arrange(profile_id, year)%>%
-  group_by(profile_id, year)%>%
-  summarise(nwo_grants = sum(grant = 1))%>%
-  arrange(profile_id, year)
+  group_by(profile_id)%>%
+  mutate(nwo_total = cumsum(any_nwo))%>%
+  distinct(profile_id, year, .keep_all = TRUE)
 
 erc_cumulative <- erc_grants %>%
-  pivot_longer(advanced:synergy, names_to = "grant")%>%
+  filter(year >= 1973 & year <= 2023)%>%
   arrange(profile_id, year)%>%
-  group_by(profile_id, year)%>%
-  summarise(erc_grants = sum(grant = 1))%>%
-  arrange(profile_id, year)
+  group_by(profile_id)%>%
+  mutate(erc_total = cumsum(any_erc))%>%
+  distinct(profile_id,year, .keep_all = TRUE)
 ```
 
-Combine this with pubs and citations
+Combine this with pubs and citations:
 ```{r}
 prof_year_pubs_citations_grants <- merge(prof_year_pubs_citations,
-                                         nwo_grants,
-                                         all.x = TRUE,
-                                         by = c("profile_id", "year"))
-
-prof_year_pubs_citations_grants <- merge(prof_year_pubs_citations_grants,
-                                         erc_grants,
-                                         all.x = TRUE,
-                                         by = c("profile_id", "year"))
-
-prof_year_pubs_citations_grants <- merge(prof_year_pubs_citations_grants,
                                          nwo_cumulative,
                                          all.x = TRUE,
                                          by = c("profile_id", "year"))
@@ -295,25 +302,20 @@ prof_year_pubs_citations_grants <- merge(prof_year_pubs_citations_grants,
 
 # replace NAs
 prof_year_pubs_citations_grants <- prof_year_pubs_citations_grants %>%
-  mutate_at(vars(veni:erc_grants), ~replace_na(., 0))
-
-# get cumulative grants
-prof_year_pubs_citations_grants <-  prof_year_pubs_citations_grants %>%
-  arrange(profile_id, year)%>%
-  group_by(profile_id)%>%
-  mutate(nwo_grants_total = cumsum(nwo_grants),
-         erc_grants_total = cumsum(erc_grants))
-  
-
+  mutate_at(vars(veni:erc_total), ~replace_na(., 0))
 ```
 
 Write this out:
 ```{r}
-write_csv(prof_year_pubs_citations_grants, "panel_datasets/prof_year_pubs_citations_grants_1_5.csv")
+write_csv(prof_year_pubs_citations_grants, "panel_datasets/prof_year_pubs_citations_grants_26_7.csv")
 ```
 
 ```{r}
 gc()
+rm(erc_grants)
+rm(erc_cumulative)
+rm(nwo_cumulative)
+rm(nwo_grants)
 ```
 
 # Altmetric attention
@@ -334,7 +336,7 @@ attention_blogs_profs <- merge(attention_blogs,
                         by = "id")
 ```
 
-Compile the two together:
+Compile the two attention sources together:
 ```{r}
 attention_news_profs <- attention_news_profs[c("id", "title", "url", "license", "posted_on", 
                                                "summary", "author_name", "author_url", "profile_id")]
@@ -366,23 +368,27 @@ attention_news_full_match$dupl <- duplicated(attention_news_full_match[c("url", 
 attention_news_full_match <- attention_news_full_match %>%
   filter(dupl == FALSE)%>%
   select(-dupl)
+
+attention_news_full_match$first_last <- paste(attention_news_full_match$first, attention_news_full_match$last)
 ```
 
 Seek professor last name mentions in the full texts of news articles:
 ```{r}
-attention_news_full_match$name_mention <- str_detect(tolower(attention_news_full_match$content), paste0("\\b", attention_news_full_match$last, "\\b"))
+attention_news_full_match$last_name_mention <- str_detect(tolower(attention_news_full_match$content), paste0("\\b", attention_news_full_match$last, "\\b"))
+
+attention_news_full_match$first_last_mention <- str_detect(tolower(attention_news_full_match$content), paste0("\\b", attention_news_full_match$first_last, "\\b"))
 ```
 
 Merge the name mentions with the rest of the data:
 ```{r}
 attention_news_blogs_profs_names <- merge(attention_news_blogs_profs,
-                                          attention_news_full_match[c("profile_id", "url", "id", "name_mention")],
+                                          attention_news_full_match[c("profile_id", "url", "id", 
+                                                                      "last_name_mention", "first_last_mention")],
                                           by = c("profile_id","url", "id"),
                                           all.x = TRUE)
 ```
 
 Classify news attention:
-[we manually survey all news sources with more than 150 articles in our database]
 ```{r}
 # load the classification objects
 source("resources/altmetric_news_outlet_classification.R")
@@ -441,6 +447,7 @@ Compile the attention per professor per year:
 attention_news_blogs_profs_names$year <- year(as_date(attention_news_blogs_profs_names$posted_on))
 
 prof_year_attention_online <- attention_news_blogs_profs_names %>%
+  filter(year >= 2011 & year <= 2023)%>%
   group_by(profile_id, source_type, year)%>%
   summarise(alt_attn = n())%>%
   arrange(profile_id, source_type, year)%>%
@@ -451,10 +458,27 @@ prof_year_attention_online <- attention_news_blogs_profs_names %>%
 colnames(prof_year_attention_online)[-c(1:2)] <- paste0("alt_", colnames(prof_year_attention_online)[-c(1:2)])
 ```
 
-Do the same only for those where we have names included:
+Do the same, but deduplicating multiple paper mentions in single news articles:
+```{r}
+prof_year_attention_online_dedupe <- attention_news_blogs_profs_names %>%
+  filter(year >= 2011 & year <= 2023)%>%
+  distinct(profile_id, url, title, posted_on, author_name,.keep_all = TRUE)%>%
+  group_by(profile_id, source_type, year)%>%
+  summarise(alt_attn = n())%>%
+  arrange(profile_id, source_type, year)%>%
+  pivot_wider(names_from = source_type, values_from = c(alt_attn))%>%
+  replace(is.na(.), 0)%>%
+  arrange(profile_id, year)
+
+colnames(prof_year_attention_online_dedupe)[-c(1:2)] <- paste0("alt_ded_", colnames(prof_year_attention_online_dedupe)[-c(1:2)])
+
+# rearrange to match the column order of the other dataframe above
+prof_year_attention_online_dedupe <- prof_year_attention_online_dedupe[c("profile_id", "year", "alt_ded_news_aggregator", "alt_ded_online_blog", "alt_ded_sci_news_aggregator" , "alt_ded_finance_news" , "alt_ded_general_interest_local_news", "alt_ded_general_interest_news", "alt_ded_medical_news", "alt_ded_other_news", "alt_ded_popsci_news", "alt_ded_science_news")]
+```
+Do the same only for those where we have names last included:
 ```{r}
 prof_year_attention_online_names <- attention_news_blogs_profs_names %>%
-  filter(name_mention == TRUE)%>%
+  filter(year >= 2011 & year <= 2023 & last_name_mention == TRUE)%>%
   group_by(profile_id, source_type, year)%>%
   summarise(alt_attn = n())%>%
   arrange(profile_id, source_type, year)%>%
@@ -467,11 +491,54 @@ colnames(prof_year_attention_online_names)[-c(1:2)] <- paste0("alt_name_", colna
 # rearrange to match the column order of the other dataframe above
 prof_year_attention_online_names <- prof_year_attention_online_names[c("profile_id", "year", "alt_name_news_aggregator", "alt_name_online_blog", "alt_name_sci_news_aggregator" , "alt_name_finance_news" , "alt_name_general_interest_local_news", "alt_name_general_interest_news", "alt_name_medical_news", "alt_name_other_news", "alt_name_popsci_news", "alt_name_science_news")]
 ```
+And for the full name included:
+```{r}
+prof_year_attention_online_full_names <- attention_news_blogs_profs_names %>%
+  filter(year >= 2011 & year <= 2023 & first_last_mention == TRUE)%>%
+  group_by(profile_id, source_type, year)%>%
+  summarise(alt_attn = n())%>%
+  arrange(profile_id, source_type, year)%>%
+  pivot_wider(names_from = source_type, values_from = c(alt_attn))%>%
+  replace(is.na(.), 0)%>%
+  arrange(profile_id, year)
+
+colnames(prof_year_attention_online_full_names)[-c(1:2)] <- paste0("alt_fname_", colnames(prof_year_attention_online_full_names)[-c(1:2)])
+
+# rearrange to match the column order of the other dataframe above
+prof_year_attention_online_full_names <- prof_year_attention_online_full_names[c("profile_id", "year", "alt_fname_news_aggregator", "alt_fname_online_blog", "alt_fname_sci_news_aggregator" , "alt_fname_finance_news" , "alt_fname_general_interest_local_news", "alt_fname_general_interest_news", "alt_fname_medical_news", "alt_fname_other_news", "alt_fname_popsci_news", "alt_fname_science_news")]
+```
+
+And now only for single-authored papers:
+```{r}
+prof_year_attention_online_single_au <- attention_news_blogs_profs_names %>%
+  filter(year >= 2011 & year <= 2023 & id %in% oa_prof_pubs_unique_single_au$id)%>%
+  distinct(profile_id, url, title, posted_on, author_name,.keep_all = TRUE)%>%
+  group_by(profile_id, source_type, year)%>%
+  summarise(alt_attn = n())%>%
+  arrange(profile_id, source_type, year)%>%
+  pivot_wider(names_from = source_type, values_from = c(alt_attn))%>%
+  replace(is.na(.), 0)%>%
+  arrange(profile_id, year)
+
+colnames(prof_year_attention_online_single_au)[-c(1:2)] <- paste0("alt_single_", colnames(prof_year_attention_online_single_au)[-c(1:2)])
+
+prof_year_attention_online_single_au <- prof_year_attention_online_single_au[c("profile_id", "year", "alt_single_news_aggregator", "alt_single_online_blog", "alt_single_sci_news_aggregator" , "alt_single_finance_news" , "alt_single_general_interest_local_news", "alt_single_general_interest_news", "alt_single_medical_news", "alt_single_other_news", "alt_single_popsci_news", "alt_single_science_news")]
+```
 
 Merge the attention with the rest: 
 ```{r}
 prof_year_p_c_g_a <- merge(prof_year_pubs_citations_grants,
                            prof_year_attention_online,
+                           by = c("profile_id", "year"),
+                           all.x = TRUE)
+
+prof_year_p_c_g_a <- merge(prof_year_p_c_g_a,
+                           prof_year_attention_online_dedupe,
+                           by = c("profile_id", "year"),
+                           all.x = TRUE)
+
+prof_year_p_c_g_a <- merge(prof_year_p_c_g_a,
+                           prof_year_attention_online_single_au,
                            by = c("profile_id", "year"),
                            all.x = TRUE)
 
@@ -481,9 +548,10 @@ prof_year_p_c_g_a <- merge(prof_year_p_c_g_a,
                            by = c("profile_id", "year"),
                            all.x = TRUE)
 
-# replace NAs with zeroes if on/after 2011
-prof_year_p_c_g_a <-   prof_year_p_c_g_a %>%
-   mutate_at(vars(contains('alt_')), ~ifelse(is.na(.) & year > 2010, 0, .))
+prof_year_p_c_g_a <- merge(prof_year_p_c_g_a,
+                           prof_year_attention_online_full_names,
+                           by = c("profile_id", "year"),
+                           all.x = TRUE)
 
 
 # get the cumulatives
@@ -493,7 +561,7 @@ prof_year_p_c_g_a <- prof_year_p_c_g_a %>%
   arrange(profile_id, year)%>%
   mutate_at(vars(contains('alt_')), ~ifelse(is.na(.), 0, .))%>%
   group_by(profile_id)%>%
-  mutate(across(alt_news_aggregator:alt_name_science_news, ~cumsum(.x), .names = "{col}_total"))%>%
+  mutate(across(alt_news_aggregator:alt_fname_science_news, ~cumsum(.x), .names = "{col}_total"))%>%
   mutate_at(vars(contains('alt_')), ~ifelse(. == 0 & year < 2011, NA, .))
 ```
 
@@ -506,6 +574,7 @@ twitter_orcid_attention <- twitter_orcid_attention %>%
   select(profile_id, year, yearly_count)
 
 colnames(twitter_orcid_attention)[which(colnames(twitter_orcid_attention) == "yearly_count")] <- "alt_twitter"
+
 
 prof_year_p_c_g_a <- merge(prof_year_p_c_g_a,
                            twitter_orcid_attention,
@@ -533,6 +602,17 @@ prof_year_p_c_g_a$alt_online_all <- rowSums(prof_year_p_c_g_a[,c("alt_news_aggre
                                                                 "alt_popsci_news",
                                                                 "alt_science_news")])
 
+prof_year_p_c_g_a$alt_online_ded_all <- rowSums(prof_year_p_c_g_a[,c("alt_ded_news_aggregator",
+                                                                "alt_ded_online_blog",
+                                                                "alt_ded_sci_news_aggregator",
+                                                                "alt_ded_finance_news",
+                                                                "alt_ded_general_interest_local_news",
+                                                                "alt_ded_general_interest_news",            
+                                                                "alt_ded_medical_news",
+                                                                "alt_ded_other_news",
+                                                                "alt_ded_popsci_news",
+                                                                "alt_ded_science_news")])
+
 prof_year_p_c_g_a$alt_online_name_all <- rowSums(prof_year_p_c_g_a[,c("alt_name_news_aggregator",
                                                                       "alt_name_online_blog",
                                                                       "alt_name_sci_news_aggregator",
@@ -543,6 +623,28 @@ prof_year_p_c_g_a$alt_online_name_all <- rowSums(prof_year_p_c_g_a[,c("alt_name_
                                                                       "alt_name_other_news",
                                                                       "alt_name_popsci_news",
                                                                       "alt_name_science_news")])
+
+prof_year_p_c_g_a$alt_online_fname_all <- rowSums(prof_year_p_c_g_a[,c("alt_fname_news_aggregator",
+                                                                           "alt_fname_online_blog",
+                                                                           "alt_fname_sci_news_aggregator",
+                                                                           "alt_fname_finance_news",
+                                                                           "alt_fname_general_interest_local_news",
+                                                                           "alt_fname_general_interest_news",            
+                                                                           "alt_fname_medical_news",
+                                                                           "alt_fname_other_news",
+                                                                           "alt_fname_popsci_news",
+                                                                           "alt_fname_science_news")])
+
+prof_year_p_c_g_a$alt_online_single_all <- rowSums(prof_year_p_c_g_a[,c("alt_single_news_aggregator",
+                                                                        "alt_single_online_blog",
+                                                                        "alt_single_sci_news_aggregator",
+                                                                        "alt_single_finance_news",
+                                                                        "alt_single_general_interest_local_news",
+                                                                        "alt_single_general_interest_news",            
+                                                                        "alt_single_medical_news",
+                                                                        "alt_single_other_news",
+                                                                        "alt_single_popsci_news",
+                                                                        "alt_single_science_news")])
 
 prof_year_p_c_g_a$alt_online_all_total <- rowSums(prof_year_p_c_g_a[,c("alt_news_aggregator_total",
                                                                 "alt_online_blog_total",
@@ -555,6 +657,17 @@ prof_year_p_c_g_a$alt_online_all_total <- rowSums(prof_year_p_c_g_a[,c("alt_news
                                                                 "alt_popsci_news_total",
                                                                 "alt_science_news_total")])
 
+prof_year_p_c_g_a$alt_online_ded_all_total <- rowSums(prof_year_p_c_g_a[,c("alt_ded_news_aggregator_total",
+                                                                      "alt_ded_online_blog_total",
+                                                                      "alt_ded_sci_news_aggregator_total",
+                                                                      "alt_ded_finance_news_total",
+                                                                      "alt_ded_general_interest_local_news_total",
+                                                                      "alt_ded_general_interest_news_total",            
+                                                                      "alt_ded_medical_news_total",
+                                                                      "alt_ded_other_news_total",
+                                                                      "alt_ded_popsci_news_total",
+                                                                      "alt_ded_science_news_total")])
+
 prof_year_p_c_g_a$alt_online_name_all_total <- rowSums(prof_year_p_c_g_a[,c("alt_name_news_aggregator_total",
                                                                       "alt_name_online_blog_total",
                                                                       "alt_name_sci_news_aggregator_total",
@@ -566,6 +679,28 @@ prof_year_p_c_g_a$alt_online_name_all_total <- rowSums(prof_year_p_c_g_a[,c("alt
                                                                       "alt_name_popsci_news_total",
                                                                       "alt_name_science_news_total")])
 
+prof_year_p_c_g_a$alt_online_fname_all_total <- rowSums(prof_year_p_c_g_a[,c("alt_fname_news_aggregator_total",
+                                                                      "alt_fname_online_blog_total",
+                                                                      "alt_fname_sci_news_aggregator_total",
+                                                                      "alt_fname_finance_news_total",
+                                                                      "alt_fname_general_interest_local_news_total",
+                                                                      "alt_fname_general_interest_news_total",            
+                                                                      "alt_fname_medical_news_total",
+                                                                      "alt_fname_other_news_total",
+                                                                      "alt_fname_popsci_news_total",
+                                                                      "alt_fname_science_news_total")])
+
+prof_year_p_c_g_a$alt_online_single_all_total <- rowSums(prof_year_p_c_g_a[,c("alt_single_news_aggregator_total",
+                                                                      "alt_single_online_blog_total",
+                                                                      "alt_single_sci_news_aggregator_total",
+                                                                      "alt_single_finance_news_total",
+                                                                      "alt_single_general_interest_local_news_total",
+                                                                      "alt_single_general_interest_news_total",            
+                                                                      "alt_single_medical_news_total",
+                                                                      "alt_single_other_news_total",
+                                                                      "alt_single_popsci_news_total",
+                                                                      "alt_single_science_news_total")])
+
 
 prof_year_p_c_g_a$alt_online_general_all <- rowSums(prof_year_p_c_g_a[,c(
                                                                          "alt_finance_news",
@@ -573,11 +708,29 @@ prof_year_p_c_g_a$alt_online_general_all <- rowSums(prof_year_p_c_g_a[,c(
                                                                          "alt_general_interest_news",  
                                                                          "alt_popsci_news")])
 
+prof_year_p_c_g_a$alt_online_general_ded_all <- rowSums(prof_year_p_c_g_a[,c(
+                                                                      "alt_ded_finance_news",
+                                                                      "alt_ded_general_interest_local_news",
+                                                                      "alt_ded_general_interest_news",       
+                                                                      "alt_ded_popsci_news")])
+
 prof_year_p_c_g_a$alt_online_general_name_all <- rowSums(prof_year_p_c_g_a[,c(
                                                                       "alt_name_finance_news",
                                                                       "alt_name_general_interest_local_news",
                                                                       "alt_name_general_interest_news",       
                                                                       "alt_name_popsci_news")])
+
+prof_year_p_c_g_a$alt_online_general_fname_all <- rowSums(prof_year_p_c_g_a[,c(
+                                                                      "alt_fname_finance_news",
+                                                                      "alt_fname_general_interest_local_news",
+                                                                      "alt_fname_general_interest_news",       
+                                                                      "alt_fname_popsci_news")])
+
+prof_year_p_c_g_a$alt_online_general_single_all <- rowSums(prof_year_p_c_g_a[,c(
+                                                                      "alt_single_finance_news",
+                                                                      "alt_single_general_interest_local_news",
+                                                                      "alt_single_general_interest_news",       
+                                                                      "alt_single_popsci_news")])
 
 prof_year_p_c_g_a$alt_online_general_all_total <- rowSums(prof_year_p_c_g_a[,c(
                                                                 "alt_finance_news_total",
@@ -585,18 +738,38 @@ prof_year_p_c_g_a$alt_online_general_all_total <- rowSums(prof_year_p_c_g_a[,c(
                                                                 "alt_general_interest_news_total",            
                                                                 "alt_popsci_news_total")])
 
+prof_year_p_c_g_a$alt_online_general_ded_all_total <- rowSums(prof_year_p_c_g_a[,c(
+                                                                      "alt_ded_finance_news_total",
+                                                                      "alt_ded_general_interest_local_news_total",
+                                                                      "alt_ded_general_interest_news_total",  
+                                                                      "alt_ded_popsci_news_total")])
+
 prof_year_p_c_g_a$alt_online_general_name_all_total <- rowSums(prof_year_p_c_g_a[,c(
                                                                       "alt_name_finance_news_total",
                                                                       "alt_name_general_interest_local_news_total",
                                                                       "alt_name_general_interest_news_total",  
                                                                       "alt_name_popsci_news_total")])
+
+
+prof_year_p_c_g_a$alt_online_general_fname_all_total <- rowSums(prof_year_p_c_g_a[,c(
+                                                                      "alt_fname_finance_news_total",
+                                                                      "alt_fname_general_interest_local_news_total",
+                                                                      "alt_fname_general_interest_news_total",  
+                                                                      "alt_fname_popsci_news_total")])
+
+prof_year_p_c_g_a$alt_online_general_single_all_total <- rowSums(prof_year_p_c_g_a[,c(
+                                                                      "alt_single_finance_news_total",
+                                                                      "alt_single_general_interest_local_news_total",
+                                                                      "alt_single_general_interest_news_total",  
+                                                                      "alt_single_popsci_news_total")])
 ```
 
 
 Write this out:
 ```{r}
-write_csv(prof_year_p_c_g_a, "panel_datasets/prof_year_pubs_citations_grants_alt_1_5.csv")
+write_csv(prof_year_p_c_g_a, "panel_datasets/prof_year_pubs_citations_grants_alt_26_7.csv")
 ```
+
 
 Clear the memory, remove some redundant objects:
 ```{r}
@@ -606,211 +779,318 @@ rm(attention_blogs_profs)
 rm(attention_news)
 rm(attention_news_blogs_profs)
 rm(attention_news_blogs_profs_names)
-rm(erc_cumulative)
-rm(erc_grants)
-rm(nwo_cumulative)
-rm(nwo_grants)
 rm(latest_citation)
 gc()
 ```
 
 
-# Lexis data
+# Printed news attention
 
 Load the lexis articles, filter out the irrelevant ones and drop the regional
 publication duplicates:
 ```{r}
 lexis_data <- dbReadTable(con, "lexis_nexis_mentions")
-
-lexis_data_filt <- filter(lexis_data,
-                          source_type != "irrelevant")
-
-lexis_data_filt <- lexis_data_filt %>%
-  filter(regional_duplicate == FALSE)
 ```
 
 Now, aggregate professor mentions per year and per source, wherever relevant:
 ```{r}
 # combine sources for easier handling:
-lexis_data_filt$source_coarse <- ifelse(! lexis_data_filt$source_type %in% c("national_nl", "regional_nl", "high_prof_intl"),
-                                        "other",
-                                        lexis_data_filt$source_type)
-
-prof_news_year <- lexis_data_filt %>%
-  filter(!is.na(year) & year >= 1974 & year <= 2024)%>%
+prof_news_year <- lexis_data %>%
+  filter(!is.na(year) & year >= 1973 & year <= 2023)%>%
   arrange(profile_id, year)%>%
-  group_by(profile_id, year, source_coarse)%>%
+  group_by(profile_id, year, source_type)%>%
   summarise(n = n())%>%
   replace(is.na(.), 0)%>%
-  arrange(profile_id, year,source_coarse)%>%
-  group_by(profile_id, source_coarse)%>%
+  arrange(profile_id, year, source_type)%>%
+  group_by(profile_id, source_type)%>%
   mutate(cumsum = cumsum(n))%>%
-  pivot_wider(names_from = source_coarse, values_from = c(n, cumsum))%>%
+  pivot_wider(names_from = source_type, values_from = c(n, cumsum))%>%
   fill(cumsum_national_nl:cumsum_high_prof_intl)%>%
   replace(is.na(.), 0)
 
+prof_news_year <- prof_news_year[c("profile_id", "year", "n_national_nl", 
+                                   "n_news_aggr", "n_finance", "n_other", 
+                                   "n_regional_nl", "n_science", "n_prof", 
+                                   "n_local_int", "n_unknown", "n_high_prof_intl",
+                                   "n_other_int", "n_blog", "cumsum_national_nl", 
+                                   "cumsum_news_aggr", "cumsum_finance", "cumsum_other", 
+                                   "cumsum_regional_nl", "cumsum_science", "cumsum_prof", 
+                                   "cumsum_local_int", "cumsum_unknown", "cumsum_high_prof_intl",
+                                   "cumsum_other_int", "cumsum_blog" )]
+
 # tidy up the columns
-colnames(prof_news_year)[3:10] <- c("news_national", "news_regional", "news_other",
-                                     "news_intl", "news_national_total", 
-                                     "news_regional_total", "news_other_total",
-                                     "news_intl_total")
+colnames(prof_news_year)[3:26] <- c("news_national", "news_aggr", "news_finance",
+                                    "news_other", "news_regional", "news_science",
+                                    "news_professional", "news_local_intl", "news_unknown",
+                                    "news_intl", "news_intl_other", "news_blog",
+                                    "news_national_total", "news_aggr_total", "news_finance_total",
+                                    "news_other_total", "news_regional_total", "news_science_total",
+                                    "news_professional_total", "news_local_intl_total", "news_unknown_total",
+                                    "news_intl_total", "news_intl_other_total", "news_blog_total")
 
 # add total counts
-prof_news_year$news_all <- prof_news_year$news_national + prof_news_year$news_regional +
-  prof_news_year$news_other + prof_news_year$news_intl
-
-prof_news_year$news_all_total <- prof_news_year$news_national_total + prof_news_year$news_regional_total +
-  prof_news_year$news_other_total + prof_news_year$news_intl_total
-
+prof_news_year$news_all <- rowSums(prof_news_year[3:14])
+prof_news_year$news_all_total <- rowSums(prof_news_year[15:26])
+   
 # add general interest counts
-prof_news_year$news_general_all <- prof_news_year$news_national + prof_news_year$news_regional +
-  prof_news_year$news_intl
+prof_news_year$news_general_all <- rowSums(prof_news_year[c("news_national", "news_regional", "news_intl",
+                                                            "news_local_intl", "news_intl_other")])
 
-prof_news_year$news_general_all_total <- prof_news_year$news_national_total + prof_news_year$news_regional_total+ 
-  prof_news_year$news_intl_total
-
+prof_news_year$news_general_all_total <- rowSums(prof_news_year[c("news_national_total", "news_regional_total", "news_intl_total",
+                                                            "news_local_intl_total", "news_intl_other_total")])
+   
 # rearrange a bit
-prof_news_year <- prof_news_year[c("profile_id", "year",
-                                     "news_national", "news_regional", "news_other",
-                                     "news_intl", "news_all","news_general_all",
-                                     "news_national_total", 
-                                     "news_regional_total", "news_other_total",
-                                     "news_intl_total", "news_all_total", "news_general_all_total")]
+prof_news_year <- prof_news_year %>%
+  select(profile_id, year, news_national, news_regional, news_intl, news_local_intl,
+         news_intl_other, news_general_all, news_finance, news_professional, news_science, news_blog,
+         news_aggr, news_unknown, news_other, news_all,
+         news_national_total, news_regional_total, 
+         news_intl_total, news_local_intl_total, news_intl_other_total, news_general_all_total, 
+         news_finance_total, news_professional_total, news_science_total, news_blog_total,
+         news_aggr_total, news_unknown_total, news_other_total, news_all_total)
+```
+
+Deduplicated regional news:
+```{r}
+# combine sources for easier handling:
+prof_news_year_ded <- lexis_data %>%
+  filter(!is.na(year) & year >= 1973 & year <= 2023 & regional_duplicate == FALSE)%>%
+  arrange(profile_id, year)%>%
+  group_by(profile_id, year, source_type)%>%
+  summarise(n = n())%>%
+  replace(is.na(.), 0)%>%
+  arrange(profile_id, year, source_type)%>%
+  group_by(profile_id, source_type)%>%
+  mutate(cumsum = cumsum(n))%>%
+  pivot_wider(names_from = source_type, values_from = c(n, cumsum))%>%
+  fill(cumsum_national_nl:cumsum_high_prof_intl)%>%
+  replace(is.na(.), 0)
+
+prof_news_year_ded <- prof_news_year_ded[c("profile_id", "year", "n_national_nl", 
+                                           "n_news_aggr", "n_finance", "n_other", 
+                                           "n_regional_nl", "n_science", "n_prof", 
+                                           "n_local_int", "n_unknown", "n_high_prof_intl",
+                                           "n_other_int", "n_blog", "cumsum_national_nl", 
+                                           "cumsum_news_aggr", "cumsum_finance", "cumsum_other", 
+                                           "cumsum_regional_nl", "cumsum_science", "cumsum_prof", 
+                                           "cumsum_local_int", "cumsum_unknown", "cumsum_high_prof_intl",
+                                           "cumsum_other_int", "cumsum_blog" )]
+
+# tidy up the columns
+colnames(prof_news_year_ded)[3:26] <- c("news_ded_national", "news_ded_aggr", "news_ded_finance",
+                                    "news_ded_other", "news_ded_regional", "news_ded_science",
+                                    "news_ded_professional", "news_ded_local_intl", "news_ded_unknown",
+                                    "news_ded_intl", "news_ded_intl_other", "news_ded_blog",
+                                    "news_ded_national_total", "news_ded_aggr_total", "news_ded_finance_total",
+                                    "news_ded_other_total", "news_ded_regional_total", "news_ded_science_total",
+                                    "news_ded_professional_total", "news_ded_local_intl_total", "news_ded_unknown_total",
+                                    "news_ded_intl_total", "news_ded_intl_other_total", "news_ded_blog_total")
+
+# add total counts
+prof_news_year_ded$news_ded_all <- rowSums(prof_news_year_ded[3:14])
+prof_news_year_ded$news_ded_all_total <- rowSums(prof_news_year_ded[15:26])
+   
+# add general interest counts
+prof_news_year_ded$news_ded_general_all <- rowSums(prof_news_year_ded[c("news_ded_national", "news_ded_regional", "news_ded_intl",
+                                                            "news_ded_local_intl", "news_ded_intl_other")])
+                                                   
+prof_news_year_ded$news_ded_general_all_total <- rowSums(prof_news_year_ded[c("news_ded_national_total", "news_ded_regional_total",
+                                                                              "news_ded_intl_total", "news_ded_local_intl_total",
+                                                                              "news_ded_intl_other_total")])
+   
+# rearrange a bit
+prof_news_year_ded <- prof_news_year_ded %>%
+  select(profile_id, year, news_ded_regional, news_ded_general_all, news_ded_all,
+         news_ded_regional_total, news_ded_general_all_total, news_ded_all_total)
 ```
 
 Do the same, but excluding online resources:
 ```{r}
-prof_news_year_offline <- lexis_data_filt %>%
-  filter(!is.na(year) & year >= 1974 & year <= 2024 & online_resource == FALSE)%>%
+prof_news_year_offline <- lexis_data %>%
+  filter(!is.na(year) & year >= 1973 & year <= 2023 & online_resource == FALSE)%>%
   arrange(profile_id, year)%>%
-  group_by(profile_id, year, source_coarse)%>%
+  group_by(profile_id, year, source_type)%>%
   summarise(n = n())%>%
   replace(is.na(.), 0)%>%
-  arrange(profile_id, year,source_coarse)%>%
-  group_by(profile_id, source_coarse)%>%
+  arrange(profile_id, year, source_type)%>%
+  group_by(profile_id, source_type)%>%
   mutate(cumsum = cumsum(n))%>%
-  pivot_wider(names_from = source_coarse, values_from = c(n, cumsum))%>%
+  pivot_wider(names_from = source_type, values_from = c(n, cumsum))%>%
   fill(cumsum_national_nl:cumsum_high_prof_intl)%>%
   replace(is.na(.), 0)
 
+prof_news_year_offline <- prof_news_year_offline[c("profile_id", "year", "n_national_nl", 
+                                                   "n_news_aggr", "n_finance", "n_other", 
+                                                   "n_regional_nl", "n_science", "n_prof", 
+                                                   "n_local_int", "n_unknown", "n_high_prof_intl",
+                                                   "n_other_int", "n_blog", "cumsum_national_nl", 
+                                                   "cumsum_news_aggr", "cumsum_finance", "cumsum_other", 
+                                                   "cumsum_regional_nl", "cumsum_science", "cumsum_prof", 
+                                                   "cumsum_local_int", "cumsum_unknown", "cumsum_high_prof_intl",
+                                                   "cumsum_other_int", "cumsum_blog" )]
+
 # tidy up the columns
-colnames(prof_news_year_offline)[3:10] <- c("news_offline_national", "news_offline_regional", "news_offline_other",
-                                     "news_offline_intl", "news_offline_national_total", 
-                                     "news_offline_regional_total", "news_offline_other_total",
-                                     "news_offline_intl_total")
-
+colnames(prof_news_year_offline)[3:26] <- c("news_off_national", "news_off_aggr", "news_off_finance",
+                                            "news_off_other", "news_off_regional", "news_off_science",
+                                            "news_off_professional", "news_off_local_intl", "news_off_unknown",
+                                            "news_off_intl", "news_off_intl_other", "news_off_blog",
+                                            "news_off_national_total", "news_off_aggr_total", "news_off_finance_total",
+                                            "news_off_other_total", "news_off_regional_total", "news_off_science_total",
+                                            "news_off_professional_total", "news_off_local_intl_total", "news_off_unknown_total",
+                                            "news_off_intl_total", "news_off_intl_other_total", "news_off_blog_total")
+  
 # add total counts
-prof_news_year_offline$news_offline_all <- prof_news_year_offline$news_offline_national + prof_news_year_offline$news_offline_regional +
-  prof_news_year_offline$news_offline_other + prof_news_year_offline$news_offline_intl
-
-prof_news_year_offline$news_offline_all_total <- prof_news_year_offline$news_offline_national_total + prof_news_year_offline$news_offline_regional_total +
-  prof_news_year_offline$news_offline_other_total + prof_news_year_offline$news_offline_intl_total
-
+prof_news_year_offline$news_off_all <- rowSums(prof_news_year_offline[3:14])
+prof_news_year_offline$news_off_all_total <- rowSums(prof_news_year_offline[15:26])
+   
 # add general interest counts
-prof_news_year_offline$news_offline_general_all <- prof_news_year_offline$news_offline_national + prof_news_year_offline$news_offline_regional +
-  prof_news_year_offline$news_offline_intl
-
-prof_news_year_offline$news_offline_general_all_total <- prof_news_year_offline$news_offline_national_total + prof_news_year_offline$news_offline_regional_total+ 
-  prof_news_year_offline$news_offline_intl_total
-
+prof_news_year_offline$news_off_general_all <- rowSums(prof_news_year_offline[c("news_off_national", "news_off_regional", "news_off_intl",
+                                                            "news_off_local_intl", "news_off_intl_other")])
+prof_news_year_offline$news_off_general_all_total <- rowSums(prof_news_year_offline[c("news_off_national_total", 
+                                                                                      "news_off_regional_total",
+                                                                                      "news_off_intl_total", 
+                                                                                      "news_off_local_intl_total",
+                                                                                      "news_off_intl_other_total")])
+   
 # rearrange a bit
-prof_news_year_offline <- prof_news_year_offline[c("profile_id", "year",
-                                     "news_offline_national", "news_offline_regional", "news_offline_other",
-                                     "news_offline_intl", "news_offline_all","news_offline_general_all",
-                                     "news_offline_national_total", 
-                                     "news_offline_regional_total", "news_offline_other_total",
-                                     "news_offline_intl_total", "news_offline_all_total", "news_offline_general_all_total")]
+prof_news_year_offline <- prof_news_year_offline %>%
+  select(profile_id, year, news_off_national, news_off_regional, news_off_intl, news_off_local_intl,
+         news_off_intl_other, news_off_general_all, news_off_finance, news_off_professional, news_off_science, news_off_blog,
+         news_off_aggr, news_off_unknown, news_off_other, news_off_all,
+         news_off_national_total, news_off_regional_total, 
+         news_off_intl_total, news_off_local_intl_total, news_off_intl_other_total, news_off_general_all_total, 
+         news_off_finance_total, news_off_professional_total, news_off_science_total, news_off_blog_total,
+         news_off_aggr_total, news_off_unknown_total, news_off_other_total, news_off_all_total)
 ```
 
-Now cover only resources with institutional affiliation mentioned (all and offline only)
+Now cover only resources with institutional affiliation mentioned:
 ```{r}
-prof_news_year_inst <- lexis_data_filt %>%
-  filter(!is.na(year) & year >= 1974 & year <= 2024 & affiliation == TRUE)%>%
+prof_news_year_inst <- lexis_data %>%
+  filter(!is.na(year) & year >= 1973 & year <= 2023 & affiliation == TRUE)%>%
   arrange(profile_id, year)%>%
-  group_by(profile_id, year, source_coarse)%>%
+  group_by(profile_id, year, source_type)%>%
   summarise(n = n())%>%
   replace(is.na(.), 0)%>%
-  arrange(profile_id, year,source_coarse)%>%
-  group_by(profile_id, source_coarse)%>%
+  arrange(profile_id, year, source_type)%>%
+  group_by(profile_id, source_type)%>%
   mutate(cumsum = cumsum(n))%>%
-  pivot_wider(names_from = source_coarse, values_from = c(n, cumsum))%>%
+  pivot_wider(names_from = source_type, values_from = c(n, cumsum))%>%
   fill(cumsum_national_nl:cumsum_high_prof_intl)%>%
   replace(is.na(.), 0)
 
-# tidy up the columns
-colnames(prof_news_year_inst)[3:10] <- c("news_inst_national", "news_inst_regional", "news_inst_other",
-                                     "news_inst_intl", "news_inst_national_total", 
-                                     "news_inst_regional_total", "news_inst_other_total",
-                                     "news_inst_intl_total")
-
-# add total counts
-prof_news_year_inst$news_inst_all <- prof_news_year_inst$news_inst_national + prof_news_year_inst$news_inst_regional +
-  prof_news_year_inst$news_inst_other + prof_news_year_inst$news_inst_intl
-
-prof_news_year_inst$news_inst_all_total <- prof_news_year_inst$news_inst_national_total + prof_news_year_inst$news_inst_regional_total +
-  prof_news_year_inst$news_inst_other_total + prof_news_year_inst$news_inst_intl_total
-
-# add general interest counts
-prof_news_year_inst$news_inst_general_all <- prof_news_year_inst$news_inst_national + prof_news_year_inst$news_inst_regional +
-  prof_news_year_inst$news_inst_intl
-
-prof_news_year_inst$news_inst_general_all_total <- prof_news_year_inst$news_inst_national_total + prof_news_year_inst$news_inst_regional_total+ 
-  prof_news_year_inst$news_inst_intl_total
-
-# rearrange a bit
-prof_news_year_inst <- prof_news_year_inst[c("profile_id", "year",
-                                     "news_inst_national", "news_inst_regional", "news_inst_other",
-                                     "news_inst_intl", "news_inst_all","news_inst_general_all",
-                                     "news_inst_national_total", 
-                                     "news_inst_regional_total", "news_inst_other_total",
-                                     "news_inst_intl_total", "news_inst_all_total", "news_inst_general_all_total")]
-
-
-
-prof_news_year_inst_offline <- lexis_data_filt %>%
-  filter(!is.na(year) & year >= 1974 & year <= 2024 & affiliation == TRUE & online_resource == FALSE)%>%
-  arrange(profile_id, year)%>%
-  group_by(profile_id, year, source_coarse)%>%
-  summarise(n = n())%>%
-  replace(is.na(.), 0)%>%
-  arrange(profile_id, year,source_coarse)%>%
-  group_by(profile_id, source_coarse)%>%
-  mutate(cumsum = cumsum(n))%>%
-  pivot_wider(names_from = source_coarse, values_from = c(n, cumsum))%>%
-  fill(cumsum_national_nl:cumsum_high_prof_intl)%>%
-  replace(is.na(.), 0)
+prof_news_year_inst <- prof_news_year_inst[c("profile_id", "year", "n_national_nl", 
+                                             "n_news_aggr", "n_finance", "n_other", 
+                                             "n_regional_nl", "n_science", "n_prof", 
+                                             "n_local_int", "n_unknown", "n_high_prof_intl",
+                                             "n_other_int", "n_blog", "cumsum_national_nl", 
+                                             "cumsum_news_aggr", "cumsum_finance", "cumsum_other", 
+                                             "cumsum_regional_nl", "cumsum_science", "cumsum_prof", 
+                                             "cumsum_local_int", "cumsum_unknown", "cumsum_high_prof_intl",
+                                             "cumsum_other_int", "cumsum_blog" )]
 
 # tidy up the columns
-colnames(prof_news_year_inst_offline)[3:10] <- c("news_inst_offline_national", "news_inst_offline_regional", "news_inst_offline_other",
-                                     "news_inst_offline_intl", "news_inst_offline_national_total", 
-                                     "news_inst_offline_regional_total", "news_inst_offline_other_total",
-                                     "news_inst_offline_intl_total")
-
+colnames(prof_news_year_inst)[3:26] <- c("news_inst_national", "news_inst_aggr", "news_inst_finance",
+                                            "news_inst_other", "news_inst_regional", "news_inst_science",
+                                            "news_inst_professional", "news_inst_local_intl", "news_inst_unknown",
+                                            "news_inst_intl", "news_inst_intl_other", "news_inst_blog",
+                                            "news_inst_national_total", "news_inst_aggr_total", "news_inst_finance_total",
+                                            "news_inst_other_total", "news_inst_regional_total", "news_inst_science_total",
+                                            "news_inst_professional_total", "news_inst_local_intl_total", "news_inst_unknown_total",
+                                            "news_inst_intl_total", "news_inst_intl_other_total", "news_inst_blog_total")
+  
 # add total counts
-prof_news_year_inst_offline$news_inst_offline_all <- prof_news_year_inst_offline$news_inst_offline_national + prof_news_year_inst_offline$news_inst_offline_regional +
-  prof_news_year_inst_offline$news_inst_offline_other + prof_news_year_inst_offline$news_inst_offline_intl
-
-prof_news_year_inst_offline$news_inst_offline_all_total <- prof_news_year_inst_offline$news_inst_offline_national_total + prof_news_year_inst_offline$news_inst_offline_regional_total +
-  prof_news_year_inst_offline$news_inst_offline_other_total + prof_news_year_inst_offline$news_inst_offline_intl_total
-
+prof_news_year_inst$news_inst_all <- rowSums(prof_news_year_inst[3:14])
+prof_news_year_inst$news_inst_all_total <- rowSums(prof_news_year_inst[15:26])
+   
 # add general interest counts
-prof_news_year_inst_offline$news_inst_offline_general_all <- prof_news_year_inst_offline$news_inst_offline_national + prof_news_year_inst_offline$news_inst_offline_regional +
-  prof_news_year_inst_offline$news_inst_offline_intl
+prof_news_year_inst$news_inst_general_all <- rowSums(prof_news_year_inst[c("news_inst_national", "news_inst_regional", "news_inst_intl",
+                                                            "news_inst_local_intl", "news_inst_intl_other")])
 
-prof_news_year_inst_offline$news_inst_offline_general_all_total <- prof_news_year_inst_offline$news_inst_offline_national_total + prof_news_year_inst_offline$news_inst_offline_regional_total+ 
-  prof_news_year_inst_offline$news_inst_offline_intl_total
-
+prof_news_year_inst$news_inst_general_all_total <- rowSums(prof_news_year_inst[c("news_inst_national_total", 
+                                                                                      "news_inst_regional_total",
+                                                                                      "news_inst_intl_total", 
+                                                                                      "news_inst_local_intl_total",
+                                                                                      "news_inst_intl_other_total")])
+   
 # rearrange a bit
-prof_news_year_inst_offline <- prof_news_year_inst_offline[c("profile_id", "year",
-                                     "news_inst_offline_national", "news_inst_offline_regional", "news_inst_offline_other",
-                                     "news_inst_offline_intl", "news_inst_offline_all","news_inst_offline_general_all",
-                                     "news_inst_offline_national_total", 
-                                     "news_inst_offline_regional_total", "news_inst_offline_other_total",
-                                     "news_inst_offline_intl_total", "news_inst_offline_all_total", "news_inst_offline_general_all_total")]
+prof_news_year_inst <- prof_news_year_inst %>%
+  select(profile_id, year, news_inst_national, news_inst_regional, news_inst_intl, news_inst_local_intl,
+         news_inst_intl_other, news_inst_general_all, news_inst_finance, news_inst_professional, news_inst_science, news_inst_blog,
+         news_inst_aggr, news_inst_unknown, news_inst_other, news_inst_all,
+         news_inst_national_total, news_inst_regional_total, 
+         news_inst_intl_total, news_inst_local_intl_total, news_inst_intl_other_total, news_inst_general_all_total, 
+         news_inst_finance_total, news_inst_professional_total, news_inst_science_total, news_inst_blog_total,
+         news_inst_aggr_total, news_inst_unknown_total, news_inst_other_total, news_inst_all_total)
 ```
 
-Merge the two lexis sub-data-frames:
+And deduplicated:
 ```{r}
+prof_news_year_inst_ded <- lexis_data %>%
+  filter(!is.na(year) & year >= 1973 & year <= 2023 & affiliation == TRUE & regional_duplicate == FALSE)%>%
+  arrange(profile_id, year, source_type)%>%
+  group_by(profile_id, year, source_type)%>%
+  summarise(n = n())%>%
+  replace(is.na(.), 0)%>%
+  arrange(profile_id, year, source_type)%>%
+  group_by(profile_id, source_type)%>%
+  mutate(cumsum = cumsum(n))%>%
+  pivot_wider(names_from = source_type, values_from = c(n, cumsum))%>%
+  fill(cumsum_national_nl:cumsum_high_prof_intl)%>%
+  replace(is.na(.), 0)
+
+prof_news_year_inst_ded <- prof_news_year_inst_ded[c("profile_id", "year", "n_national_nl", 
+                                                     "n_news_aggr", "n_finance", "n_other", 
+                                                     "n_regional_nl", "n_science", "n_prof", 
+                                                     "n_local_int", "n_unknown", "n_high_prof_intl",
+                                                     "n_other_int", "n_blog", "cumsum_national_nl", 
+                                                     "cumsum_news_aggr", "cumsum_finance", "cumsum_other", 
+                                                     "cumsum_regional_nl", "cumsum_science", "cumsum_prof", 
+                                                     "cumsum_local_int", "cumsum_unknown", "cumsum_high_prof_intl",
+                                                     "cumsum_other_int", "cumsum_blog" )]
+
+# tidy up the columns
+colnames(prof_news_year_inst_ded)[3:26] <- c("news_ded_inst_national", "news_ded_inst_aggr", "news_ded_inst_finance",
+                                            "news_ded_inst_other", "news_ded_inst_regional", "news_ded_inst_science",
+                                            "news_ded_inst_professional", "news_ded_inst_local_intl", "news_ded_inst_unknown",
+                                            "news_ded_inst_intl", "news_ded_inst_intl_other", "news_ded_inst_blog",
+                                            "news_ded_inst_national_total", "news_ded_inst_aggr_total", "news_ded_inst_finance_total",
+                                            "news_ded_inst_other_total", "news_ded_inst_regional_total", "news_ded_inst_science_total",
+                                            "news_ded_inst_professional_total", "news_ded_inst_local_intl_total", "news_ded_inst_unknown_total",
+                                            "news_ded_inst_intl_total", "news_ded_inst_intl_other_total", "news_ded_inst_blog_total")
+  
+# add total counts
+prof_news_year_inst_ded$news_ded_inst_all <- rowSums(prof_news_year_inst_ded[3:14])
+prof_news_year_inst_ded$news_ded_inst_all_total <- rowSums(prof_news_year_inst_ded[15:26])
+   
+# add general interest counts
+prof_news_year_inst_ded$news_ded_inst_general_all <- rowSums(prof_news_year_inst_ded[c("news_ded_inst_national", "news_ded_inst_regional", "news_ded_inst_intl",
+                                                            "news_ded_inst_local_intl", "news_ded_inst_intl_other")])
+
+prof_news_year_inst_ded$news_ded_inst_general_all_total <- rowSums(prof_news_year_inst_ded[c("news_ded_inst_national_total", 
+                                                                                      "news_ded_inst_regional_total",
+                                                                                      "news_ded_inst_intl_total", 
+                                                                                      "news_ded_inst_local_intl_total",
+                                                                                      "news_ded_inst_intl_other_total")])
+   
+# rearrange a bit
+prof_news_year_inst_ded <- prof_news_year_inst_ded %>%
+  select(profile_id, year, news_ded_inst_national, news_ded_inst_regional, news_ded_inst_intl, news_ded_inst_local_intl,
+         news_ded_inst_intl_other, news_ded_inst_general_all, news_ded_inst_finance, news_ded_inst_professional, news_ded_inst_science, news_ded_inst_blog,
+         news_ded_inst_aggr, news_ded_inst_unknown, news_ded_inst_other, news_ded_inst_all,
+         news_ded_inst_national_total, news_ded_inst_regional_total, 
+         news_ded_inst_intl_total, news_ded_inst_local_intl_total, news_ded_inst_intl_other_total, news_ded_inst_general_all_total, 
+         news_ded_inst_finance_total, news_ded_inst_professional_total, news_ded_inst_science_total, news_ded_inst_blog_total,
+         news_ded_inst_aggr_total, news_ded_inst_unknown_total, news_ded_inst_other_total, news_ded_inst_all_total)
+```
+
+Merge the lexis sub-data-frames:
+```{r}
+prof_news_year <- merge(prof_news_year,
+                        prof_news_year_ded,
+                        all.x = TRUE,
+                        all.y = TRUE,
+                        by = c("profile_id", "year"))
+
 prof_news_year <- merge(prof_news_year,
                         prof_news_year_offline,
                         all.x = TRUE,
@@ -824,7 +1104,7 @@ prof_news_year <- merge(prof_news_year,
                         by = c("profile_id", "year"))
 
 prof_news_year <- merge(prof_news_year,
-                        prof_news_year_inst_offline,
+                        prof_news_year_inst_ded,
                         all.x = TRUE,
                         all.y = TRUE,
                         by = c("profile_id", "year"))
@@ -841,7 +1121,29 @@ prof_lexis_year_pad <- merge(prof_news_year,
 # fill down on totals and replace NAs with zeroes
 prof_lexis_year_pad <- prof_lexis_year_pad %>%
   group_by(profile_id)%>%
-  fill(news_national_total:news_offline_general_all_total, .direction = "down")%>%
+  fill(news_national_total, news_regional_total,
+       news_intl_total,news_local_intl_total, news_intl_other_total,
+       news_general_all_total, news_finance_total, news_professional_total,
+       news_science_total, news_blog_total,news_aggr_total,
+       news_unknown_total, news_other_total, news_all_total,
+       news_ded_regional_total, news_ded_general_all_total, news_ded_all_total,
+       news_off_national_total, news_off_regional_total, news_off_intl_total, 
+       news_off_local_intl_total,
+       news_off_intl_other_total, news_off_general_all_total, news_off_finance_total,
+       news_off_professional_total, news_off_science_total, news_off_blog_total,
+       news_off_aggr_total, news_off_unknown_total, news_off_other_total,
+       news_off_all_total, 
+       news_inst_national_total, news_inst_regional_total, news_inst_intl_total,
+       news_inst_local_intl_total, news_inst_intl_other_total, news_inst_general_all_total,
+       news_inst_finance_total, news_inst_professional_total, news_inst_science_total,
+       news_inst_blog_total, news_inst_aggr_total, news_inst_unknown_total,
+       news_inst_other_total, news_inst_all_total,
+       news_ded_inst_national_total, news_ded_inst_regional_total,
+       news_ded_inst_intl_total, news_ded_inst_local_intl_total, news_ded_inst_intl_other_total,
+       news_ded_inst_general_all_total, news_ded_inst_finance_total, news_ded_inst_professional_total,
+       news_ded_inst_science_total, news_ded_inst_blog_total, news_ded_inst_aggr_total,
+       news_ded_inst_unknown_total, news_ded_inst_other_total, news_ded_inst_all_total, 
+       .direction = "down")%>%
   mutate(across(contains('news'), replace_na, 0))
 ```
 
@@ -859,7 +1161,7 @@ exclude_profs <- c('PRS1260654', 'PRS1264232', 'PRS1290223',
                    'PRS1265665', 'PRS1276211', 'PRS1336203',
                    'PRS1329967', 'PRS1334028')
 
-prof_lexis_year_pad[which(prof_lexis_year_pad$profile_id %in% paste0("https://www.narcis.nl/person/RecordID/",exclude_profs)),3:26] <- NA
+prof_lexis_year_pad[which(prof_lexis_year_pad$profile_id %in% paste0("https://www.narcis.nl/person/RecordID/",exclude_profs)),3:120] <- NA
 ```
 
 
@@ -873,11 +1175,24 @@ prof_year_p_c_g_a_l <- merge(prof_year_p_c_g_a,
 
 Write this out:
 ```{r}
-write_csv(prof_year_p_c_g_a_l, "panel_datasets/prof_year_pubs_citations_grants_alt_lexis_1_5.csv")
+write_csv(prof_year_p_c_g_a_l, "panel_datasets/prof_year_pubs_citations_grants_alt_lexis_26_7.csv")
+```
+
+```{r}
+rm(lexis_data)
+rm(lexis_data_filt)
+rm(lexis_data_filt_ded)
+rm(prof_news_year)
+rm(prof_news_year_ded)
+rm(prof_news_year_inst)
+rm(prof_news_year_inst_ded)
+rm(prof_lexis_year_pad)
+gc()
 ```
 
 
-## Main field
+# Field classification
+
 Get each professor's main field in a given year based on their papers, and get 
 their overall specialization.
 
@@ -885,14 +1200,19 @@ First, fetching the topics:
 ```{r}
 oa_pubs_topics <- dbReadTable(con, "oa_pubs_topics")
 
-taoa_pubs_topics <- merge(oa_prof_pub_matching,
+oa_pubs_topics <- merge(oa_prof_pub_matching,
                         oa_pubs_topics,
                         by = "id",
                         all.x = TRUE)
-
+ 
 oa_pubs_topics <- merge(oa_pubs_topics,
                         oa_pubs_unique[c("id", "publication_year")],
                         by = "id")
+
+# leave the domain as is, unless it's arts and humanities
+oa_pubs_topics$scopus_domain_adj <- ifelse(oa_pubs_topics$field_display_name == "Arts and Humanities",
+                                           "Arts and Humanities",
+                                           oa_pubs_topics$domain_display_name)
 ```
 
 Professor's topic diversity per year and in total:
@@ -916,7 +1236,7 @@ diversity_year <- diversity(prof_year_field[, -c(1:2)], index = "shannon")
 prof_year_field_div <- cbind.data.frame(prof_year_field[, c(1:2)],
                                         yearly_diversity = diversity_year)
 
-prof_year_field_div$yearly_field_evennes <- prof_year_field_div$yearly_diversity/log(27)
+prof_year_field_div$yearly_field_evennes <- prof_year_field_div$yearly_diversity/log(26)
 
 colnames(prof_year_field_div)[2] <- "year"
 
@@ -937,7 +1257,7 @@ diversity_total <- diversity(prof_total_field[, -c(1)], index = "shannon")
 prof_field_div <- cbind.data.frame(prof_total_field[, c(1)],
                                         total_diversity = diversity_total)
 
-prof_field_div$total_field_evennes <- prof_field_div$total_diversity/log(27)
+prof_field_div$total_field_evennes <- prof_field_div$total_diversity/log(26)
 
 ```
 
@@ -958,7 +1278,7 @@ prof_year_p_c_g_a_l_f <- merge(prof_year_p_c_g_a_l_f,
 
 Fields and subfields per prof per year and in total
 ```{r}
-# per year
+# per year field
 prof_year_field <- oa_pubs_topics %>%
   group_by(profile_id, publication_year, field_display_name) %>%
   summarise(n = n())%>%
@@ -967,7 +1287,7 @@ prof_year_field <- oa_pubs_topics %>%
 
 colnames(prof_year_field)[c(2,3)] <- c("year","yearly_field" )
 
-
+# per year subfield
 prof_year_subfield <- oa_pubs_topics %>%
   group_by(profile_id, publication_year, subfield_display_name) %>%
   summarise(n = n())%>%
@@ -975,6 +1295,15 @@ prof_year_subfield <- oa_pubs_topics %>%
   select(-n)
 
 colnames(prof_year_subfield)[c(2,3)] <- c("year","yearly_subfield") 
+
+# per year adjusted
+prof_year_domain <- oa_pubs_topics %>%
+  group_by(profile_id, publication_year, scopus_domain_adj) %>%
+  summarise(n = n())%>%
+  slice_max(n, with_ties = FALSE)%>%
+  select(-n)
+
+colnames(prof_year_domain)[c(2,3)] <- c("year", "yearly_adj_domain") 
 
 
 # overall 
@@ -994,6 +1323,14 @@ prof_total_field <- oa_pubs_topics %>%
 
 colnames(prof_total_field)[2] <- c("overall_field" )
 
+# overal adjusted
+prof_total_domain <- oa_pubs_topics %>%
+  group_by(profile_id, scopus_domain_adj) %>%
+  summarise(n = n())%>%
+  slice_max(n, with_ties = FALSE)%>%
+  select(-n)
+
+colnames(prof_total_domain)[2] <- c("overall_adj_domain") 
 
 
 # merge profs and their fields
@@ -1010,6 +1347,12 @@ prof_year_p_c_g_a_l_f <- merge(prof_year_p_c_g_a_l_f,
                              all.y = FALSE) 
 
 prof_year_p_c_g_a_l_f <- merge(prof_year_p_c_g_a_l_f,
+                             prof_year_domain[c("profile_id", "yearly_adj_domain", "year")],
+                             by = c("profile_id", "year"),
+                             all.x = TRUE,
+                             all.y = FALSE) 
+
+prof_year_p_c_g_a_l_f <- merge(prof_year_p_c_g_a_l_f,
                              prof_total_field[c("profile_id", "overall_field")],
                              by = c("profile_id"),
                              all.x = TRUE,
@@ -1020,65 +1363,14 @@ prof_year_p_c_g_a_l_f <- merge(prof_year_p_c_g_a_l_f,
                              by = c("profile_id"),
                              all.x = TRUE,
                              all.y = FALSE) 
+
+prof_year_p_c_g_a_l_f <- merge(prof_year_p_c_g_a_l_f,
+                             prof_total_domain[c("profile_id", "overall_adj_domain")],
+                             by = c("profile_id"),
+                             all.x = TRUE,
+                             all.y = FALSE) 
 ```
 
-But now we want to, for each professor and year, get their cumulative diversity and
-topic up until then:
-```{r warning = F, message = F}
-# profs <- unique(prof_year_p_c_g_a_l_f$profile_id)
-# 
-# all_prof_year_cumulative_field <- data.frame(matrix(NA, nrow = 0, ncol = 4))
-# 
-# for (prof in profs){
-#   publication_list <- filter(oa_pubs_topics,
-#                              profile_id == prof)%>%
-#     arrange(-publication_year)
-#   
-#   years <- sort(unique(publication_list$publication_year))
-#   
-#   prof_year_cumulative_field <- data.frame(matrix(NA, nrow = 0, ncol = 4))
-#   
-#   for (year in years){
-#     
-#     pubs_until <- filter(publication_list,
-#                          publication_year <= as.numeric(year))
-#     
-#     
-#     prof_field <- pubs_until %>%
-#       group_by(profile_id, field_display_name) %>%
-#       summarise(n = n())%>%
-#       slice_max(n, with_ties = FALSE)%>%
-#       select(-n)
-#     
-#     prof_subfield <- pubs_until %>%
-#       group_by(profile_id, subfield_display_name) %>%
-#       summarise(n = n())%>%
-#       slice_max(n, with_ties = FALSE)%>%
-#       select(-n)
-#     
-#     prof_combi <- cbind.data.frame(prof_field[, 1],
-#                                    year = year,
-#                                    prof_field[, -1],
-#                                    prof_subfield[, -1])
-#     
-#     prof_year_cumulative_field <- rbind(prof_year_cumulative_field,
-#                                         prof_combi)
-# 
-#     
-#   }
-#   
-#   all_prof_year_cumulative_field <- rbind(all_prof_year_cumulative_field,
-#                                           prof_year_cumulative_field)
-#   
-#   print(which(profs == prof))
-# }
-
-# prof_year_p_c_g_a_l_f <- merge(prof_year_p_c_g_a_l_f,
-#                              all_prof_year_cumulative_field,
-#                              by = c("profile_id", "year"),
-#                              all.x = TRUE,
-#                              all.y = FALSE) 
-```
 Remove duplicates, if any:
 ```{r}
 prof_year_p_c_g_a_l_f$dupl <- duplicated(prof_year_p_c_g_a_l_f[c("profile_id", "year")])
@@ -1090,7 +1382,7 @@ prof_year_p_c_g_a_l_f <- prof_year_p_c_g_a_l_f %>%
 
 Write this out:
 ```{r}
-write_csv(prof_year_p_c_g_a_l_f, "panel_datasets/prof_year_pubs_citations_grants_alt_lexis_field_1_5.csv")
+write_csv(prof_year_p_c_g_a_l_f, "panel_datasets/prof_year_pubs_citations_grants_alt_lexis_field_26_7.csv")
 ```
 
 Remove some redundant objects:
@@ -1125,8 +1417,9 @@ prof_year_p_c_g_a_l_f_l <- merge(prof_year_p_c_g_a_l_f,
 
 Write this out:
 ```{r}
-write_csv(prof_year_p_c_g_a_l_f_l, "panel_datasets/prof_year_pubs_citations_grants_alt_lexis_field_lag_1_5.csv")
+write_csv(prof_year_p_c_g_a_l_f_l, "panel_datasets/prof_year_pubs_citations_grants_alt_lexis_field_lag_26_7.csv")
 ```
+
 
 # Coauthor data
 
@@ -1209,6 +1502,7 @@ colnames(coauthor_pubs_cits_cumulative)[which(colnames(coauthor_pubs_cits_cumula
 latest_citation_coauthor <- coauthor_pubs_cits_cumulative %>%
   group_by(id)%>%
   slice(which.max(year))
+
 latest_citation_coauthor$cited_by_before_2012 <- latest_citation_coauthor$cited_by_total - latest_citation_coauthor$cited_by_total_oa
 latest_citation_coauthor$count_pubs_before_2012 <- latest_citation_coauthor$count_pubs_total - latest_citation_coauthor$count_pubs_total_oa
 # replace by 0 if negative (OA issue ticket opened)
@@ -1321,7 +1615,7 @@ coauthor_year_p_c_a_g <- merge(coauthor_year_p_c_a2,
 coauthor_year_p_c_a_g <- coauthor_year_p_c_a_g%>%
   arrange(id, year)
 
-write_csv(coauthor_year_p_c_a_g, "panel_datasets/coauthor_year_panel_27_3.csv")
+write_csv(coauthor_year_p_c_a_g, "panel_datasets/coauthor_year_panel_26_7.csv")
 ```
 
 Filter out coauthor observations without year:
@@ -1352,7 +1646,6 @@ rm(coauthor_gender)
 rm(all_names)
 gc()
 ```
-
 
 For each author, match their coauthors from that year:
 ```{r}
@@ -1395,8 +1688,9 @@ prof_panel_combined <- merge(prof_year_p_c_g_a_l_f_l,
 
 Write this:
 ```{r}
-write_csv(prof_panel_combined, "panel_datasets/prof_year_pubs_citations_grants_alt_lexis_field_lag_coauthors_1_5.csv")
+write_csv(prof_panel_combined, "panel_datasets/prof_year_pubs_citations_grants_alt_lexis_field_lag_coauthors_26_7.csv")
 ```
+
 
 # Tidying up
 
@@ -1405,7 +1699,7 @@ write_csv(prof_panel_combined, "panel_datasets/prof_year_pubs_citations_grants_a
 prof_panel_combined <- prof_panel_combined %>% 
   mutate(general_field = case_match(
     overall_field,
-    "Arts and Humanities"  ~ "Arts & Humanities",
+    "Arts and Humanities"  ~ "Arts and Humanities",
     c("Biochemistry, Genetics and Molecular Biology","Agricultural and Biological Sciences",
       "Chemical Engineering", "Chemistry",  "Computer Science", "Decision Sciences",
       "Earth and Planetary Sciences", "Energy", "Engineering", "Environmental Science",
@@ -1418,7 +1712,7 @@ prof_panel_combined <- prof_panel_combined %>%
 prof_panel_combined <- prof_panel_combined %>% 
   mutate(general_field_yearly = case_match(
     yearly_field,
-    "Arts and Humanities"  ~ "Arts & Humanities",
+    "Arts and Humanities"  ~ "Arts and Humanities",
     c("Biochemistry, Genetics and Molecular Biology","Agricultural and Biological Sciences",
       "Chemical Engineering", "Chemistry",  "Computer Science", "Decision Sciences",
       "Earth and Planetary Sciences", "Energy", "Engineering", "Environmental Science",
@@ -1539,5 +1833,5 @@ prof_panel_tidy$entry_batch_2023 <- ifelse(prof_panel_tidy$years_since_entry_202
 
 Save this:
 ```{r}
-write_csv(prof_panel_tidy, "panel_datasets/prof_panel_tidy_1_5.csv")
+write_csv(prof_panel_tidy, "panel_datasets/prof_panel_tidy_26_7.csv")
 ```

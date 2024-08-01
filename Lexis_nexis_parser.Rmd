@@ -167,7 +167,7 @@ exclude_profs <- c('PRS1260654', 'PRS1264232', 'PRS1290223',
 # Article classification
 Denote whether an article is from a national, regional or specialized Dutch source, or perhaps a higher-profile international source:
 ```{r}
-source("resources/altmetric_news_outlet_classification.R")
+source("resources/lexis_news_outlet_classification.R")
 ```
 
 
@@ -183,14 +183,16 @@ one source that works a lot with newsletters, but not actual news:
 news_mentions$national_nl <- ifelse(tolower(news_mentions$newspaper_tidy) %in% tolower(national_news_nl), 1, 0)
 # local Dutch sources
 news_mentions$regional_nl <- ifelse(tolower(news_mentions$newspaper_tidy) %in% tolower(regional_news_nl), 1, 0)
-# higher-profile interantional sources
+# higher-profile international sources
 news_mentions$high_prof_intl <- ifelse(tolower(news_mentions$newspaper_tidy) %in% tolower(high_profile_int), 1, 0)
 # newsletters by "news bites"
 news_mentions$newsletter <- ifelse(tolower(news_mentions$newspaper_tidy) %in% tolower(news_bites), 1, 0)
 # PR documents
 news_mentions$pr_news <- ifelse(tolower(news_mentions$newspaper_tidy) %in% tolower(pr_govt), 1, 0)
-# unviersity newspapers
+# university newspapers
 news_mentions$uni_news <- ifelse(tolower(news_mentions$newspaper_tidy) %in% tolower(uni_news), 1, 0)
+# professional publications
+news_mentions$prof_pub <- ifelse(tolower(news_mentions$newspaper_tidy) %in% tolower(professional_pub_nl), 1, 0)
 # blogs
 news_mentions$blog <- ifelse(str_detect(tolower(news_mentions$newspaper_tidy), "blog"), 1, 0)
 news_mentions$blog <- ifelse(is.na(news_mentions$blog), 0, news_mentions$blog)
@@ -204,7 +206,7 @@ news_mentions$source_unknown <- ifelse(is.na(news_mentions$newspaper_tidy), 1, n
 # and the remainder
 news_mentions$source_unclassified <- ifelse(news_mentions$national_nl == 0 & news_mentions$regional_nl == 0 &
                                               news_mentions$high_prof_intl == 0 & news_mentions$newsletter == 0 &
-                                              news_mentions$pr_news == 0 & news_mentions$uni_news == 0 &
+                                              news_mentions$pr_news == 0 & news_mentions$uni_news == 0 & news_mentions$prof_pub == 0 &
                                               news_mentions$blog == 0 &
                                               news_mentions$source_unknown == 0, 1, 0)
 
@@ -221,13 +223,15 @@ news_mentions$source_type <- ifelse(news_mentions$national_nl == 1,
                                                                 "pr_news", 
                                                                 ifelse(news_mentions$uni_news == 1,
                                                                        "uni_news",
-                                                                       ifelse(news_mentions$blog == 1,
-                                                                              "blog",
-                                                                              ifelse(news_mentions$irrelevant == 1,
-                                                                                     "irrelevant",
-                                                                                     ifelse(news_mentions$source_unknown == 1,
-                                                                                            "unknown",
-                                                                                            "other")))))))))
+                                                                       ifelse(news_mentions$prof_pub == 1,
+                                                                              "prof_pub",
+                                                                              ifelse(news_mentions$blog == 1,
+                                                                                     "blog",
+                                                                                     ifelse(news_mentions$irrelevant == 1,
+                                                                                            "irrelevant",
+                                                                                            ifelse(news_mentions$source_unknown == 1,
+                                                                                                   "unknown",
+                                                                                                   "other"))))))))))
 ```
 
 See if the source is an online outlet/website:

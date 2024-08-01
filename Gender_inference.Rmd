@@ -41,6 +41,23 @@ opts_chunk$set(message = FALSE)
 ```
 
 
+Connect to the postgres database.
+Use own credentials.
+```{r}
+port <- 5432
+user <- "postgres"
+password <- "dutchmediaprofssql"
+database_name <- "postgres"
+
+con <- dbConnect(Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+
+con # Checks connection is working
+```
+
 # Professors
 ## Tidy up professor data from NARCIS
 
@@ -88,7 +105,7 @@ profs_full$first[which(profs_full$first == "marie-jea")] <- "marie-jeanne"
 profs_full$first[which(profs_full$full == "posthuma,  danielle")] <- "danielle"
 profs_full$first[which(profs_full$first == "huppertz")] <- "thom"
 # save the corrected data
-saveRDS(profs_full, "processed_data/media_profs_profiles_fixed.RDS")
+saveRDS(profs_full, "processed_data/narcis_prof_info_fixed.RDS")
 ```
 
 
@@ -115,7 +132,7 @@ for (i in 1:length(names)){
   print(paste("done with", i, "out of", length(names)))
 }
 
-saveRDS(genderize_data , "processed_data/profs_full_gender_genderize.RDS")
+saveRDS(genderize_data , "processed_data/prof_gender_genderize.RDS")
 ```
 
 
@@ -172,14 +189,14 @@ for (i in 1:length(names)) {
 
 Save this:
 ```{r}
-saveRDS(voornamenbank_data, "processed_data/voornamenbank_data.RDS")
+saveRDS(voornamenbank_data, "processed_data/prof_gender_voornamenbank.RDS")
 ```
 
 ## Combine the genderize and voornamenbank data for final inference
 
 ```{r}
-genderize_data <- readRDS("processed_data/profs_full_gender_genderize.RDS")
-voornamenbank_data <- readRDS("processed_data/voornamenbank_data.RDS")
+genderize_data <- readRDS("processed_data/prof_gender_genderize.RDS")
+voornamenbank_data <- readRDS("processed_data/prof_gender_voornamenbank.RDS")
 ```
 
 For the voornamenbank data, assign the gender based on a majority rule.
@@ -401,15 +418,14 @@ profs_full_gender <- rbind(profs_full_gender,
 
 Save the output:
 ```{r}
-saveRDS(profs_full_gender, "processed_data/profs_full_gender.RDS")
+dbWriteTable(con, "gender_table", profs_full_gender, row.names=FALSE, append=TRUE)
 ```
-
 
 
 ## Plots 
 
 ```{r echo = F, eval = TRUE}
-profs_full_gender <- readRDS("processed_data/profs_full_gender.RDS")
+profs_full_gender <- dbReadTable(con, "gender_table")
 ```
 
 
@@ -435,23 +451,6 @@ ggplot(profs_full_gender, aes(format(inferred_gender))) +
 
 
 # Coauthors
-
-Connect to the postgres database.
-Use own credentials.
-```{r}
-port <- 
-user <- ""
-password <- ""
-database_name <- ""
-
-con <- dbConnect(Postgres(),
-                 dbname= database_name,
-                 port = port,
-                 user = user, 
-                 password = password)
-
-con # Checks connection is working
-```
 
 Retrieve the full list of coauthor names from the database:
 ```{r}

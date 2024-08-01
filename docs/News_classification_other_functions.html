@@ -15,7 +15,7 @@
 
 <title>News seource classification and other functions</title>
 
-<script src="site_libs/header-attrs-2.26/header-attrs.js"></script>
+<script src="site_libs/header-attrs-2.25/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
@@ -350,12 +350,12 @@ classified as “other”.</p>
   &quot;Metro (NL)&quot;,
   &quot;De Volkskrant&quot;,
   &quot;De Volkskrant.nl&quot;,
+  &quot;de Volkskrant (Abstract) / MD Info&quot;,
+  &quot;de Volkskrant (Abstract) / MD Info&quot;,
+  &quot;De Telegraaf (Abstract) / MD Info&quot;,
   &quot;NRC Handelsblad&quot;,
   &quot;Trouw&quot;,
   &quot;Trouw.nl&quot;,
-  &quot;Het Financieele Dagblad&quot;,
-  &quot;Het Financieele Dagblad (Abstract)/MD Info&quot;,
-  &quot;FD.nl&quot;,
   &quot;Reformatorisch Dagblad&quot;,
   &quot;Nederlands Dagblad&quot;,
   &quot;NRC Next&quot;,
@@ -363,10 +363,191 @@ classified as “other”.</p>
   &quot;NRC.NEXT&quot;,
   &quot;NRC.nl&quot;,
   &quot;WebNews - Dutch&quot;,
-  &quot;Het Financieele Dagblad (Abstract)/MD Info&quot;
+  &quot;Metronieuws.nl&quot;,
+  &quot;Spits&quot;
+)
+
+finance_news &lt;- c(
+  &quot;Het Financieele Dagblad&quot;,
+  &quot;Het Financieele Dagblad (Abstract)/MD Info&quot;,
+  &quot;FD.nl&quot;,
+  &quot;Het Financieele Dagblad (Abstract)/MD Info&quot;,
+  &quot;AFR Online&quot;,
+  &quot;American Banking and Market News&quot;,
+  &quot;Australian Financial Review&quot;,
+  &quot;Briefing.com&quot;,
+  &quot;FEM Business&quot;,
+  &quot;Fem de Week&quot;,
+  &quot;Financial Buzz&quot;,
+  &quot;NRC Handelsblad (Abstract) / MD Info&quot;,
+  &quot;National Post (f/k/a The Financial Post) (Canada)&quot;,
+  &quot;QUOTE&quot;,
+  &quot;Quote&quot;,
+  &quot;Quotenet&quot;,
+  &quot;The Associated Press&quot;,
+  &quot;Business Wire&quot;
+)
+
+aggregators &lt;- c(
+  &quot;Africa News&quot;,
+  &quot;Agence France Presse -- English&quot;,
+  &quot;Associated Press State &amp; Local&quot;,
+  &quot;Associated Press Financial Wire&quot;,
+  &quot;Canadian Press&quot;,
+  &quot;Canwest News Service&quot;,
+  &quot;Asian News International (ANI)&quot;,
+  &quot;Associated Press International&quot;,
+  &quot;Associated Press Online&quot;,
+  &quot;CountryWatch Reviews&quot;,
+  &quot;GlobeNewswire - EnglishGlobeNewswire - English&quot;,
+  &quot;Hindustan Times&quot;,
+  &quot;Impact Financial News&quot;,
+  &quot;Global English (Middle East and North Africa Financial Network)&quot;,
+  &quot;Global Round Up - ADRs and Depository Receipts&quot;,
+  &quot;Global Round Up - Bullish and Bearish Signals&quot;,
+  &quot;India Education Diary&quot;,
+  &quot;India Engineering news&quot;,
+  &quot;India Pharma News&quot;,
+  &quot;Indian Health care news&quot;,
+  &quot;Industry SnapShot&quot;,
+  &quot;MENAFN - Business &amp; Finance News (English)&quot;,
+  &quot;MENAFN - Press Releases (English)&quot;,
+  &quot;Market News Publishing&quot;,
+  &quot;MarketLine NewsWire (Formerly Datamonitor)&quot;,
+  &quot;Marketwired&quot;,
+  &quot;PR Newswire US&quot;,
+  &quot;Pivotal Sources&quot;,
+  &quot;Plus Patent News&quot;,
+  &quot;Postmedia Breaking News&quot;,
+  &quot;Press Association&quot;,
+  &quot;Press Association Mediapoint&quot;,
+  &quot;TVEyes - BBC 1 Scotland&quot;,
+  &quot;TVEyes - BBC Radio 4&quot;,
+  &quot;TVEyes - BBC Radio 5 Live&quot;,
+  &quot;TVEyes - ITV 1 London&quot;,
+  &quot;Tenders Monitor Africa-Asia&quot;,
+  &quot;Tendersbiz&quot;,
+  &quot;The Associated Press State &amp; Local Wire&quot;,
+  &quot;The Canadian Press (CP)&quot;,
+  &quot;The Canadian Press(CP)&quot;,
+  &quot;Thomson Reuters ONE&quot;,
+  &quot;Trends&quot;,
+  &quot;UPI&quot;,
+  &quot;US States News&quot;,
+  &quot;united Press International&quot;,
+  &quot;WebNews - Academic&quot;,
+  &quot;WebNews - English&quot;,
+  &quot;News Bites - Private Companies&quot;,
+  &quot;News Bites - People in Business&quot;,
+  &quot;News Bites - Benelux: Netherlands&quot;,
+  &quot;News Bites - Nordic: Denmark&quot;,
+  &quot;OzEquities News Bites (Australia)&quot;,
+  &quot;Australian Company News Bites - Stock Report&quot;,
+  &quot;News Bites - Western Europe: Spain&quot;,
+  &quot;News Bites - Western Europe : Germany&quot;,
+  &quot;News Bites - Western Europe&quot;,
+  &quot;News Bites - Western Europe: Switzerland&quot;,
+  &quot;News Bites - Nordic: Sweden&quot;,
+  &quot;Plus Company Updates(PCU)&quot;,
+  &quot;Targeted News Service&quot;, 
+  &quot;US Fed News&quot;,
+  &quot;States News Service&quot;,
+  &quot;US Official News&quot;,
+  &quot;PR Newswire&quot;, 
+  &quot;M2 PressWIRE&quot;, 
+  &quot;Premium Official News&quot;,
+  &quot;European Union News&quot;, 
+  &quot;TendersInfo&quot;, 
+  &quot;Impact News Service&quot;,
+  &quot;GlobeNewswire&quot;,
+  &quot;PR Newswire Europe&quot;,
+  &quot;PR.com&quot;,
+  &quot;ENP Newswire&quot;,
+  &quot;FinancialWire&quot;,
+  &quot;Mena Report&quot;,
+  &quot;Australian Government News&quot;,
+  &quot;London Stock Exchange Aggregated Regulatory News Service (ARNS)&quot;,
+  &quot;Congressional Documents and Publications&quot;,
+  &quot;FD (Fair Disclosure) Wire&quot;,
+  &quot;University Wire&quot;
+  )
+
+local_int &lt;- c(
+  &quot;Bangor Daily News (Maine)&quot;,
+  &quot;DAILY MAIL (London)&quot;,
+  &quot;Belfast Telegraph&quot;,
+  &quot;Belfast Telegraph Online&quot;,
+  &quot;Burger with Relish&quot;,
+  &quot;Canberra Times (Australia)&quot;,
+  &quot;Charleston Daily Mail (West Virginia)&quot;,
+  &quot;Charleston Gazette (West Virginia)&quot;,
+  &quot;Chicago Daily Herald&quot;,
+  &quot;Christian Science Monitor (Boston, MA)&quot;,
+  &quot;Dayton Daily News (Ohio)&quot;,
+  &quot;Deseret Morning News (Salt Lake City)&quot;,
+  &quot;Edmonton Journal (Alberta)&quot;,
+  &quot;Hamilton Spectator (Ontario, Canada)&quot;,
+  &quot;Manchester Evening News&quot;,
+  &quot;Ottawa Citizen&quot;,
+  &quot;Pittsburgh Post-Gazette (Pennsylvania)&quot;,
+  &quot;Racing Post&quot;,
+  &quot;Richmond Times Dispatch (Virginia)&quot;,
+  &quot;Right Vision News&quot;,
+  &quot;Spokesman Review (Spokane, WA)&quot;,
+  &quot;St. Louis Post-Dispatch (Missouri)&quot;,
+  &quot;St. Petersburg Times (Florida)&quot;,
+  &quot;Star Tribune (Minneapolis, MN)&quot;,
+  &quot;Sydney Morning Herald (Australia)&quot;,
+  &quot;Telegraph Herald (Dubuque, IA)&quot;,
+  &quot;The Age (Melbourne, Australia)&quot;,
+  &quot;The Atlanta Journal and Constitution&quot;,
+  &quot;The Atlanta Journal-Constitution&quot;,
+  &quot;The Bismarck Tribune&quot;,
+  &quot;The Calgary Herald (Alberta)&quot;,
+  &quot;The Gazette (Montreal)&quot;,
+  &quot;The Herald (Glasgow)&quot;,
+  &quot;The Leader-Post (Regina, Saskatchewan)&quot;,
+  &quot;The Philadelphia Inquirer&quot;,
+  &quot;The Press (Christchurch, New Zealand)&quot;,
+  &quot;The Record (Kitchener-Waterloo, Ontario)&quot;,
+  &quot;The Salt Lake Tribune&quot;,
+  &quot;The Tampa Tribune (Florida)&quot;,
+  &quot;The Vancouver Sun (British Columbia)&quot;,
+  &quot;Times Colonist (Victoria, British Columbia)&quot;,
+  &quot;Wisconsin State Journal (Madison, Wisconsin)&quot;,
+  &quot;thespec.com&quot;
+)
+
+other_int &lt;- c(
+  &quot;The Times of India (TOI)&quot;,
+  &quot;China Daily&quot;,
+  &quot;CE Noticias Financieras English&quot;,
+  &quot;Daily Mirror&quot;,
+  &quot;Daily Record&quot;,
+  &quot;De Morgen.be&quot;,
+  &quot;Eurasia Review&quot;,
+  &quot;Express Online&quot;,
+  &quot;Irish Independent&quot;,
+  &quot;South China Morning Post&quot;,
+  &quot;Thai News Service&quot;,
+  &quot;The Australian&quot;,
+  &quot;The Christian Science Monitor&quot;,
+  &quot;The Irish Times&quot;,
+  &quot;The New Zealand Herald&quot;,
+  &quot;The Star (South Africa)&quot;,
+  &quot;The Straits Times (Singapore)&quot;,
+  &quot;The Sun (England)&quot;,
+  &quot;mirror.co.uk&quot;
 )
 
 regional_news_nl &lt;- c(
+  &quot;Rijn en Gouwe&quot;,
+  &quot;De Dordtenaar&quot;,
+  &quot;De Gooi- en Eemlander.nl&quot;,
+  &quot;De Krant van West-Vlaanderen&quot;,
+  &quot;Dagblad Flevoland&quot;,
+  &quot;Almere Vandaag&quot;,
+  &quot;Alphen.cc&quot;,
   &quot;De Limburger&quot;,
   &quot;Gelderlander&quot;,
   &quot;De Twentsche Courant Tubantia&quot;,
@@ -454,11 +635,11 @@ regional_news_nl &lt;- c(
   &quot;De Stem&quot;,
   &quot;Knack Magazine&quot;,
   &quot;IJmuider Courant&quot;,
-  &quot;De Brug Nijmegen&quot;,
-  &quot;de Volkskrant (Abstract) / MD Info&quot;)
+  &quot;De Brug Nijmegen&quot;)
 
-professional_pub_nl &lt;- c(
+professional_pub &lt;- c(
   &quot;De Accountant&quot;,
+  &quot;Accountant&quot;,
   &quot;Cobouw&quot;,
   &quot;Contify Life Science News&quot;,
   &quot;Boerderij&quot;,
@@ -473,27 +654,38 @@ professional_pub_nl &lt;- c(
   &quot;restaurantonline.co.uk&quot;,
   &quot;Groenten en Fruit&quot;,
   &quot;Pluimveehouderij&quot;,
-  &quot;Logistiek Krant&quot;)
+  &quot;Logistiek Krant&quot;,
+  &quot;Nieuwe Oogst&quot;,
+  &quot;Opzij&quot;
+  )
+
+science_pub &lt;- c(
+  &quot;Elsevier&quot;,
+  &quot;Elsevier Weekblad&quot;,
+  &quot;Journal Of Marketing&quot;,
+  &quot;Journal of Marketing Research&quot;,
+  &quot;Medical Xpress&quot;,
+  &quot;New Scientist&quot;,
+  &quot;Pharma &amp; Healthcare Monitor Worldwide&quot;,
+  &quot;Phys.org - Science and Technology News&quot;,
+  &quot;Space Daily&quot;,
+  &quot;The Chronicle of Higher Education&quot;
+)
 
 high_profile_int &lt;- c(
   &quot;The Times Higher Education Supplement&quot;,
   &quot;Financial Times (London, England)&quot;,
   &quot;The New York Times&quot;, 
-  &quot;The Associated Press&quot;,
-  &quot;Business Wire&quot;,
   &quot;The Times (London)&quot;,
   &quot;MailOnline&quot;,
   &quot;Guardian.com&quot;,
   &quot;The Guardian - Final Edition&quot;,
   &quot;Guardian Weekly&quot;,
-  &quot;Asian News International (ANI)&quot;,
-  &quot;Associated Press International&quot;,
-  &quot;Associated Press Online&quot;,
   &quot;FT.com&quot;,
+  &quot;FT.com Headlines&quot;,
   &quot;The Toronto Star&quot;,
   &quot;thetimes.co.uk&quot;,
   &quot;Xinhua General News Service&quot;,
-  &quot;FT.com Headlines&quot;,
   &quot;The Guardian (London)&quot;,
   &quot;The International Herald Tribune&quot;,
   &quot;The Guardian&quot;,
@@ -505,156 +697,11 @@ high_profile_int &lt;- c(
   &quot;The Guardian(London)&quot;,
   &quot;Independent.co.uk&quot;,
   &quot;CNN.com&quot;,
-  &quot;CE Noticias Financieras English&quot;,
   &quot;The Sunday Times (London)&quot;,
-  &quot;NEW YORK TIMES&quot;)
-
-# government and press releases
-pr_govt &lt;- c(
-  &quot;Targeted News Service&quot;, 
-  &quot;US Fed News&quot;,
-  &quot;States News Service&quot;,
-  &quot;US Official News&quot;,
-  &quot;PR Newswire&quot;, 
-  &quot;M2 PressWIRE&quot;, 
-  &quot;Premium Official News&quot;,
-  &quot;European Union News&quot;, 
-  &quot;TendersInfo&quot;, 
-  &quot;Impact News Service&quot;,
-  &quot;GlobeNewswire&quot;,
-  &quot;PR Newswire Europe&quot;,
-  &quot;PR.com&quot;,
-  &quot;ENP Newswire&quot;,
-  &quot;FinancialWire&quot;)
-
-# university newspapers
-uni_news &lt;- c(&quot;University Wire&quot;)
-
-# news bites
-news_bites &lt;- c(
-  &quot;News Bites - Private Companies&quot;,
-  &quot;News Bites - People in Business&quot;,
-  &quot;News Bites - Benelux: Netherlands&quot;,
-  &quot;News Bites - Nordic: Denmark&quot;,
-  &quot;OzEquities News Bites (Australia)&quot;,
-  &quot;Australian Company News Bites - Stock Report&quot;,
-  &quot;News Bites - Western Europe: Spain&quot;,
-  &quot;News Bites - Western Europe : Germany&quot;,
-  &quot;News Bites - Western Europe&quot;,
-  &quot;News Bites - Western Europe: Switzerland&quot;,
-  &quot;News Bites - Nordic: Sweden&quot;,
-  &quot;Plus Company Updates(PCU)&quot;)
-
-# irrelevant sources
-irrelevant &lt;-   &quot;FD (Fair Disclosure) Wire&quot;
-
-# online sources
-online_sources &lt;- c(
-    &quot;De Telegraaf&quot;,
-    &quot;De Telegraaf.nl&quot;,
-    &quot;Algemeen Dagblad&quot;,
-    &quot;AD/Algemeen Dagblad.nl&quot;,
-    &quot;AD/Algemeen Dagblad&quot;,
-    &quot;Metro&quot;,
-    &quot;Metro (NL)&quot;,
-    &quot;De Volkskrant&quot;,
-    &quot;De Volkskrant.nl&quot;,
-    &quot;NRC Handelsblad&quot;,
-    &quot;Trouw&quot;,
-    &quot;Trouw.nl&quot;,
-    &quot;Het Financieele Dagblad&quot;,
-    &quot;Het Financieele Dagblad (Abstract)/MD Info&quot;,
-    &quot;FD.nl&quot;,
-    &quot;Reformatorisch Dagblad&quot;,
-    &quot;Nederlands Dagblad&quot;,
-    &quot;NRC Next&quot;,
-    &quot;NRC&quot;,
-    &quot;NRC.NEXT&quot;,
-    &quot;NRC.nl&quot;,
-    &quot;WebNews - Dutch&quot;,
-    &quot;Het Financieele Dagblad (Abstract)/MD Info&quot;
-  )
-
-regional_news_nl &lt;- c(
-  &quot;De Limburger&quot;,
-  &quot;Gelderlander&quot;,
-  &quot;De Twentsche Courant Tubantia&quot;,
-  &quot;De Gelderlander&quot;,
-  &quot;De Gelderlander.nl&quot;,
-  &quot;Stentor&quot;,
-  &quot;Noordhollands Dagblad&quot;,
-  &quot;Dagblad van het Noorden&quot;,
-  &quot;Brabants Dagblad&quot;,
-  &quot;BN/DeStem&quot;,
-  &quot;BN De Stem.nl&quot;,
-  &quot;Tubantia&quot;,
-  &quot;Tubantia.nl&quot;,
-  &quot;Eindhovens Dagblad&quot;,
-  &quot;BN De Stem&quot;,
-  &quot;Leeuwarder Courant&quot;,
-  &quot;Het Parool&quot;,
-  &quot;Het Parool.nl&quot;,
-  &quot;Provinciale Zeeuwse Courant&quot;,
-  &quot;Haarlems Dagblad&quot;,
-  &quot;Leidsch Dagblad&quot;,
-  &quot;De Gooi- en Eemlander&quot;,
-  &quot;Nieuwsblad Noordoost-Friesland&quot;,
-  &quot;Steenwijker Courant&quot;,
-  &quot;Friesch Dagblad&quot;,
-  &quot;AD/Haagsche Courant&quot;,
-  &quot;AD/Rotterdams Dagblad&quot;,
-  &quot;AD/Utrechts Nieuwsblad&quot;,
-  &quot;Noordhollands Dagblad&quot;,
-  &quot;AD/Groene Hart&quot;,
-  &quot;AD/De Dordtenaar&quot;,
-  &quot;AD/Amersfoortse Courant&quot;,
-  &quot;AD/Rivierenland&quot;,
-  &quot;Limburgs Dagblad&quot;,
-  &quot;Brabants Dagblad.nl&quot;,
-  &quot;Eindhovens Dagblad.nl&quot;,
-  &quot;De Stentor.nl&quot;,
-  &quot;De Stentor&quot;,
-  &quot;De Stentor/Zwolse Courant&quot;,
-  &quot;De Stentor/Gelders Dagblad&quot;,
-  &quot;De Stentor/Zutphens Dagblad&quot;,
-  &quot;De Stentor/Nieuw Kamper Dagblad&quot;,
-  &quot;De Stentor/Dagblad Flevoland&quot;,
-  &quot;De Stentor/Veluws Dagblad&quot;,
-  &quot;De Stentor/Deventer Dagblad&quot;,
-  &quot;Dagblad Tubantia/Twentsche Courant&quot;,
-  &quot;de limburger.nl&quot;,
-  &quot;De Stentor/Apeldoornse Courant&quot;,
-  &quot;DAGBLAD VAN HET NOORDEN&quot;,
-  &quot;De Stentor/Sallands Dagblad&quot;,
-  &quot;De Stentor/ Deventer Dagblad&quot;,
-  &quot;De Stentor/Gelders Dagblad&quot;,
-  &quot;De Stentor/Zutphens Dagblad&quot;,
-  &quot;De Stentor/Zwolse Courant&quot;,
-  &quot;De Groene Amsterdammer&quot;,
-  &quot;De Stentor/Apeldoornse Courant&quot;,
-  &quot;De Stentor/Dagblad Flevoland&quot;,
-  &quot;Dagblad van het Noorden.nl&quot;,
-  &quot;Noordhollands Dagblad.nl&quot;,
-  &quot;De Stentor/Deventer Dagblad&quot;,
-  &quot;Rotterdams Dagblad&quot;,
-  &quot;Friesch Dagblad&quot;,
-  &quot;Haarlems Dagblad.nl&quot;,
-  &quot;IJmuider Courant.nl&quot;,
-  &quot;Goudsche Courant&quot;,
-  &quot;Friesch Dagblad.nl&quot;,
-  &quot;PZC.nl&quot;,
-  &quot;Tubantia.nl&quot;,
-  &quot;nu.nl&quot;,
-  &quot;restaurantonline.co.uk&quot;,
-  &quot;MailOnline&quot;,
-  &quot;Guardian.com&quot;,
-  &quot;Associated Press Online&quot;,
-  &quot;FT.com&quot;,
-  &quot;thetimes.co.uk&quot;,
-  &quot;FT.com Headlines&quot;,
-  &quot;telegraph.co.uk&quot;,
-  &quot;Independent.co.uk&quot;,
-  &quot;CNN.com&quot;)</code></pre>
+  &quot;NEW YORK TIMES&quot;,
+  &quot;The New York Times - International Edition&quot;,
+  &quot;The Times&quot;,
+  &quot;USA TODAY&quot;)</code></pre>
 <p>Online news classification criteria are as follows:</p>
 <pre class="r"><code># business, tech, finance
 att_news_finance &lt;- c(
@@ -2375,7 +2422,7 @@ coauthor_data_compiler &lt;- function(profile_id,
   prof_coauthors_oa_gender &lt;- filter(prof_coauthor_info_w_gender,
                                      profile_id == current_profile_id)
   
-  # get coauthor_d + year variable to filter on
+  # get coauthor id + year variable to filter on
   prof_coauthors$au_year &lt;- paste0(prof_coauthors$au_id, &quot;_&quot;, prof_coauthors$publication_year)
   prof_coauthor_data$au_year &lt;- paste0(prof_coauthor_data$id, &quot;_&quot;, prof_coauthor_data$year)
   
@@ -2673,7 +2720,7 @@ coauthor_data_compiler &lt;- function(profile_id,
 lm_fitter_cl_robust &lt;- function(panel_dataset,
                                 lm_formula_list,
                                 year_cutoff_upper = 2023,
-                                year_cutoff_lower = 1974){
+                                year_cutoff_lower = 1973){
   
   all_predictions &lt;- data.frame(matrix(ncol = 7, nrow = 0))
   all_models &lt;- data.frame(matrix(ncol = 10, nrow = 0))
@@ -2682,7 +2729,7 @@ lm_fitter_cl_robust &lt;- function(panel_dataset,
   fields &lt;- c(&quot;stem&quot;, &quot;medicine&quot;, &quot;soc_sci&quot;, &quot;arts&quot;)
   stem &lt;- filter(panel_dataset, general_field == &quot;STEM&quot;)
   soc_sci &lt;- filter(panel_dataset, general_field == &quot;Social sciences&quot;)
-  arts &lt;- filter(panel_dataset, general_field == &quot;Arts &amp; Humanities&quot;)
+  arts &lt;- filter(panel_dataset, general_field == &quot;Arts and Humanities&quot;)
   medicine &lt;- filter(panel_dataset, general_field == &quot;Medicine&quot;)
   
   for (field in fields){
@@ -2788,6 +2835,142 @@ lm_fitter_cl_robust &lt;- function(panel_dataset,
   return(output_list)
 }
 
+# the same, but with scopus fields
+
+lm_fitter_cl_robust_scopus &lt;- function(panel_dataset,
+                                lm_formula_list,
+                                year_cutoff_upper = 2023,
+                                year_cutoff_lower = 1974){
+  
+  all_predictions &lt;- data.frame(matrix(ncol = 7, nrow = 0))
+  all_models &lt;- data.frame(matrix(ncol = 10, nrow = 0))
+  all_comparisons &lt;- data.frame(matrix(ncol = 6, nrow = 0))
+  
+  fields &lt;- c(&quot;phys&quot;, &quot;life&quot;, &quot;health&quot;, &quot;soc_sci&quot;, &quot;arts&quot;)
+  life &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Life Sciences&quot;)
+  phys &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Physical Sciences&quot;)
+  soc_sci &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Social Sciences&quot;)
+  arts &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Arts and Humanities&quot;)
+  health &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Health Sciences&quot;)
+  
+  for (field in fields){
+    print(field)
+    lm_model &lt;- NA
+    
+    field_dataset &lt;- get(field)
+    
+    field_dataset &lt;- filter(field_dataset,
+                            year &lt;= year_cutoff_upper &amp; year &gt;= year_cutoff_lower)
+    
+    for (lm_formula in lm_formula_list){
+      
+      lm_model &lt;- lm(lm_formula,
+                     data = field_dataset) 
+      
+      # cluster-robust SEs
+      coef_test_output &lt;- coeftest(lm(lm_formula,
+                                      data = field_dataset), vcov = vcovCL, cluster = field_dataset$profile_id)
+      model_result &lt;- coef_test_output[,] %&gt;% 
+        as.data.frame() %&gt;% 
+        rownames_to_column(var = &quot;term&quot;)
+      model_result$lower_ci &lt;- as.data.frame(confint(coef_test_output,
+                                                     level = 0.95))[,1]
+      model_result$upper_ci &lt;- as.data.frame(confint(coef_test_output,
+                                                     level = 0.95))[,2]
+      
+      # extracting R squared
+      model_result[nrow(model_result)+1, 1] &lt;- &quot;R^2&quot;
+      model_result[nrow(model_result), 2:ncol(model_result)] &lt;- round(summary(lm_model)$r.squared,3)
+      model_result$field &lt;- field
+      model_result$covariate &lt;- trimws(str_split_i(lm_formula, &quot;~&quot;, 1))
+      # binding field models together
+      all_models &lt;- rbind(all_models,
+                          model_result)
+      # prediction for our plots
+      prediction &lt;- predict_response(lm_model, c(&quot;inferred_gender&quot;), vcov_fun = &quot;vcovCL&quot;, 
+                                     vcov_type = &quot;HC0&quot;,
+                                     vcov.args = list(cluster = field_dataset$profile_id))
+      # check if we get CIs for our prediction
+      if(!&quot;conf.low&quot; %in% colnames(prediction)){
+        # if not, pad this with NA and CIs identical to the prediction
+        prediction$std.error &lt;- NA
+        prediction$conf.low &lt;- prediction$predicted
+        prediction$conf.high &lt;- prediction$predicted
+        prediction &lt;- prediction[,c(&quot;x&quot;, &quot;predicted&quot;, &quot;std.error&quot;, &quot;conf.low&quot;, &quot;conf.high&quot;, &quot;group&quot; )]
+      }
+      
+      prediction$field &lt;- field
+      
+      
+      # binding the predictions for all fields together
+      prediction$covariate &lt;- trimws(str_split_i(lm_formula, &quot;~&quot;, 1))
+      all_predictions &lt;- rbind(all_predictions,
+                               prediction)
+      
+      # comparing whether the predictions for men and women are significantly different
+      gender_comparison &lt;- test_predictions(lm_model, c(&quot;inferred_gender&quot;), vcov_fun = &quot;vcovCL&quot;)
+      gender_comparison$field &lt;- field
+      gender_comparison$covariate &lt;- trimws(str_split_i(lm_formula, &quot;~&quot;, 1))
+      
+      all_comparisons &lt;- rbind(all_comparisons,
+                               gender_comparison)
+      
+      
+      
+      
+      #print(field)
+      
+      
+    }
+  }
+  # adding some stars
+  all_models$stars &lt;- ifelse(all_models$`Pr(&gt;|t|)` &lt;= 0.001, &quot;***&quot;,
+                             ifelse(all_models$`Pr(&gt;|t|)` &lt;= 0.001, &quot;**&quot;,
+                                    ifelse(all_models$`Pr(&gt;|t|)` &lt;= 0.05, &quot;*&quot;,
+                                           ifelse(all_models$`Pr(&gt;|t|)` &lt;= 0.1, &quot;.&quot;, &quot;&quot;))))
+  
+  all_comparisons$stars &lt;- ifelse(all_comparisons$`p.value` &lt;= 0.001, &quot;***&quot;,
+                                  ifelse(all_comparisons$`p.value` &lt;= 0.001, &quot;**&quot;,
+                                         ifelse(all_comparisons$`p.value` &lt;= 0.05, &quot;*&quot;,
+                                                ifelse(all_comparisons$`p.value` &lt;= 0.1, &quot;.&quot;, &quot;&quot;))))
+  
+  # tidying up and rounding the results
+  all_comparisons$group1 &lt;- str_split_i(all_comparisons$inferred_gender, &quot;-&quot;, 1)
+  all_comparisons$group2 &lt;- str_split_i(all_comparisons$inferred_gender, &quot;-&quot;, 2)
+  all_comparisons$p_rounded &lt;- round(all_comparisons$p.value, 4)
+  
+  
+  all_models$field &lt;- factor(all_models$field,
+                             levels = c(&quot;phys&quot;,
+                                        &quot;life&quot;,
+                                        &quot;health&quot;,
+                                        &quot;soc_sci&quot;,
+                                        &quot;arts&quot;))
+  
+  
+  all_predictions$field &lt;- factor(all_predictions$field,
+                             levels = c(&quot;phys&quot;,
+                                        &quot;life&quot;,
+                                        &quot;health&quot;,
+                                        &quot;soc_sci&quot;,
+                                        &quot;arts&quot;))
+  
+  all_comparisons$field &lt;- factor(all_comparisons$field,
+                             levels = c(&quot;phys&quot;,
+                                        &quot;life&quot;,
+                                        &quot;health&quot;,
+                                        &quot;soc_sci&quot;,
+                                        &quot;arts&quot;))
+  
+  
+  
+  output_list &lt;- list(all_models,
+                      all_predictions,
+                      all_comparisons)
+  
+  return(output_list)
+}
+
 
 ## Function that can fit a poisson or a logistic regression
 
@@ -2802,7 +2985,7 @@ glm_fitter_cl_robust &lt;- function(panel_dataset,
   fields &lt;- c(&quot;stem&quot;, &quot;medicine&quot;, &quot;soc_sci&quot;, &quot;arts&quot;)
   stem &lt;- filter(panel_dataset, general_field == &quot;STEM&quot;)
   soc_sci &lt;- filter(panel_dataset, general_field == &quot;Social sciences&quot;)
-  arts &lt;- filter(panel_dataset, general_field == &quot;Arts &amp; Humanities&quot;)
+  arts &lt;- filter(panel_dataset, general_field == &quot;Arts and Humanities&quot;)
   medicine &lt;- filter(panel_dataset, general_field == &quot;Medicine&quot;)
   
   for (field in fields){
@@ -3019,8 +3202,8 @@ neat_regression_table &lt;- function(
     field = recode(field,
                    &#39;stem&#39; = &quot;STEM&quot;,
                    &#39;medicine&#39; = &quot;Medicine&quot;,
-                   &#39;soc_sci&#39; = &quot;Social science&quot;,
-                   &#39;arts&#39; = &quot;Arts &amp; Humanities&quot;))%&gt;%
+                   &#39;soc_sci&#39; = &quot;Social sciences&quot;,
+                   &#39;arts&#39; = &quot;Arts and Humanities&quot;))%&gt;%
     arrange(field, term)%&gt;%
     select(field:coef_printed, sig_printed, se_printed, 
            coef_online, sig_online, se_online,

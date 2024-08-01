@@ -1076,7 +1076,7 @@ coauthor_data_compiler <- function(profile_id,
   prof_coauthors_oa_gender <- filter(prof_coauthor_info_w_gender,
                                      profile_id == current_profile_id)
   
-  # get coauthor_d + year variable to filter on
+  # get coauthor id + year variable to filter on
   prof_coauthors$au_year <- paste0(prof_coauthors$au_id, "_", prof_coauthors$publication_year)
   prof_coauthor_data$au_year <- paste0(prof_coauthor_data$id, "_", prof_coauthor_data$year)
   
@@ -1374,7 +1374,7 @@ coauthor_data_compiler <- function(profile_id,
 lm_fitter_cl_robust <- function(panel_dataset,
                                 lm_formula_list,
                                 year_cutoff_upper = 2023,
-                                year_cutoff_lower = 1974){
+                                year_cutoff_lower = 1973){
   
   all_predictions <- data.frame(matrix(ncol = 7, nrow = 0))
   all_models <- data.frame(matrix(ncol = 10, nrow = 0))
@@ -1383,7 +1383,7 @@ lm_fitter_cl_robust <- function(panel_dataset,
   fields <- c("stem", "medicine", "soc_sci", "arts")
   stem <- filter(panel_dataset, general_field == "STEM")
   soc_sci <- filter(panel_dataset, general_field == "Social sciences")
-  arts <- filter(panel_dataset, general_field == "Arts & Humanities")
+  arts <- filter(panel_dataset, general_field == "Arts and Humanities")
   medicine <- filter(panel_dataset, general_field == "Medicine")
   
   for (field in fields){
@@ -1489,6 +1489,142 @@ lm_fitter_cl_robust <- function(panel_dataset,
   return(output_list)
 }
 
+# the same, but with scopus fields
+
+lm_fitter_cl_robust_scopus <- function(panel_dataset,
+                                lm_formula_list,
+                                year_cutoff_upper = 2023,
+                                year_cutoff_lower = 1974){
+  
+  all_predictions <- data.frame(matrix(ncol = 7, nrow = 0))
+  all_models <- data.frame(matrix(ncol = 10, nrow = 0))
+  all_comparisons <- data.frame(matrix(ncol = 6, nrow = 0))
+  
+  fields <- c("phys", "life", "health", "soc_sci", "arts")
+  life <- filter(prof_panel_filter, overall_adj_domain == "Life Sciences")
+  phys <- filter(prof_panel_filter, overall_adj_domain == "Physical Sciences")
+  soc_sci <- filter(prof_panel_filter, overall_adj_domain == "Social Sciences")
+  arts <- filter(prof_panel_filter, overall_adj_domain == "Arts and Humanities")
+  health <- filter(prof_panel_filter, overall_adj_domain == "Health Sciences")
+  
+  for (field in fields){
+    print(field)
+    lm_model <- NA
+    
+    field_dataset <- get(field)
+    
+    field_dataset <- filter(field_dataset,
+                            year <= year_cutoff_upper & year >= year_cutoff_lower)
+    
+    for (lm_formula in lm_formula_list){
+      
+      lm_model <- lm(lm_formula,
+                     data = field_dataset) 
+      
+      # cluster-robust SEs
+      coef_test_output <- coeftest(lm(lm_formula,
+                                      data = field_dataset), vcov = vcovCL, cluster = field_dataset$profile_id)
+      model_result <- coef_test_output[,] %>% 
+        as.data.frame() %>% 
+        rownames_to_column(var = "term")
+      model_result$lower_ci <- as.data.frame(confint(coef_test_output,
+                                                     level = 0.95))[,1]
+      model_result$upper_ci <- as.data.frame(confint(coef_test_output,
+                                                     level = 0.95))[,2]
+      
+      # extracting R squared
+      model_result[nrow(model_result)+1, 1] <- "R^2"
+      model_result[nrow(model_result), 2:ncol(model_result)] <- round(summary(lm_model)$r.squared,3)
+      model_result$field <- field
+      model_result$covariate <- trimws(str_split_i(lm_formula, "~", 1))
+      # binding field models together
+      all_models <- rbind(all_models,
+                          model_result)
+      # prediction for our plots
+      prediction <- predict_response(lm_model, c("inferred_gender"), vcov_fun = "vcovCL", 
+                                     vcov_type = "HC0",
+                                     vcov.args = list(cluster = field_dataset$profile_id))
+      # check if we get CIs for our prediction
+      if(!"conf.low" %in% colnames(prediction)){
+        # if not, pad this with NA and CIs identical to the prediction
+        prediction$std.error <- NA
+        prediction$conf.low <- prediction$predicted
+        prediction$conf.high <- prediction$predicted
+        prediction <- prediction[,c("x", "predicted", "std.error", "conf.low", "conf.high", "group" )]
+      }
+      
+      prediction$field <- field
+      
+      
+      # binding the predictions for all fields together
+      prediction$covariate <- trimws(str_split_i(lm_formula, "~", 1))
+      all_predictions <- rbind(all_predictions,
+                               prediction)
+      
+      # comparing whether the predictions for men and women are significantly different
+      gender_comparison <- test_predictions(lm_model, c("inferred_gender"), vcov_fun = "vcovCL")
+      gender_comparison$field <- field
+      gender_comparison$covariate <- trimws(str_split_i(lm_formula, "~", 1))
+      
+      all_comparisons <- rbind(all_comparisons,
+                               gender_comparison)
+      
+      
+      
+      
+      #print(field)
+      
+      
+    }
+  }
+  # adding some stars
+  all_models$stars <- ifelse(all_models$`Pr(>|t|)` <= 0.001, "***",
+                             ifelse(all_models$`Pr(>|t|)` <= 0.001, "**",
+                                    ifelse(all_models$`Pr(>|t|)` <= 0.05, "*",
+                                           ifelse(all_models$`Pr(>|t|)` <= 0.1, ".", ""))))
+  
+  all_comparisons$stars <- ifelse(all_comparisons$`p.value` <= 0.001, "***",
+                                  ifelse(all_comparisons$`p.value` <= 0.001, "**",
+                                         ifelse(all_comparisons$`p.value` <= 0.05, "*",
+                                                ifelse(all_comparisons$`p.value` <= 0.1, ".", ""))))
+  
+  # tidying up and rounding the results
+  all_comparisons$group1 <- str_split_i(all_comparisons$inferred_gender, "-", 1)
+  all_comparisons$group2 <- str_split_i(all_comparisons$inferred_gender, "-", 2)
+  all_comparisons$p_rounded <- round(all_comparisons$p.value, 4)
+  
+  
+  all_models$field <- factor(all_models$field,
+                             levels = c("phys",
+                                        "life",
+                                        "health",
+                                        "soc_sci",
+                                        "arts"))
+  
+  
+  all_predictions$field <- factor(all_predictions$field,
+                             levels = c("phys",
+                                        "life",
+                                        "health",
+                                        "soc_sci",
+                                        "arts"))
+  
+  all_comparisons$field <- factor(all_comparisons$field,
+                             levels = c("phys",
+                                        "life",
+                                        "health",
+                                        "soc_sci",
+                                        "arts"))
+  
+  
+  
+  output_list <- list(all_models,
+                      all_predictions,
+                      all_comparisons)
+  
+  return(output_list)
+}
+
 
 ## Function that can fit a poisson or a logistic regression
 
@@ -1503,7 +1639,7 @@ glm_fitter_cl_robust <- function(panel_dataset,
   fields <- c("stem", "medicine", "soc_sci", "arts")
   stem <- filter(panel_dataset, general_field == "STEM")
   soc_sci <- filter(panel_dataset, general_field == "Social sciences")
-  arts <- filter(panel_dataset, general_field == "Arts & Humanities")
+  arts <- filter(panel_dataset, general_field == "Arts and Humanities")
   medicine <- filter(panel_dataset, general_field == "Medicine")
   
   for (field in fields){
@@ -1720,8 +1856,8 @@ neat_regression_table <- function(
     field = recode(field,
                    'stem' = "STEM",
                    'medicine' = "Medicine",
-                   'soc_sci' = "Social science",
-                   'arts' = "Arts & Humanities"))%>%
+                   'soc_sci' = "Social sciences",
+                   'arts' = "Arts and Humanities"))%>%
     arrange(field, term)%>%
     select(field:coef_printed, sig_printed, se_printed, 
            coef_online, sig_online, se_online,
