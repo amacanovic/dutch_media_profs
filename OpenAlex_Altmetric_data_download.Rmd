@@ -1353,3 +1353,196 @@ for (i in 1:length(list_profs)){
 dbWriteTable(con, "oa_affiliation_string_search", all_prof_inst_search)
 
 ```
+
+# ORCID career data
+
+We now collect professors' employment histories from the ORCID API.
+
+More information on how to get access to the API within R can be found [here](https://ciakovx.github.io/rorcid.html#rorcid).
+
+First, get a list of all ORCIDs in our dataset:
+```{r}
+# read in our mapping
+orcid_table <- dbReadTable(con, "orcid_mapping")
+
+# get a list of ORCIDs
+orcid_list <- str_remove(orcid_table$ORCID, "https://orcid.org/")
+
+# loop through the list and retrieve employment history wherever available:
+
+all_orcid_employment <- data.frame(matrix(NA, ncol = 6, nrow = 0))
+
+for (i in 1:length(orcid_list)){
+  prof_orcid <- orcid_list[i]
+  
+  #if ORCID not NA
+  if (!is.na(prof_orcid)){
+    employment <- NA
+    # get employment data
+    try(employment <- orcid_employments(orcid = prof_orcid)%>%
+          map(., pluck, "affiliation-group", "summaries") %>% 
+          flatten_dfr() %>%
+          clean_names())
+    # if there is any employment data  
+    if (!all(is.na(employment))){
+      if(nrow(employment)>0){
+        # fill in missing columns
+        if (!"employment_summary_start_date_year_value" %in% colnames(employment)){
+          employment$employment_summary_start_date_year_value <- NA
+        }
+        
+        # select relevant columns
+        employment <- employment %>%
+          select(employment_summary_department_name, employment_summary_role_title,
+                 employment_summary_start_date_year_value,
+                 employment_summary_organization_name, employment_summary_organization_address_country)
+        # tidy up the dataframe
+        colnames(employment) <- c("department", "position",
+                                  "start", "organization", "country")
+        # add the orcid back in
+        employment$orcid <- prof_orcid
+        # append
+        all_orcid_employment <- rbind(all_orcid_employment,
+                                      employment)
+      }
+    }
+}
+
+  #print(i)
+  
+}
+```
+
+Clean this up, removing positions we have no info on, or don't know the starting 
+date of, filtering only those that contain "professor" or "hoogleraar", and are
+in the Netherlands:
+```{r}
+all_orcid_employment_tidy <- all_orcid_employment %>%
+  filter(!is.na(position) & !is.na(start) &  country == "NL")
+
+all_orcid_employment_tidy$position <- tolower(all_orcid_employment_tidy$position)
+
+all_orcid_employment_tidy$prof <- str_detect(all_orcid_employment_tidy$position,
+                                             "prof|hoog")
+
+all_orcid_employment_tidy <- all_orcid_employment_tidy %>%
+  filter(prof == TRUE)
+
+# and now ensure they don't contain "assistant" or "associate"
+all_orcid_employment_tidy$asst <- str_detect(all_orcid_employment_tidy$position,
+                                             "assistant|assistent|asst|associate|assoc|asisst|asistant|assoc|asssociate|associatie|assitant")
+
+all_orcid_employment_tidy <- all_orcid_employment_tidy %>%
+  filter(asst == FALSE)
+
+# for each prof with multiple, keep the earliest appointment
+prof_entry <- all_orcid_employment_tidy %>%
+  group_by(orcid)%>%
+  slice(which.min(start))%>%
+  select(orcid, position, organization, department, start)
+
+
+# merge with profile_ids
+colnames(orcid_table)[2] <- "orcid"
+orcid_table$orcid <- str_remove(orcid_table$orcid, "https://orcid.org/")
+prof_entry <- merge(prof_entry,
+                    orcid_table,
+                    by = "orcid")
+```
+
+Write this out into our database:
+```{r}
+dbWriteTable(con, "orcid_employment_entry", prof_entry)
+```
+
+# Positions in the government and advisory bodies
+
+Load the manually curated output of the python script that used information
+from the Dutch governmental websites and the Dutch Wikipedia to find professors'
+roles within the governments (as ministers or secretaries, or as government
+formateurs) or their roles within advisory bodies to the government.
+Then match these data to the profile IDs and store in our database.
+```{r warning = F, message = F}
+govt_positions <- read_csv("../dutch_media_profs_python/output-data/govt_list_manual.csv")
+info_positions <- read_csv("../dutch_media_profs_python/output-data/info_list_manual.csv")
+advisory_positions <- read_csv("../dutch_media_profs_python/output-data/advisory_list_manual.csv")
+```
+
+First, for governmental and advisory positions, ensure that we have individual rows
+for each year a professor held a position (rather than a "start-end" format):
+```{r}
+govt_positions_long <- govt_positions
+colnames(govt_positions_long)[4] <- "timespan"
+govt_positions_long$start <- str_split_i(govt_positions_long$timespan, "-", 1)
+govt_positions_long$end <- str_split_i(govt_positions_long$timespan, "-", 2)
+
+govt_positions_long <- govt_positions_long %>%
+  mutate(year = map2(start, end, seq)) %>%
+  unnest(year) %>%
+  ## deal with overlaps by keeping the max start age:
+  group_by(name, year) %>%
+  slice_max(start) %>%
+  ungroup %>%
+  select(name, post, year)
+
+# add some more variables
+govt_positions_long$raad <- "Government"
+govt_positions_long$raad_abv <- "GVT"
+
+govt_positions_long <- govt_positions_long %>%
+  select(name, post, raad, raad_abv, year)
+
+advisory_positions_long <- advisory_positions
+colnames(advisory_positions_long)[5] <- "timespan"
+advisory_positions_long$start <- str_split_i(advisory_positions_long$timespan, "-", 1)
+advisory_positions_long$end <- str_split_i(advisory_positions_long$timespan, "-", 2)
+advisory_positions_long$end[which(is.na(advisory_positions_long$end))] <- advisory_positions_long$start[which(is.na(advisory_positions_long$end))]
+
+# for advisory, leave positions that are not a mere "raadslid"
+advisory_positions_long <- advisory_positions_long %>%
+  mutate(year = map2(start, end, seq)) %>%
+  unnest(year) %>%
+  ## deal with overlaps by keeping the max start age:
+  group_by(person, year) %>%
+  slice_max(start) %>%
+  ungroup %>%
+  select(person, post, raad, raad_abv, year)%>%
+  filter(post != "Raadslid")
+
+colnames(advisory_positions_long)[1] <- "name"
+
+# for (in)formateurs, tidy the data up a bit
+info_positions$raad <- "Government"
+info_positions$raad_abv <- "GVT"
+info_positions_long <- info_positions %>%
+  select(name, post, raad, raad_abv, year)
+```
+
+Combine the three sources:
+```{r}
+all_govt_positions <- rbind(govt_positions_long,
+                            info_positions_long,
+                            advisory_positions_long)
+
+colnames(all_govt_positions) <- c("name", "position", "institution", "institution_abv", "year")
+```
+
+Match the people with their profile ids:
+```{r}
+prof_name_match <- profs_full[c("profile_id", "first", "last")]
+prof_name_match$name <- paste(prof_name_match$first, prof_name_match$last)
+
+all_govt_positions_match <- merge(all_govt_positions,
+                                  prof_name_match[c("profile_id", "name")],
+                                  by = "name",
+                                  all.x = TRUE)
+
+# match missing for balkenende, so fill it  in by hand
+all_govt_positions_match$profile_id[which(is.na(all_govt_positions_match$profile_id))] <- "https://www.narcis.nl/person/RecordID/PRS1238628"
+```
+
+Write this out:
+```{r}
+dbWriteTable(con, "govt_positions", all_govt_positions_match)
+```
+

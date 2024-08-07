@@ -18,7 +18,7 @@ bibliography: references.bib
 ```{r, globalsettings, echo=FALSE, warning=FALSE, results='hide'}
 library(knitr)
 
-knitr::opts_chunk$set(echo = TRUE)
+opts_chunk$set(echo = TRUE)
 opts_chunk$set(tidy.opts=list(width.cutoff=100),tidy=TRUE, warning = FALSE, message = FALSE,comment = "#>", cache=TRUE, class.source=c("test"), class.output=c("test2"))
 options(width = 100)
 rgl::setupKnitr()
@@ -43,8 +43,32 @@ klippy::klippy(position = c('top', 'right'))
 Last compiled on `r format(Sys.time(), '%B %d, %Y')`  
 
 This website shows the script for the Dutch Media Profs project.
+This project explores gender inequalities in media representation between men and women 
+professors in the Netherlands.
 
-It is still in progress.
+The project is conducted by [Bas Hofstra](https://www.bashofstra.com) and [Ana Macanovic](https://amacanovic.github.io/)
+at the [Radboud University](https://www.ru.nl/en).
+
+This project answers these questions by considering whether and why women professors 
+are represented in news and social media at different numbers than men professors. 
+This representation in the public arena has become increasingly important for 
+professors as the dissemination of scientific knowledge to the general public is 
+a growing and essential part of professors’ activities and evaluation. This project
+sets out to study this among all Dutch professors (1990-2021) through a series of 
+new database linkages and computational methods.
+
+We start with a dataset of 6830 professors as per NARCIS (National Academic Research
+and Collaboration Information System), a former Dutch nationala information portal
+for Dutch scientific data and publications. 
+
+For each professor, we collect the following data:
+
+- Publication, citation, affiliation, topic, concept, and grant data from [OpenAlex](https://openalex.org/)
+- Printed news articles containing a professors first and last names and a set of
+keyword related to their academic roles from [LexisNexis](https://www.lexisnexis.com/).
+- Online news mentions and number of Tweets pertaining to their publications from [Altmetric](https://www.altmetric.com/)
+- Dutch grant data from [NWO](https://www.nwo.nl/) and ERC grant data from the [ERC datahub](https://erc.easme-web.eu?mode=7&countries=NL):
+
 
 <br>
 
@@ -52,7 +76,6 @@ Before beginning, make sure you install the groundhog package:
 ```{r eval = FALSE}
 install.packages("groundhog")
 ```
-
 
 ----
 

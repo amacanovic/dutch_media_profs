@@ -31,7 +31,7 @@ fpackage_check(packages_to_load)
 
 ```{r}
 opts_chunk$set(echo = TRUE)
-opts_chunk$set(eval = TRUE)
+opts_chunk$set(eval = FALSE)
 opts_chunk$set(warning = FALSE)
 opts_chunk$set(message = FALSE)
 ```
@@ -161,7 +161,7 @@ average_news <- field_comparisons_plot %>%
    ggplot(aes(x=fct_rev(field), y=total, fill = comparison)) + 
    geom_bar(position=position_dodge(.5),stat="identity", alpha=1, width = 0.5)+
    guides(fill = guide_legend(reverse = FALSE, title = "Inferred gender"))+
-   scale_fill_manual(values = c("#34d399", "#fbbf24") , labels = c("Men", "Women"))+
+   scale_fill_manual(values = c("#61D04F", "#F5C710") , labels = c("Men", "Women"))+
    ggtitle("Printed news attention")+
    stat_pvalue_manual(
      significance_testing,
@@ -192,7 +192,7 @@ average_online <- field_comparisons_plot %>%
    ggplot(aes(x=fct_rev(field), y=online_total, fill = comparison)) + 
    geom_bar(position=position_dodge(.5),stat="identity", alpha=1, width = 0.5)+
    guides(fill = guide_legend(reverse = FALSE, title = "Inferred gender"))+
-   scale_fill_manual(values = c("#34d399", "#fbbf24") , labels = c("Men", "Women"))+
+   scale_fill_manual(values = c("#61D04F", "#F5C710")  , labels = c("Men", "Women"))+
    ggtitle("Online news attention")+
   scale_y_continuous(limits = c(0, 212), breaks = seq(0, 212, by = 53))+
    stat_pvalue_manual(
@@ -222,7 +222,7 @@ average_twitter <- field_comparisons_plot %>%
    ggplot(aes(x=fct_rev(field), y=twitter_total, fill = comparison)) + 
    geom_bar(position=position_dodge(.5),stat="identity", alpha=1, width = 0.5)+
    guides(fill = guide_legend(reverse = FALSE, title = "Inferred gender"))+
-   scale_fill_manual(values = c("#34d399", "#fbbf24") , labels = c("Men", "Women"))+
+   scale_fill_manual(values = c("#61D04F", "#F5C710")  , labels = c("Men", "Women"))+
    ggtitle("Twitter/X attention")+
    stat_pvalue_manual(
      significance_testing,
@@ -373,7 +373,7 @@ repr_attn_10 <- share_women_field_2023 %>%
   geom_point(aes(shape=name, color=name), position=position_dodge(width=0.2), stat="identity", size = 2.5)+
   geom_bar(stat="identity", aes(y=share_women_field, x=general_field), alpha=0.2, width = 0.4)+
   guides(fill = guide_legend(reverse=TRUE, title = "Measure"))+
-  scale_color_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
+  scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
   scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
   scale_y_continuous(limits = c(0, 0.5), breaks = seq(0, 0.5, by = 0.125))+
   coord_flip()+
@@ -398,7 +398,7 @@ repr_attn_20 <- share_women_field_2023 %>%
   geom_point(aes(shape=name, color=name), position=position_dodge(width=0.2), stat="identity", size = 2.5)+
   geom_bar(stat="identity", aes(y=share_women_field, x=general_field), alpha=0.2, width = 0.4)+
   guides(fill = guide_legend(reverse=TRUE, title = "Measure"))+  
-  scale_color_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
+  scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
   scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
   scale_y_continuous(limits = c(0, 0.5), breaks = seq(0, 0.5, by = 0.125))+
   coord_flip()+
@@ -487,7 +487,7 @@ repr_attn_share <- share_women_field_2023_attn_share %>%
   geom_point(aes(shape=name, color=name), position=position_dodge(width=0.2), stat="identity", size = 2.5)+
   geom_bar(stat="identity", aes(y=share_women_field, x=general_field), alpha=0.2, width = 0.4)+
   guides(fill = guide_legend(reverse=TRUE, title = "Measure"))+
-  scale_color_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
+  scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
   scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
   scale_y_continuous(limits = c(0, 0.5), breaks = seq(0, 0.5, by = 0.125))+
   coord_flip()+
@@ -736,7 +736,7 @@ news_gender_plot <- predictions_plot %>%
                             "stem" = "STEM"))+
   ylab("Yearly attention")+
   labs(color = "Inferred gender")+
-  scale_color_manual(values = c("#34d399", "#fbbf24"), labels = c("Men", "Women"))+
+  scale_color_manual(values = c("#61D04F", "#F5C710"), labels = c("Men", "Women"))+
   theme_minimal_hgrid()+
   theme(plot.title = element_text(size = 10),
         axis.text.y = element_text(size = 10),
@@ -806,7 +806,7 @@ online_news_gender_plot <- predictions_plot %>%
                             "stem" = "STEM"))+
   ylab("Yearly attention")+
   labs(color = "Inferred gender")+
-  scale_color_manual(values = c("#34d399", "#fbbf24"), labels = c("Men", "Women"))+
+  scale_color_manual(values = c("#61D04F", "#F5C710"), labels = c("Men", "Women"))+
   theme_minimal_hgrid()+
     theme(plot.title = element_text(size = 10),
         axis.text.y = element_text(size = 10),
@@ -876,7 +876,7 @@ twitter_gender_plot <- predictions_plot %>%
                             "stem" = "STEM"))+
   ylab("Yearly attention")+
   labs(color = "Inferred gender")+
-  scale_color_manual(values = c("#34d399", "#fbbf24"), labels = c("Men", "Women"))+
+  scale_color_manual(values = c("#61D04F", "#F5C710"), labels = c("Men", "Women"))+
   theme_minimal_hgrid()+
   theme(plot.title = element_text(size = 10),
         axis.text.y = element_text(size = 10),
@@ -1013,7 +1013,7 @@ all_models_plot$term <- ordered(all_models_plot$term,
                      "coa_tot_online_all_total_l",
                      "coa_tot_twitter_total_l",
                      "t_min_1") & field == "stem") %>%
-  ggplot(aes(Estimate, field, color = model, label = stars)) +
+  ggplot(aes(Estimate, field, color = model, shape=model, label = stars)) +
   geom_point(position = position_dodge(width = -0.7), size = 3) +
   geom_errorbar(aes(xmin = lower_ci, xmax = upper_ci),
                 width=0,
@@ -1025,7 +1025,8 @@ all_models_plot$term <- ordered(all_models_plot$term,
                              "soc_sci" = "Social sciences",
                              "stem" = "STEM"),
                        name = "Field")+
-  scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#F8766D", "#00BA38", "#619CFF"))+
+  scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
+  scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
   scale_x_continuous(
     n.breaks = 3,
     labels = function(x) format(x, scientific = TRUE))+
@@ -1033,7 +1034,8 @@ all_models_plot$term <- ordered(all_models_plot$term,
   labs(
     x = "Regression coefficient",
     y = NULL,
-    color = "Attention type"
+    color = "Attention type",
+    shape = "Attention type"
   ) + 
   geom_vline(xintercept = 0,  colour="black", linetype = "longdash")+
   facet_wrap( ~ term, scales="free_x", labeller = as_labeller(covariate_names), ncol = 5)+
@@ -1092,7 +1094,7 @@ And plot out the coefficients for all fields:
                              "soc_sci" = "Social sciences",
                              "stem" = "STEM"),
                        name = "Field")+
-  scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#F8766D", "#00BA38", "#619CFF"))+
+  scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
   scale_x_continuous(
     n.breaks = 3,
     labels = function(x) format(x, scientific = TRUE))+

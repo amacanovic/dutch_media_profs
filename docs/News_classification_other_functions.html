@@ -277,10 +277,13 @@ $(document).ready(function () {
       <a href="Grant_parsing.html">Prep. 3: Grant parsing</a>
     </li>
     <li>
-      <a href="Lexis_nexis_parser.html">Prep. 4: Lexis data parser</a>
+      <a href="Printed_news_preparation.html">Prep. 4: Printed nwes preparation</a>
     </li>
     <li>
-      <a href="Panel_data_compilation.html">Prep. 5: Panel data compilation</a>
+      <a href="Online_news_preparation.html">Prep. 5: Online nwes preparation</a>
+    </li>
+    <li>
+      <a href="Panel_data_compilation.html">Prep. 6: Panel data compilation</a>
     </li>
     <li>
       <a href="Analyses_main.html">Main analyses</a>
@@ -2185,7 +2188,7 @@ altmetric_mention_retriever &lt;- function(api_key,
           policy &lt;- unnest(policy, source)
           policy$id &lt;- work_id
           if (&quot;author&quot; %in% colnames(policy)){
-          policy &lt;- unnest(policy, author)
+            policy &lt;- unnest(policy, author)
           }
           
           if (dbExistsTable(con, &quot;altmetric_pub_att_policy&quot;)){
@@ -2245,8 +2248,8 @@ altmetric_mention_retriever &lt;- function(api_key,
 
 ##  The same function, but for robustness checks
 altmetric_mention_retriever_rob &lt;- function(api_key,
-                                        doi,
-                                        include_twitter = FALSE){
+                                            doi,
+                                            include_twitter = FALSE){
   
   # elements to make a url that calls the API to get mention data
   doi_call_url &lt;- &quot;https://api.altmetric.com/v1/fetch/doi/&quot;
@@ -2422,7 +2425,7 @@ coauthor_data_compiler &lt;- function(profile_id,
   prof_coauthors_oa_gender &lt;- filter(prof_coauthor_info_w_gender,
                                      profile_id == current_profile_id)
   
-  # get coauthor id + year variable to filter on
+  # get coauthor_d + year variable to filter on
   prof_coauthors$au_year &lt;- paste0(prof_coauthors$au_id, &quot;_&quot;, prof_coauthors$publication_year)
   prof_coauthor_data$au_year &lt;- paste0(prof_coauthor_data$id, &quot;_&quot;, prof_coauthor_data$year)
   
@@ -2835,12 +2838,12 @@ lm_fitter_cl_robust &lt;- function(panel_dataset,
   return(output_list)
 }
 
-# the same, but with scopus fields
 
+# the same, but with scopus fields
 lm_fitter_cl_robust_scopus &lt;- function(panel_dataset,
-                                lm_formula_list,
-                                year_cutoff_upper = 2023,
-                                year_cutoff_lower = 1974){
+                                       lm_formula_list,
+                                       year_cutoff_upper = 2023,
+                                       year_cutoff_lower = 1973){
   
   all_predictions &lt;- data.frame(matrix(ncol = 7, nrow = 0))
   all_models &lt;- data.frame(matrix(ncol = 10, nrow = 0))
@@ -2949,18 +2952,18 @@ lm_fitter_cl_robust_scopus &lt;- function(panel_dataset,
   
   
   all_predictions$field &lt;- factor(all_predictions$field,
-                             levels = c(&quot;phys&quot;,
-                                        &quot;life&quot;,
-                                        &quot;health&quot;,
-                                        &quot;soc_sci&quot;,
-                                        &quot;arts&quot;))
+                                  levels = c(&quot;phys&quot;,
+                                             &quot;life&quot;,
+                                             &quot;health&quot;,
+                                             &quot;soc_sci&quot;,
+                                             &quot;arts&quot;))
   
   all_comparisons$field &lt;- factor(all_comparisons$field,
-                             levels = c(&quot;phys&quot;,
-                                        &quot;life&quot;,
-                                        &quot;health&quot;,
-                                        &quot;soc_sci&quot;,
-                                        &quot;arts&quot;))
+                                  levels = c(&quot;phys&quot;,
+                                             &quot;life&quot;,
+                                             &quot;health&quot;,
+                                             &quot;soc_sci&quot;,
+                                             &quot;arts&quot;))
   
   
   
@@ -2999,6 +3002,7 @@ glm_fitter_cl_robust &lt;- function(panel_dataset,
                             year &lt;= year_cutoff_upper &amp; year &gt;= year_cutoff_lower)
     
     for (model_formula in formula_list){
+      #print(model_formula)
       
       if (reg_family == &quot;poisson&quot;){
         
@@ -3046,7 +3050,7 @@ glm_fitter_cl_robust &lt;- function(panel_dataset,
       # binding field models together
       all_models &lt;- rbind(all_models,
                           model_result)
-
+      
     }
   }
   # adding some stars
@@ -3066,7 +3070,7 @@ glm_fitter_cl_robust &lt;- function(panel_dataset,
   
   return(output_list)
 }
-    
+
 
 # this function tidies up regression outputs for three
 # outcome variables and arranges them for easy writing
@@ -3202,21 +3206,21 @@ neat_regression_table &lt;- function(
     field = recode(field,
                    &#39;stem&#39; = &quot;STEM&quot;,
                    &#39;medicine&#39; = &quot;Medicine&quot;,
-                   &#39;soc_sci&#39; = &quot;Social sciences&quot;,
-                   &#39;arts&#39; = &quot;Arts and Humanities&quot;))%&gt;%
+                   &#39;soc_sci&#39; = &quot;Social science&quot;,
+                   &#39;arts&#39; = &quot;Arts &amp; Humanities&quot;))%&gt;%
     arrange(field, term)%&gt;%
     select(field:coef_printed, sig_printed, se_printed, 
            coef_online, sig_online, se_online,
            coef_twitter, sig_twitter, se_twitter)
   
   three_models_table$se_printed &lt;- ifelse(!is.na(three_models_table$se_printed),
-                                      paste0(&quot;(&quot;, as.character(three_models_table$se_printed), &quot;)&quot;),
-                                             three_models_table$se_printed)
-                                      
+                                          paste0(&quot;(&quot;, as.character(three_models_table$se_printed), &quot;)&quot;),
+                                          three_models_table$se_printed)
+  
   three_models_table$se_online &lt;- ifelse(!is.na(three_models_table$se_online),
                                          paste0(&quot;(&quot;, as.character(three_models_table$se_online), &quot;)&quot;),
                                          three_models_table$se_online)
-    
+  
   three_models_table$se_twitter &lt;- ifelse(!is.na(three_models_table$se_twitter),
                                           paste0(&quot;(&quot;, as.character(three_models_table$se_twitter), &quot;)&quot;),
                                           three_models_table$se_twitter)

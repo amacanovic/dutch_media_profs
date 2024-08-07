@@ -154,7 +154,7 @@ repr_attn_10 <- share_women_field_2023 %>%
   geom_point(aes(shape=name, color=name), position=position_dodge(width=0.5), stat="identity", size = 2.5)+
   geom_bar(stat="identity", aes(y=share_women_field, x=general_field), alpha=0.2, width = 0.4)+
   guides(fill = guide_legend(reverse=TRUE, title = "Measure"))+
-  scale_color_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
+  scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
   scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
   scale_y_continuous(limits = c(0, 0.6), breaks = seq(0, 0.6, by = 0.1))+
   coord_flip()+
@@ -180,7 +180,7 @@ repr_attn_20 <- share_women_field_2023 %>%
   geom_point(aes(shape=name, color=name), position=position_dodge(width=0.2), stat="identity", size = 2.5)+
   geom_bar(stat="identity", aes(y=share_women_field, x=general_field), alpha=0.2, width = 0.4)+
   guides(fill = guide_legend(reverse=TRUE, title = "Measure"))+  
-  scale_color_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
+  scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
   scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
   scale_y_continuous(limits = c(0, 0.6), breaks = seq(0, 0.6, by = 0.1))+
   coord_flip()+
@@ -267,7 +267,7 @@ repr_attn_share <- share_women_field_2023_attn_share %>%
   geom_point(aes(shape=name, color=name), position=position_dodge(width=0.2), stat="identity", size = 2.5)+
   geom_bar(stat="identity", aes(y=share_women_field, x=general_field), alpha=0.2, width = 0.4)+
   guides(fill = guide_legend(reverse=TRUE, title = "Measure"))+
-  scale_color_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
+  scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
   scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
   scale_y_continuous(limits = c(0, 0.6), breaks = seq(0, 0.6, by = 0.1))+
   coord_flip()+
@@ -1208,7 +1208,7 @@ predictions_plot <- predictions_plot %>%
                             "stem" = "STEM"))+
   ylab("Yearly attention")+
   labs(color = "Inferred gender")+
-    scale_color_manual(values = c("#34d399", "#fbbf24"), labels = c("Men", "Women"))+
+    scale_color_manual(values = c("#61D04F", "#F5C710"), labels = c("Men", "Women"))+
     facet_wrap(.~as.factor(covariate), 
                scales="free_y", 
                nrow = 1,
@@ -1366,7 +1366,7 @@ predictions_plot <- predictions_plot %>%
                             "stem" = "STEM"))+
   ylab("Yearly attention")+
   labs(color = "Inferred gender")+
-    scale_color_manual(values = c("#34d399", "#fbbf24"), labels = c("Men", "Women"))+
+    scale_color_manual(values = c("#61D04F", "#F5C710"), labels = c("Men", "Women"))+
     facet_wrap(.~as.factor(covariate), 
                nrow = 3,
                scales="free_y", 
@@ -1506,7 +1506,7 @@ predictions_plot <- predictions_plot %>%
                             "stem" = "STEM"))+
   ylab("Yearly attention")+
   labs(color = "Inferred gender")+
-    scale_color_manual(values = c("#34d399", "#fbbf24"), labels = c("Men", "Women"))+
+    scale_color_manual(values = c("#61D04F", "#F5C710"), labels = c("Men", "Women"))+
     facet_wrap(.~as.factor(covariate), 
                nrow = 1,
                scales="free", 
@@ -1522,16 +1522,16 @@ predictions_plot <- predictions_plot %>%
           strip.text.x=element_text(size = 9))+
   panel_border())
 
-# 
-# ggsave2(
-#   filename = "results/supplement_figures/reg_diff_online_news_specifications.png",
-#   plot = online_news_gender_plot,
-#   width = 12,
-#   height = 4.5,
-#   units = c("in"),
-#   dpi = 600,
-#   bg = "white"
-# )
+
+ggsave2(
+  filename = "results/supplement_figures/reg_diff_online_news_specifications.png",
+  plot = online_news_gender_plot,
+  width = 12,
+  height = 4.5,
+  units = c("in"),
+  dpi = 600,
+  bg = "white"
+)
 
 ```
 
@@ -1645,7 +1645,7 @@ predictions_plot <- predictions_plot %>%
                             "stem" = "STEM"))+
   ylab("Yearly attention")+
   labs(color = "Inferred gender")+
-    scale_color_manual(values = c("#34d399", "#fbbf24"), labels = c("Men", "Women"))+
+    scale_color_manual(values = c("#61D04F", "#F5C710"), labels = c("Men", "Women"))+
     facet_wrap(.~as.factor(covariate), 
                nrow = 2,
                scales="free", 
