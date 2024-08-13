@@ -1,37 +1,48 @@
-general_field,news_type,n_total_m,n_total_w,total_m,total_w,ave_m,ave_w,p_sig,share_m,share_w
-STEM,All online news,1841,381,205975,35803,111.94,93.97,,1,1
-STEM,General interest news,1841,381,35628,5911,19.36,15.51,,0.17,0.17
-STEM,General interest news (local),1841,381,16535,2858,8.99,7.5,,0.08,0.08
-STEM,Financial news,1841,381,6228,754,3.38,1.98,***,0.03,0.02
-STEM,Online blogs,1841,381,41307,7168,22.45,18.81,,0.2,0.2
-STEM,Popular science news,1841,381,7767,1384,4.22,3.63,,0.04,0.04
-STEM,Medial news,1841,381,8734,2046,4.75,5.37,,0.04,0.06
-STEM,Science news,1841,381,23764,3991,12.92,10.48,.,0.12,0.11
-STEM,Science news aggregators,1841,381,13798,2226,7.5,5.84,*,0.07,0.06
-STEM,News aggregators,1841,381,6875,1291,3.74,3.39,,0.03,0.04
-STEM,Other news,1841,381,45339,8174,24.64,21.45,,0.22,0.23
-Medicine,All online news,1283,546,257575,102008,201.07,186.83,,1,1
-Medicine,General interest news,1283,546,35180,16086,27.46,29.46,,0.14,0.16
-Medicine,General interest news (local),1283,546,42539,14799,33.21,27.1,.,0.17,0.15
-Medicine,Financial news,1283,546,10591,3661,8.27,6.71,.,0.04,0.04
-Medicine,Online blogs,1283,546,30002,12223,23.42,22.39,,0.12,0.12
-Medicine,Popular science news,1283,546,5241,2572,4.09,4.71,,0.02,0.03
-Medicine,Medial news,1283,546,50913,19206,39.74,35.18,,0.2,0.19
-Medicine,Science news,1283,546,14133,5387,11.03,9.87,,0.05,0.05
-Medicine,Science news aggregators,1283,546,6211,2324,4.85,4.26,,0.02,0.02
-Medicine,News aggregators,1283,546,9851,3549,7.69,6.5,,0.04,0.03
-Medicine,Other news,1283,546,52914,22201,41.31,40.66,,0.21,0.22
-Social sciences,All online news,1619,764,59766,28472,37.19,37.36,,1,1
-Social sciences,General interest news,1619,764,13115,6680,8.16,8.77,,0.22,0.23
-Social sciences,General interest news (local),1619,764,6442,3690,4.01,4.84,,0.11,0.13
-Social sciences,Financial news,1619,764,2695,1188,1.68,1.56,,0.05,0.04
-Social sciences,Online blogs,1619,764,12699,5178,7.9,6.8,,0.21,0.18
-Social sciences,Popular science news,1619,764,3198,1522,1.99,2,,0.05,0.05
-Social sciences,Medial news,1619,764,3234,1580,2.01,2.07,,0.05,0.06
-Social sciences,Science news,1619,764,2649,1231,1.65,1.62,,0.04,0.04
-Social sciences,Science news aggregators,1619,764,1617,743,1.01,0.98,,0.03,0.03
-Social sciences,News aggregators,1619,764,1475,736,0.92,0.97,,0.02,0.03
-Social sciences,Other news,1619,764,12642,5924,7.87,7.77,,0.21,0.21
+scopus_field_overall,news_type,n_total_m,n_total_w,total_m,total_w,ave_m,ave_w,p_sig,share_m,share_w
+Physical Sciences,All online news,1291,232,133989,20003,103.79,86.22,,1,1
+Physical Sciences,General interest news,1291,232,24897,3629,19.29,15.64,,0.19,0.18
+Physical Sciences,General interest news (local),1291,232,9095,1237,7.04,5.33,,0.07,0.06
+Physical Sciences,Financial news,1291,232,3846,398,2.98,1.72,**,0.03,0.02
+Physical Sciences,Online blogs,1291,232,26776,4077,20.74,17.57,,0.2,0.2
+Physical Sciences,Popular science news,1291,232,5336,826,4.13,3.56,,0.04,0.04
+Physical Sciences,Medial news,1291,232,1966,270,1.52,1.16,,0.01,0.01
+Physical Sciences,Science news,1291,232,16080,2560,12.46,11.03,,0.12,0.13
+Physical Sciences,Science news aggregators,1291,232,9535,1326,7.39,5.72,.,0.07,0.07
+Physical Sciences,News aggregators,1291,232,4308,802,3.34,3.46,,0.03,0.04
+Physical Sciences,Other news,1291,232,32150,4878,24.9,21.03,,0.24,0.24
+Life Sciences,All online news,529,147,71451,15541,135.32,105.72,.,1,1
+Life Sciences,General interest news,529,147,10702,2272,20.27,15.46,,0.15,0.15
+Life Sciences,General interest news (local),529,147,7389,1577,13.99,10.73,,0.1,0.1
+Life Sciences,Financial news,529,147,2368,352,4.48,2.39,***,0.03,0.02
+Life Sciences,Online blogs,529,147,14189,2921,26.87,19.87,*,0.2,0.19
+Life Sciences,Popular science news,529,147,2417,556,4.58,3.78,,0.03,0.04
+Life Sciences,Medial news,529,147,6755,1774,12.79,12.07,,0.09,0.11
+Life Sciences,Science news,529,147,7665,1427,14.52,9.71,**,0.11,0.09
+Life Sciences,Science news aggregators,529,147,4249,894,8.05,6.08,*,0.06,0.06
+Life Sciences,News aggregators,529,147,2561,485,4.85,3.3,*,0.04,0.03
+Life Sciences,Other news,529,147,13156,3283,24.92,22.33,,0.18,0.21
+Health Sciences,All online news,1283,546,257575,102008,201.07,186.83,,1,1
+Health Sciences,General interest news,1283,546,35180,16086,27.46,29.46,,0.14,0.16
+Health Sciences,General interest news (local),1283,546,42539,14799,33.21,27.1,.,0.17,0.15
+Health Sciences,Financial news,1283,546,10591,3661,8.27,6.71,.,0.04,0.04
+Health Sciences,Online blogs,1283,546,30002,12223,23.42,22.39,,0.12,0.12
+Health Sciences,Popular science news,1283,546,5241,2572,4.09,4.71,,0.02,0.03
+Health Sciences,Medial news,1283,546,50913,19206,39.74,35.18,,0.2,0.19
+Health Sciences,Science news,1283,546,14133,5387,11.03,9.87,,0.05,0.05
+Health Sciences,Science news aggregators,1283,546,6211,2324,4.85,4.26,,0.02,0.02
+Health Sciences,News aggregators,1283,546,9851,3549,7.69,6.5,,0.04,0.03
+Health Sciences,Other news,1283,546,52914,22201,41.31,40.66,,0.21,0.22
+Social Sciences,All online news,1640,766,60301,28731,37.04,37.61,,1,1
+Social Sciences,General interest news,1640,766,13144,6690,8.07,8.76,,0.22,0.23
+Social Sciences,General interest news (local),1640,766,6493,3734,3.99,4.89,,0.11,0.13
+Social Sciences,Financial news,1640,766,2709,1192,1.66,1.56,,0.04,0.04
+Social Sciences,Online blogs,1640,766,13041,5348,8.01,7,,0.22,0.19
+Social Sciences,Popular science news,1640,766,3212,1524,1.97,1.99,,0.05,0.05
+Social Sciences,Medial news,1640,766,3247,1582,1.99,2.07,,0.05,0.06
+Social Sciences,Science news,1640,766,2668,1235,1.64,1.62,,0.04,0.04
+Social Sciences,Science news aggregators,1640,766,1631,749,1,0.98,,0.03,0.03
+Social Sciences,News aggregators,1640,766,1481,740,0.91,0.97,,0.02,0.03
+Social Sciences,Other news,1640,766,12675,5937,7.79,7.77,,0.21,0.21
 Arts and Humanities,All online news,247,110,1328,526,5.44,4.87,,1,1
 Arts and Humanities,General interest news,247,110,223,105,0.91,0.97,,0.17,0.2
 Arts and Humanities,General interest news (local),247,110,98,58,0.4,0.54,,0.07,0.11

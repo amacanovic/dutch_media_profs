@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Bas Hofstra" />
+
+<meta name="date" content="2024-07-24" />
+
+<title>NARCIS data retrieval</title>
+
+<script src="site_libs/header-attrs-2.25/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<script src="site_libs/navigation-1.1/sourceembed.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.4.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+<style type="text/css">
+#rmd-source-code {
+  display: none;
+}
+</style>
+
+
+<link rel="stylesheet" href="tweaks.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html"></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a>
+    <span class="fa fa-home"></span>
+     
+  </a>
+</li>
+<li>
+  <a href="index.html">
+    <span class="glyphicon glyphicon glyphicon glyphicon-info-sign"></span>
+     
+    About
+  </a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="glyphicon glyphicon glyphicon glyphicon-menu-hamburger"></span>
+     
+    Database preparation
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="NARCIS_collection.html">NARCIS data scrape</a>
+    </li>
+    <li>
+      <a href="OpenAlex_Altmetric_data_download.html">Open Alex and Altmetric data download</a>
+    </li>
+    <li>
+      <a href="Gender_inference.html">Gender inference</a>
+    </li>
+    <li>
+      <a href="Grant_parsing.html">Grant parsing</a>
+    </li>
+    <li>
+      <a href="Printed_news_preparation.html">Printed nwes preparation</a>
+    </li>
+    <li>
+      <a href="Online_news_preparation.html">Online nwes preparation</a>
+    </li>
+    <li>
+      <a href="Data_coverage.html">NARCIS and OA database comparison</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="glyphicon glyphicon glyphicon glyphicon-tasks"></span>
+     
+    Variables
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="Panel_data_compilation.html">Variable preparation</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="glyphicon glyphicon glyphicon glyphicon-ok-sign"></span>
+     
+    Results
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="Analyses_main.html">Main analyses</a>
+    </li>
+    <li>
+      <a href="Supplement_data_information.html">SI S1 Dataset information</a>
+    </li>
+    <li>
+      <a href="Analyses_supplemental.html">SI S2-S4 Additional results</a>
+    </li>
+    <li>
+      <a href="News_classification_other_functions.html">Resources and functions</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="glyphicon glyphicon glyphicon glyphicon-info-sign"></span>
+     
+    Regression robustness checks
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="Analyses_robustness_ols.html">Main linear models</a>
+    </li>
+    <li>
+      <a href="Analyses_robustness_ols_log.html">Main linear models - log-transformed</a>
+    </li>
+    <li>
+      <a href="Analyses_robustness_poisson.html">Poisson models</a>
+    </li>
+    <li>
+      <a href="Analyses_robustness_logit.html">Logistic models</a>
+    </li>
+    <li>
+      <a href="Analyses_robustness_fe_re.html">Fixed and random effect models</a>
+    </li>
+  </ul>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/amacanovic/dutch_media_profs">
+    <span class="fab fa-github"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+<li role="separator" class="divider"></li>
+<li><a id="rmd-download-source" href="#">Download Rmd</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">NARCIS data retrieval</h1>
+<h4 class="author">Bas Hofstra</h4>
+<h4 class="date">2024-07-24</h4>
+
+</div>
+
+
+<p>This script shows the content of .R files used to retrieve the
+information from the NARCIS website and shows some screenshot of the
+website.</p>
+<p>The code used to retrieve the data:</p>
+<pre class="r"><code>#############################################
+# Author:   Bas Hofstra                     #
+# Date:     25-03-2022                      #
+# Task:     get metata from dutch profs 2021#
+#############################################
+
+# Required packages thus far
+rm(list = ls()) 
+
+require(tidyverse)
+require(tm)
+require(quanteda)
+require(httr) 
+require(xml2)
+require(rvest)
+require(readxl)
+#require(data.table)
+install.packages(&quot;furrr&quot;)
+require(furrr)
+require(future)
+require(tictoc)
+require(future)
+require(httr)
+require(doParallel)
+#------------------------------------------------------------------------------------------
+# 1 Generate a vector of links that I can look through for the htmls
+#------------------------------------------------------------------------------------------
+
+urls &lt;- read_excel(&quot;dutch_profs_urls.xlsx&quot;) # 
+
+
+#------------------------------------------------------------------------------------------
+# 2 From those links download html code of profiles
+#------------------------------------------------------------------------------------------
+
+# get html docs
+
+doclist &lt;- list()
+for (i in 1:nrow(urls)) {
+  
+  Sys.sleep(runif(1, 0, 0.01))
+
+  doclist[[i]] &lt;- read_html(as.character(urls[i,c(&quot;URL&quot;)])) # get the entire html of that link
+  
+}
+save(doclist, file = &quot;dutch_profs_xmls.rda&quot;)
+doclist  %&gt;% 
+  lapply(.,toString) %&gt;%    
+  saveRDS(., &quot;dutch_profs_strings.rda&quot;)
+
+
+
+#------------------------------------------------------------------------------------------
+# 3 From those profile htmls extract metadata
+#------------------------------------------------------------------------------------------
+
+# LOOP THROUGH THE XMLS AND FIND METADATA FROM THE WEBSITE
+metacols &lt;- list()
+metainfo &lt;- list()
+metadf &lt;- list()
+for (i in 1:length(doclist)) { # now this is where some magix happens
+  
+  if (length(doclist[[i]]) &gt; 0) {
+  
+  metacols[[i]] &lt;- doclist[[i]] %&gt;% # title
+    rvest::html_nodes(&#39;body&#39;) %&gt;%
+    xml2::xml_find_all(&quot;//th&quot;) %&gt;%
+    rvest::html_text()
+  
+  metainfo[[i]] &lt;- doclist[[i]] %&gt;% # title
+    rvest::html_nodes(&#39;body&#39;) %&gt;%
+    xml2::xml_find_all(&quot;//td&quot;) %&gt;%
+    rvest::html_text()
+  
+  
+  metacols[[i]] &lt;-  gsub(&quot;\n&quot;, &quot;&quot;, metacols[[i]])
+  metacols[[i]] &lt;-  gsub(&quot;\t&quot;, &quot;&quot;, metacols[[i]])
+  metacols[[i]] &lt;-  gsub(&quot;\r&quot;, &quot;&quot;, metacols[[i]])
+  metacols[[i]] &lt;-  gsub(&quot;&amp;nbsp&amp;nbsp&quot;, &quot;&quot;, metacols[[i]])
+  
+  metadf[[i]] &lt;- as.data.frame(t(unlist(metainfo[[i]]))) # transpose the object for row-column
+  names(metadf[[i]]) &lt;- t(unlist(metacols[[i]])) # same
+  metadf[[i]][,c(length(metadf[[i]]))] &lt;- NULL
+  metadf[[i]][&quot;narcis_url&quot;] &lt;- as.character(urls[i,c(&quot;URL&quot;)])
+  } 
+}
+metadf &lt;- bind_rows(metadf)
+save(metadf, file = &quot;media_profs_profiles.rda&quot;)
+load(file = &quot;media_profs_profiles.rda&quot;)
+
+
+
+#------------------------------------------------------------------------------------------
+# 4 From those profile htmls extract numpubs to get links to crawl
+#------------------------------------------------------------------------------------------
+urls$puburls &lt;- gsub(&quot;person&quot;, &quot;personpub&quot;, urls$URL)
+expanded &lt;- list()
+z&lt;-0
+for (i in 1:length(doclist)) {
+  
+  if (length(doclist[[i]]) &gt; 0) {
+  
+    if(length(doclist[[i]] %&gt;% # title
+      rvest::html_nodes(&#39;head&#39;) %&gt;%
+      xml2::xml_find_all(&quot;//a&quot;) %&gt;%
+      rvest::html_text() %&gt;%
+      str_subset(&quot;Publications \\(&quot;)) &gt; 0 ) {
+    
+  z[i] &lt;- doclist[[i]] %&gt;% # title
+    rvest::html_nodes(&#39;head&#39;) %&gt;%
+    xml2::xml_find_all(&quot;//a&quot;) %&gt;%
+    rvest::html_text() %&gt;%
+    str_subset(&quot;Publications \\(&quot;) %&gt;% 
+    gsub(&quot;Publications \\(&quot;, &quot;&quot;,. ) %&gt;%
+    gsub(&quot;\\)&quot;, &quot;&quot;,. ) %&gt;%
+    as.numeric(.)
+  
+    } else {
+      
+      z[i] &lt;- 0
+      
+    }
+  
+  expanded[[i]] &lt;- paste0(urls[i, c(&quot;puburls&quot;)], &quot;/pageable/&quot;)
+  expanded[[i]] &lt;- data.frame(rep(expanded[[i]],  ceiling(z[i]/10))) # so ten per page, we round up, know exactly how many pages to scrape :-)
+  expanded[[i]][,1] &lt;- paste0(expanded[[i]][,1], as.numeric(row.names(expanded[[i]]))-1)
+  }
+}
+expanded &lt;- unlist(expanded) # list of tailor made urls to scrape the pub urls from (not longer than necessary!)
+
+
+#------------------------------------------------------------------------------------------
+# 5 From those links to crawl, get the urls to the profiles
+#------------------------------------------------------------------------------------------
+
+#And from those we want their pub links
+# pub_htmls &lt;- list()
+# pub_urls &lt;- list()
+
+for (i in 1:length(expanded)) { # Sot his took a while, saved in six different DFs
+  
+    skip_to_next &lt;- FALSE
+    
+    tryCatch({
+    
+    Sys.sleep(runif(1, 0, 0.01))
+    pub_htmls[[i]] &lt;- read_html(expanded[i])
+    pub_urls[[i]] &lt;- html_attr(html_nodes(pub_htmls[[i]], &quot;a&quot;), &quot;href&quot;) # get the link
+    
+    })
+    
+    if(skip_to_next) { next }     
+    
+}
+
+save(pub_htmls, file = &quot;pub_htmls_temp.rda&quot;)
+pub_htmls  %&gt;% 
+  lapply(.,toString) %&gt;%    
+  saveRDS(., &quot;pub_htmls_string_temp.rda&quot;)
+save(pub_urls, file = &quot;pub_urls_temp.rda&quot;)
+
+
+pub_urls_clean &lt;- list()
+for (i in 1:length(pub_urls)) {
+  pub_urls_clean[[i]] &lt;- paste0(&quot;https://www.narcis.nl&quot;, pub_urls[[i]][grepl(&quot;/publication/RecordID/&quot;, pub_urls[[i]])])
+  pub_urls_clean[[i]] &lt;- data.frame(pub_urls_clean[[i]])
+  pub_urls_clean[[i]][,2] &lt;- gsub(&quot;pageable.*&quot;, &quot;&quot;, expanded[i])
+}
+pub_urls_clean &lt;- bind_rows(pub_urls_clean)
+pub_urls_clean &lt;- data.table(pub_urls_clean) # DT, to assist the unique function, usually saves time
+pub_urls_clean &lt;- unique(pub_urls_clean) # given that we need to go over multiple pages per person, we only keep the unique ones (it parses the same urls even with &quot;pageable&quot; increments)
+names(pub_urls_clean) &lt;- c(&quot;pub_url&quot;, &quot;profile_id&quot;)
+pub_to_profile_id &lt;- pub_urls_clean
+save(pub_to_profile_id, file = &quot;media_profs_pub_to_profile_ids.rda&quot;)
+
+load(&quot;media_profs_pub_to_profile_ids.rda&quot;)
+pub_to_profile_id$profile_id &lt;- gsub(&quot;personpub&quot;, &quot;person&quot;, pub_to_profile_id$profile_id)
+save(pub_to_profile_id, file = &quot;media_profs_pub_to_profile_ids.rda&quot;)
+pub_urls_clean &lt;- pub_to_profile_id
+
+
+#------------------------------------------------------------------------------------------
+# 6 From those crawled pub pages, we now have pub ids, that we&#39;re gonna scrape
+
+
+
+
+
+
+#------------------------------------------------------------------------------------------
+x &lt;- pub_urls_clean$pub_url
+# pubs_metadata &lt;- list()
+# for (i in 1:length(x)) { # it&#39;s fascinating that the most important stuff (these read_html) loops are so short
+# 
+#   Sys.sleep(runif(1, 0, 0.001))
+#   skip_to_next &lt;- FALSE
+#   
+#   tryCatch({
+# fscrape &lt;- function(link)   
+#   
+#     if (http_status(GET(as.character(pub_urls_clean[i,1])))$message == &quot;Server error: (500) Internal Server Error&quot;) {
+#       
+#       pubs_metadata[[i]] &lt;- &quot;HTTP error 500&quot; # so about 1/1000 fails, .1% of links changed in the timespan data gathering data (not weird, though annoying)
+#       
+#     }
+#     if (http_status(GET(as.character(pub_urls_clean[i,1])))$message == &quot;Client error: (404) Not Found&quot;) {
+#       
+#       pubs_metadata[[i]] &lt;- &quot;HTTP error 400&quot; # so about 1/1000 fails, .1% of links changed in the timespan data gathering data (not weird, though annoying)
+#       
+#     }
+#     else {
+#       
+#       pubs_metadata[[i]] &lt;- read_html(x[i])
+#       
+#     }
+#   })
+#   
+#   if(skip_to_next) { next }  
+#   
+# }
+
+
+# paralellize the estimation
+
+# numCores &lt;- detectCores()
+# if (numCores &gt; 4) {
+#   registerDoParallel(cores = 8)
+# } else {    
+#   print(&quot;Too few cores!&quot;) 
+# } 
+
+# dividing code in 10k chunks
+chunk_number &lt;- 10000       
+urls &lt;- split(x,          
+          cut(seq_along(x),
+              chunk_number,
+          labels = FALSE))
+
+# close workers, open workers in a future plan
+closeAllConnections()
+plan(multisession(workers = availableCores()))
+  
+tic() # start....
+pubs_metadatac &lt;- list()
+  
+for (i in 9001:10000) { # so over all the se chunks
+    
+  print(paste0(round((100/1000)*(i-9000), digits = 2), &quot;%, or &quot;, i-9000,&quot; out of 1000&quot;))  
+  
+  Sys.sleep(runif(1, 0, 0.01))
+  skip_to_next &lt;- FALSE
+    
+  tryCatch({
+      
+    pubs_metadatac[[i]] = furrr::future_map(urls[[i]], purrr::possibly(.f = function(o) { # map all the urls *IF POSSIBLE*
+    x_get =  read_html(o)
+    x_get = toString(x_get) # to string, otherwise dreaded external pointer error
+    }, otherwise = NULL) 
+    )
+   
+    })
+    
+    if(skip_to_next) { next }  
+    
+  }
+toc() # ...and end, how much time passed?
+
+
+#3 has 2000, doesn&#39;t start at 2001, so 2000 needs to be deleted beforehand
+
+
+# annoying checks, given unlist merges some of the same htmls I think
+load(file = &quot;dutch_profs_pub_strings1.rda&quot;)
+pubs_metadac1 &lt;- pubs_metadatac[c(1:1000)]
+pubs_metadac1 &lt;- unlist(pubs_metadac1, recursive = FALSE)
+urls1 &lt;- unlist(urls[c(1:1000)], recursive = FALSE)
+length(pubs_metadac1)==length(urls1)
+
+
+load(file = &quot;dutch_profs_pub_strings2.rda&quot;)
+pubs_metadac2 &lt;- pubs_metadatac[c(1001:2000)]
+pubs_metadac2 &lt;- unlist(pubs_metadac2, recursive = FALSE)
+urls2 &lt;- unlist(urls[c(1001:2000)], recursive = FALSE)
+length(pubs_metadac2)==length(urls2)
+
+load(file = &quot;dutch_profs_pub_strings3.rda&quot;)
+pubs_metadac3 &lt;- pubs_metadatac[c(2001:3000)]
+pubs_metadac3 &lt;- unlist(pubs_metadac3, recursive = FALSE)
+urls3 &lt;- unlist(urls[c(2001:3000)], recursive = FALSE)
+length(pubs_metadac3)==length(urls3)
+
+
+load(file = &quot;dutch_profs_pub_strings4.rda&quot;)
+pubs_metadac4 &lt;- pubs_metadatac[c(3001:4000)]
+pubs_metadac4 &lt;- unlist(pubs_metadac4, recursive = FALSE)
+urls4 &lt;- unlist(urls[c(3001:4000)], recursive = FALSE)
+length(pubs_metadac4)==length(urls4)
+
+load(file = &quot;dutch_profs_pub_strings5.rda&quot;)
+pubs_metadac5 &lt;- pubs_metadatac[c(4001:5000)]
+pubs_metadac5 &lt;- unlist(pubs_metadac5, recursive = FALSE)
+urls5 &lt;- unlist(urls[c(4001:5000)], recursive = FALSE)
+length(pubs_metadac5)==length(urls5)
+
+load(file = &quot;dutch_profs_pub_strings6.rda&quot;)
+pubs_metadac6 &lt;- pubs_metadatac[c(5001:6000)]
+pubs_metadac6 &lt;- unlist(pubs_metadac6, recursive = FALSE)
+urls6 &lt;- unlist(urls[c(5001:6000)], recursive = FALSE)
+length(pubs_metadac6)==length(urls6)
+
+load(file = &quot;dutch_profs_pub_strings7.rda&quot;)
+pubs_metadac7 &lt;- pubs_metadatac[c(6001:7000)]
+pubs_metadac7 &lt;- unlist(pubs_metadac7, recursive = FALSE)
+urls7 &lt;- unlist(urls[c(6001:7000)], recursive = FALSE)
+length(pubs_metadac7)==length(urls7)
+
+load(file = &quot;dutch_profs_pub_strings8.rda&quot;)
+pubs_metadac8 &lt;- pubs_metadatac[c(7001:8000)]
+pubs_metadac8 &lt;- unlist(pubs_metadac8, recursive = FALSE)
+urls8 &lt;- unlist(urls[c(7001:8000)], recursive = FALSE)
+length(pubs_metadac8)==length(urls8)
+
+load(file = &quot;dutch_profs_pub_strings9.rda&quot;)
+pubs_metadac9 &lt;- pubs_metadatac[c(8001:9000)]
+pubs_metadac9 &lt;- unlist(pubs_metadac9, recursive = FALSE)
+urls9 &lt;- unlist(urls[c(8001:9000)], recursive = FALSE)
+length(pubs_metadac9)==length(urls9)
+
+load(file = &quot;dutch_profs_pub_strings10.rda&quot;)
+pubs_metadac10 &lt;- pubs_metadatac[c(9001:10000)]
+pubs_metadac10 &lt;- unlist(pubs_metadac10, recursive = FALSE)
+urls10 &lt;- unlist(urls[c(9001:10000)], recursive = FALSE)
+length(pubs_metadac10)==length(urls10)
+
+pubs_metadac &lt;- c(pubs_metadac1, pubs_metadac2, pubs_metadac3, pubs_metadac4, pubs_metadac5, 
+                  pubs_metadac6, pubs_metadac7, pubs_metadac8, pubs_metadac9, pubs_metadac10)
+
+urll &lt;- c(urls1, urls2, urls3, urls4, urls5, urls6, urls7, urls8, urls9, urls10)
+
+rm(pubs_metadac1, pubs_metadac2, pubs_metadac3, pubs_metadac4, pubs_metadac5, 
+pubs_metadac6, pubs_metadac7, pubs_metadac8, pubs_metadac9, pubs_metadac10)
+rm(urls1, urls2, urls3, urls4, urls5, urls6, urls7, urls8, urls9, urls10)
+
+length(pubs_metadac)==length(urll)
+
+#------------------------------------------------------------------------------------------
+# 7Fand since we have pub metadata now, we can clean that up.
+#------------------------------------------------------------------------------------------
+# LOOP THROUGH THE XMLS AND FIND METADATA FROM THE WEBSITE
+metacols &lt;- list()
+metainfo &lt;- list()
+metaauthors &lt;- list()
+metadf &lt;- list()
+pubs_metadata &lt;- list()
+for (i in 744071:length(pubs_metadac)) { # now this is where some magix happens
+  
+  if (is.null(pubs_metadac[[i]])) {
+     
+    metadf[[i]] &lt;- as.data.frame(&quot;nullvalue&quot;)
+    metadf[[i]][&quot;narcis_url&quot;] &lt;- urll[i]
+  
+  
+  # else if (pubs_metadata[[i]][1] == &quot;HTTP error 400&quot;) {
+  #   
+  #   metadf[[i]] &lt;- as.data.frame(&quot;HTTP error 400&quot;)
+  #   metadf[[i]][&quot;narcis_id&quot;] &lt;- pub_urls_clean[i, 2]
+  #   metadf[[i]][&quot;narcis_url&quot;] &lt;- pub_urls_clean[i, 1]
+  #   
+  } else {
+  
+    pubs_metadac[[i]] &lt;- read_html(pubs_metadac[[i]])  
+  
+    metacols[[i]] &lt;- pubs_metadac[[i]] %&gt;% # title
+      rvest::html_nodes(&#39;body&#39;) %&gt;%
+      xml2::xml_find_all(&quot;//th&quot;) %&gt;%
+      rvest::html_text()
+    
+    metainfo[[i]] &lt;- pubs_metadac[[i]] %&gt;% # title
+      rvest::html_nodes(&#39;body&#39;) %&gt;%
+      xml2::xml_find_all(&quot;//td&quot;) %&gt;%
+      rvest::html_text()
+    
+    metaauthors[[i]] &lt;-  html_attr(html_nodes(pubs_metadac[[i]], &quot;a&quot;), &quot;href&quot;) # get the link
+    metaauthors[[i]] &lt;- metaauthors[[i]][grepl(&quot;person/&quot;, metaauthors[[i]])] # this one is key to get the co authors of the student!
+    
+    metacols[[i]] &lt;-  gsub(&quot;\n&quot;, &quot;&quot;, metacols[[i]])
+    metacols[[i]] &lt;-  gsub(&quot;\t&quot;, &quot;&quot;, metacols[[i]])
+    metacols[[i]] &lt;-  gsub(&quot;\r&quot;, &quot;&quot;, metacols[[i]])
+    metacols[[i]] &lt;-  gsub(&quot;&amp;nbsp&amp;nbsp&quot;, &quot;&quot;, metacols[[i]])
+    
+    metadf[[i]] &lt;- as.data.frame(t(unlist(metainfo[[i]]))) # transpose the object for row-column
+    names(metadf[[i]]) &lt;- t(unlist(metacols[[i]])) # same
+    metadf[[i]][,c(length(metadf[[i]]))] &lt;- NULL
+    
+    metadf[[i]][&quot;narcis_url&quot;] &lt;- urll[i]
+    #metadf[[i]][&quot;narcis_url&quot;] &lt;- pub_urls_clean[i, 1]
+    metadf[[i]][&quot;narcis_coauthors&quot;] &lt;- paste(metaauthors[[i]], collapse = &quot; , &quot;) 
+    # can expand to long later, but these are coauthor ids
+    # so this LAST line is super essential moving forward
+    
+  }
+}
+pubs_metadf &lt;- bind_rows(metadf)
+
+
+save(pubs_metadf, file = &quot;media_profs_pubs.rda&quot;)
+pubs_metadf$pub_url &lt;- pubs_metadf$narcis_url
+
+load(file = &quot;media_profs_pubs1.rda&quot;)
+
+metadf
+rm(pubs_metadatac)
+
+id &lt;- list()
+for (i in 1) { # Sot his took a while, saved in six different DFs
+  
+    id[[i]] &lt;- read_html(pubs_metadatacx[[i]])
+    id[[i]] &lt;- html_attr(html_nodes(id[[i]], &quot;a&quot;), &quot;href&quot;) # get the link
+
+}
+grepl(id[[1]], &quot;https://www.narcis.nl/publication/RecordID/oai&quot;)
+
+
+load(file = &quot;media_profs_profiles.rda&quot;)
+metadf$profile_id &lt;- metadf$narcis_url
+metadf$pub_url &lt;- NULL
+save(metadf, file = &quot;media_profs_profiles.rda&quot;)</code></pre>
+<p><img src="narcis_screenshots/personal_page.png" height="986"
+alt="An example of a NARCIS personal page" /><br />
+</p>
+
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIk5BUkNJUyBkYXRhIHJldHJpZXZhbCINCmF1dGhvcjogIkJhcyBIb2ZzdHJhIg0KZGF0ZTogIjIwMjQtMDctMjQiDQotLS0NCg0KVGhpcyBzY3JpcHQgc2hvd3MgdGhlIGNvbnRlbnQgb2YgLlIgZmlsZXMgdXNlZCB0byByZXRyaWV2ZSB0aGUgaW5mb3JtYXRpb24gZnJvbQ0KdGhlIE5BUkNJUyB3ZWJzaXRlIGFuZCBzaG93cyBzb21lIHNjcmVlbnNob3Qgb2YgdGhlIHdlYnNpdGUuDQoNClRoZSBjb2RlIHVzZWQgdG8gcmV0cmlldmUgdGhlIGRhdGE6DQpgYGB7ciBldmFsID0gRn0NCiMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIw0KIyBBdXRob3I6ICAgQmFzIEhvZnN0cmEgICAgICAgICAgICAgICAgICAgICAjDQojIERhdGU6ICAgICAyNS0wMy0yMDIyICAgICAgICAgICAgICAgICAgICAgICMNCiMgVGFzazogICAgIGdldCBtZXRhdGEgZnJvbSBkdXRjaCBwcm9mcyAyMDIxIw0KIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjDQoNCiMgUmVxdWlyZWQgcGFja2FnZXMgdGh1cyBmYXINCnJtKGxpc3QgPSBscygpKSANCg0KcmVxdWlyZSh0aWR5dmVyc2UpDQpyZXF1aXJlKHRtKQ0KcmVxdWlyZShxdWFudGVkYSkNCnJlcXVpcmUoaHR0cikgDQpyZXF1aXJlKHhtbDIpDQpyZXF1aXJlKHJ2ZXN0KQ0KcmVxdWlyZShyZWFkeGwpDQojcmVxdWlyZShkYXRhLnRhYmxlKQ0KaW5zdGFsbC5wYWNrYWdlcygiZnVycnIiKQ0KcmVxdWlyZShmdXJycikNCnJlcXVpcmUoZnV0dXJlKQ0KcmVxdWlyZSh0aWN0b2MpDQpyZXF1aXJlKGZ1dHVyZSkNCnJlcXVpcmUoaHR0cikNCnJlcXVpcmUoZG9QYXJhbGxlbCkNCiMtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCiMgMSBHZW5lcmF0ZSBhIHZlY3RvciBvZiBsaW5rcyB0aGF0IEkgY2FuIGxvb2sgdGhyb3VnaCBmb3IgdGhlIGh0bWxzDQojLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQoNCnVybHMgPC0gcmVhZF9leGNlbCgiZHV0Y2hfcHJvZnNfdXJscy54bHN4IikgIyANCg0KDQojLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQojIDIgRnJvbSB0aG9zZSBsaW5rcyBkb3dubG9hZCBodG1sIGNvZGUgb2YgcHJvZmlsZXMNCiMtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCg0KIyBnZXQgaHRtbCBkb2NzDQoNCmRvY2xpc3QgPC0gbGlzdCgpDQpmb3IgKGkgaW4gMTpucm93KHVybHMpKSB7DQogIA0KICBTeXMuc2xlZXAocnVuaWYoMSwgMCwgMC4wMSkpDQoNCiAgZG9jbGlzdFtbaV1dIDwtIHJlYWRfaHRtbChhcy5jaGFyYWN0ZXIodXJsc1tpLGMoIlVSTCIpXSkpICMgZ2V0IHRoZSBlbnRpcmUgaHRtbCBvZiB0aGF0IGxpbmsNCiAgDQp9DQpzYXZlKGRvY2xpc3QsIGZpbGUgPSAiZHV0Y2hfcHJvZnNfeG1scy5yZGEiKQ0KZG9jbGlzdCAgJT4lIA0KICBsYXBwbHkoLix0b1N0cmluZykgJT4lICAgIA0KICBzYXZlUkRTKC4sICJkdXRjaF9wcm9mc19zdHJpbmdzLnJkYSIpDQoNCg0KDQojLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQojIDMgRnJvbSB0aG9zZSBwcm9maWxlIGh0bWxzIGV4dHJhY3QgbWV0YWRhdGENCiMtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCg0KIyBMT09QIFRIUk9VR0ggVEhFIFhNTFMgQU5EIEZJTkQgTUVUQURBVEEgRlJPTSBUSEUgV0VCU0lURQ0KbWV0YWNvbHMgPC0gbGlzdCgpDQptZXRhaW5mbyA8LSBsaXN0KCkNCm1ldGFkZiA8LSBsaXN0KCkNCmZvciAoaSBpbiAxOmxlbmd0aChkb2NsaXN0KSkgeyAjIG5vdyB0aGlzIGlzIHdoZXJlIHNvbWUgbWFnaXggaGFwcGVucw0KICANCiAgaWYgKGxlbmd0aChkb2NsaXN0W1tpXV0pID4gMCkgew0KICANCiAgbWV0YWNvbHNbW2ldXSA8LSBkb2NsaXN0W1tpXV0gJT4lICMgdGl0bGUNCiAgICBydmVzdDo6aHRtbF9ub2RlcygnYm9keScpICU+JQ0KICAgIHhtbDI6OnhtbF9maW5kX2FsbCgiLy90aCIpICU+JQ0KICAgIHJ2ZXN0OjpodG1sX3RleHQoKQ0KICANCiAgbWV0YWluZm9bW2ldXSA8LSBkb2NsaXN0W1tpXV0gJT4lICMgdGl0bGUNCiAgICBydmVzdDo6aHRtbF9ub2RlcygnYm9keScpICU+JQ0KICAgIHhtbDI6OnhtbF9maW5kX2FsbCgiLy90ZCIpICU+JQ0KICAgIHJ2ZXN0OjpodG1sX3RleHQoKQ0KICANCiAgDQogIG1ldGFjb2xzW1tpXV0gPC0gIGdzdWIoIlxuIiwgIiIsIG1ldGFjb2xzW1tpXV0pDQogIG1ldGFjb2xzW1tpXV0gPC0gIGdzdWIoIlx0IiwgIiIsIG1ldGFjb2xzW1tpXV0pDQogIG1ldGFjb2xzW1tpXV0gPC0gIGdzdWIoIlxyIiwgIiIsIG1ldGFjb2xzW1tpXV0pDQogIG1ldGFjb2xzW1tpXV0gPC0gIGdzdWIoIiZuYnNwJm5ic3AiLCAiIiwgbWV0YWNvbHNbW2ldXSkNCiAgDQogIG1ldGFkZltbaV1dIDwtIGFzLmRhdGEuZnJhbWUodCh1bmxpc3QobWV0YWluZm9bW2ldXSkpKSAjIHRyYW5zcG9zZSB0aGUgb2JqZWN0IGZvciByb3ctY29sdW1uDQogIG5hbWVzKG1ldGFkZltbaV1dKSA8LSB0KHVubGlzdChtZXRhY29sc1tbaV1dKSkgIyBzYW1lDQogIG1ldGFkZltbaV1dWyxjKGxlbmd0aChtZXRhZGZbW2ldXSkpXSA8LSBOVUxMDQogIG1ldGFkZltbaV1dWyJuYXJjaXNfdXJsIl0gPC0gYXMuY2hhcmFjdGVyKHVybHNbaSxjKCJVUkwiKV0pDQogIH0gDQp9DQptZXRhZGYgPC0gYmluZF9yb3dzKG1ldGFkZikNCnNhdmUobWV0YWRmLCBmaWxlID0gIm1lZGlhX3Byb2ZzX3Byb2ZpbGVzLnJkYSIpDQpsb2FkKGZpbGUgPSAibWVkaWFfcHJvZnNfcHJvZmlsZXMucmRhIikNCg0KDQoNCiMtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCiMgNCBGcm9tIHRob3NlIHByb2ZpbGUgaHRtbHMgZXh0cmFjdCBudW1wdWJzIHRvIGdldCBsaW5rcyB0byBjcmF3bA0KIy0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KdXJscyRwdWJ1cmxzIDwtIGdzdWIoInBlcnNvbiIsICJwZXJzb25wdWIiLCB1cmxzJFVSTCkNCmV4cGFuZGVkIDwtIGxpc3QoKQ0KejwtMA0KZm9yIChpIGluIDE6bGVuZ3RoKGRvY2xpc3QpKSB7DQogIA0KICBpZiAobGVuZ3RoKGRvY2xpc3RbW2ldXSkgPiAwKSB7DQogIA0KICAgIGlmKGxlbmd0aChkb2NsaXN0W1tpXV0gJT4lICMgdGl0bGUNCiAgICAgIHJ2ZXN0OjpodG1sX25vZGVzKCdoZWFkJykgJT4lDQogICAgICB4bWwyOjp4bWxfZmluZF9hbGwoIi8vYSIpICU+JQ0KICAgICAgcnZlc3Q6Omh0bWxfdGV4dCgpICU+JQ0KICAgICAgc3RyX3N1YnNldCgiUHVibGljYXRpb25zIFxcKCIpKSA+IDAgKSB7DQogICAgDQogIHpbaV0gPC0gZG9jbGlzdFtbaV1dICU+JSAjIHRpdGxlDQogICAgcnZlc3Q6Omh0bWxfbm9kZXMoJ2hlYWQnKSAlPiUNCiAgICB4bWwyOjp4bWxfZmluZF9hbGwoIi8vYSIpICU+JQ0KICAgIHJ2ZXN0OjpodG1sX3RleHQoKSAlPiUNCiAgICBzdHJfc3Vic2V0KCJQdWJsaWNhdGlvbnMgXFwoIikgJT4lIA0KICAgIGdzdWIoIlB1YmxpY2F0aW9ucyBcXCgiLCAiIiwuICkgJT4lDQogICAgZ3N1YigiXFwpIiwgIiIsLiApICU+JQ0KICAgIGFzLm51bWVyaWMoLikNCiAgDQogICAgfSBlbHNlIHsNCiAgICAgIA0KICAgICAgeltpXSA8LSAwDQogICAgICANCiAgICB9DQogIA0KICBleHBhbmRlZFtbaV1dIDwtIHBhc3RlMCh1cmxzW2ksIGMoInB1YnVybHMiKV0sICIvcGFnZWFibGUvIikNCiAgZXhwYW5kZWRbW2ldXSA8LSBkYXRhLmZyYW1lKHJlcChleHBhbmRlZFtbaV1dLCAgY2VpbGluZyh6W2ldLzEwKSkpICMgc28gdGVuIHBlciBwYWdlLCB3ZSByb3VuZCB1cCwga25vdyBleGFjdGx5IGhvdyBtYW55IHBhZ2VzIHRvIHNjcmFwZSA6LSkNCiAgZXhwYW5kZWRbW2ldXVssMV0gPC0gcGFzdGUwKGV4cGFuZGVkW1tpXV1bLDFdLCBhcy5udW1lcmljKHJvdy5uYW1lcyhleHBhbmRlZFtbaV1dKSktMSkNCiAgfQ0KfQ0KZXhwYW5kZWQgPC0gdW5saXN0KGV4cGFuZGVkKSAjIGxpc3Qgb2YgdGFpbG9yIG1hZGUgdXJscyB0byBzY3JhcGUgdGhlIHB1YiB1cmxzIGZyb20gKG5vdCBsb25nZXIgdGhhbiBuZWNlc3NhcnkhKQ0KDQoNCiMtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCiMgNSBGcm9tIHRob3NlIGxpbmtzIHRvIGNyYXdsLCBnZXQgdGhlIHVybHMgdG8gdGhlIHByb2ZpbGVzDQojLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQoNCiNBbmQgZnJvbSB0aG9zZSB3ZSB3YW50IHRoZWlyIHB1YiBsaW5rcw0KIyBwdWJfaHRtbHMgPC0gbGlzdCgpDQojIHB1Yl91cmxzIDwtIGxpc3QoKQ0KDQpmb3IgKGkgaW4gMTpsZW5ndGgoZXhwYW5kZWQpKSB7ICMgU290IGhpcyB0b29rIGEgd2hpbGUsIHNhdmVkIGluIHNpeCBkaWZmZXJlbnQgREZzDQogIA0KICAgIHNraXBfdG9fbmV4dCA8LSBGQUxTRQ0KICAgIA0KICAgIHRyeUNhdGNoKHsNCiAgICANCiAgICBTeXMuc2xlZXAocnVuaWYoMSwgMCwgMC4wMSkpDQogICAgcHViX2h0bWxzW1tpXV0gPC0gcmVhZF9odG1sKGV4cGFuZGVkW2ldKQ0KICAgIHB1Yl91cmxzW1tpXV0gPC0gaHRtbF9hdHRyKGh0bWxfbm9kZXMocHViX2h0bWxzW1tpXV0sICJhIiksICJocmVmIikgIyBnZXQgdGhlIGxpbmsNCiAgICANCiAgICB9KQ0KICAgIA0KICAgIGlmKHNraXBfdG9fbmV4dCkgeyBuZXh0IH0gICAgIA0KICAgIA0KfQ0KDQpzYXZlKHB1Yl9odG1scywgZmlsZSA9ICJwdWJfaHRtbHNfdGVtcC5yZGEiKQ0KcHViX2h0bWxzICAlPiUgDQogIGxhcHBseSguLHRvU3RyaW5nKSAlPiUgICAgDQogIHNhdmVSRFMoLiwgInB1Yl9odG1sc19zdHJpbmdfdGVtcC5yZGEiKQ0Kc2F2ZShwdWJfdXJscywgZmlsZSA9ICJwdWJfdXJsc190ZW1wLnJkYSIpDQoNCg0KcHViX3VybHNfY2xlYW4gPC0gbGlzdCgpDQpmb3IgKGkgaW4gMTpsZW5ndGgocHViX3VybHMpKSB7DQogIHB1Yl91cmxzX2NsZWFuW1tpXV0gPC0gcGFzdGUwKCJodHRwczovL3d3dy5uYXJjaXMubmwiLCBwdWJfdXJsc1tbaV1dW2dyZXBsKCIvcHVibGljYXRpb24vUmVjb3JkSUQvIiwgcHViX3VybHNbW2ldXSldKQ0KICBwdWJfdXJsc19jbGVhbltbaV1dIDwtIGRhdGEuZnJhbWUocHViX3VybHNfY2xlYW5bW2ldXSkNCiAgcHViX3VybHNfY2xlYW5bW2ldXVssMl0gPC0gZ3N1YigicGFnZWFibGUuKiIsICIiLCBleHBhbmRlZFtpXSkNCn0NCnB1Yl91cmxzX2NsZWFuIDwtIGJpbmRfcm93cyhwdWJfdXJsc19jbGVhbikNCnB1Yl91cmxzX2NsZWFuIDwtIGRhdGEudGFibGUocHViX3VybHNfY2xlYW4pICMgRFQsIHRvIGFzc2lzdCB0aGUgdW5pcXVlIGZ1bmN0aW9uLCB1c3VhbGx5IHNhdmVzIHRpbWUNCnB1Yl91cmxzX2NsZWFuIDwtIHVuaXF1ZShwdWJfdXJsc19jbGVhbikgIyBnaXZlbiB0aGF0IHdlIG5lZWQgdG8gZ28gb3ZlciBtdWx0aXBsZSBwYWdlcyBwZXIgcGVyc29uLCB3ZSBvbmx5IGtlZXAgdGhlIHVuaXF1ZSBvbmVzIChpdCBwYXJzZXMgdGhlIHNhbWUgdXJscyBldmVuIHdpdGggInBhZ2VhYmxlIiBpbmNyZW1lbnRzKQ0KbmFtZXMocHViX3VybHNfY2xlYW4pIDwtIGMoInB1Yl91cmwiLCAicHJvZmlsZV9pZCIpDQpwdWJfdG9fcHJvZmlsZV9pZCA8LSBwdWJfdXJsc19jbGVhbg0Kc2F2ZShwdWJfdG9fcHJvZmlsZV9pZCwgZmlsZSA9ICJtZWRpYV9wcm9mc19wdWJfdG9fcHJvZmlsZV9pZHMucmRhIikNCg0KbG9hZCgibWVkaWFfcHJvZnNfcHViX3RvX3Byb2ZpbGVfaWRzLnJkYSIpDQpwdWJfdG9fcHJvZmlsZV9pZCRwcm9maWxlX2lkIDwtIGdzdWIoInBlcnNvbnB1YiIsICJwZXJzb24iLCBwdWJfdG9fcHJvZmlsZV9pZCRwcm9maWxlX2lkKQ0Kc2F2ZShwdWJfdG9fcHJvZmlsZV9pZCwgZmlsZSA9ICJtZWRpYV9wcm9mc19wdWJfdG9fcHJvZmlsZV9pZHMucmRhIikNCnB1Yl91cmxzX2NsZWFuIDwtIHB1Yl90b19wcm9maWxlX2lkDQoNCg0KIy0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KIyA2IEZyb20gdGhvc2UgY3Jhd2xlZCBwdWIgcGFnZXMsIHdlIG5vdyBoYXZlIHB1YiBpZHMsIHRoYXQgd2UncmUgZ29ubmEgc2NyYXBlDQoNCg0KDQoNCg0KDQojLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQp4IDwtIHB1Yl91cmxzX2NsZWFuJHB1Yl91cmwNCiMgcHVic19tZXRhZGF0YSA8LSBsaXN0KCkNCiMgZm9yIChpIGluIDE6bGVuZ3RoKHgpKSB7ICMgaXQncyBmYXNjaW5hdGluZyB0aGF0IHRoZSBtb3N0IGltcG9ydGFudCBzdHVmZiAodGhlc2UgcmVhZF9odG1sKSBsb29wcyBhcmUgc28gc2hvcnQNCiMgDQojICAgU3lzLnNsZWVwKHJ1bmlmKDEsIDAsIDAuMDAxKSkNCiMgICBza2lwX3RvX25leHQgPC0gRkFMU0UNCiMgICANCiMgICB0cnlDYXRjaCh7DQojIGZzY3JhcGUgPC0gZnVuY3Rpb24obGluaykgICANCiMgICANCiMgICAgIGlmIChodHRwX3N0YXR1cyhHRVQoYXMuY2hhcmFjdGVyKHB1Yl91cmxzX2NsZWFuW2ksMV0pKSkkbWVzc2FnZSA9PSAiU2VydmVyIGVycm9yOiAoNTAwKSBJbnRlcm5hbCBTZXJ2ZXIgRXJyb3IiKSB7DQojICAgICAgIA0KIyAgICAgICBwdWJzX21ldGFkYXRhW1tpXV0gPC0gIkhUVFAgZXJyb3IgNTAwIiAjIHNvIGFib3V0IDEvMTAwMCBmYWlscywgLjElIG9mIGxpbmtzIGNoYW5nZWQgaW4gdGhlIHRpbWVzcGFuIGRhdGEgZ2F0aGVyaW5nIGRhdGEgKG5vdCB3ZWlyZCwgdGhvdWdoIGFubm95aW5nKQ0KIyAgICAgICANCiMgICAgIH0NCiMgICAgIGlmIChodHRwX3N0YXR1cyhHRVQoYXMuY2hhcmFjdGVyKHB1Yl91cmxzX2NsZWFuW2ksMV0pKSkkbWVzc2FnZSA9PSAiQ2xpZW50IGVycm9yOiAoNDA0KSBOb3QgRm91bmQiKSB7DQojICAgICAgIA0KIyAgICAgICBwdWJzX21ldGFkYXRhW1tpXV0gPC0gIkhUVFAgZXJyb3IgNDAwIiAjIHNvIGFib3V0IDEvMTAwMCBmYWlscywgLjElIG9mIGxpbmtzIGNoYW5nZWQgaW4gdGhlIHRpbWVzcGFuIGRhdGEgZ2F0aGVyaW5nIGRhdGEgKG5vdCB3ZWlyZCwgdGhvdWdoIGFubm95aW5nKQ0KIyAgICAgICANCiMgICAgIH0NCiMgICAgIGVsc2Ugew0KIyAgICAgICANCiMgICAgICAgcHVic19tZXRhZGF0YVtbaV1dIDwtIHJlYWRfaHRtbCh4W2ldKQ0KIyAgICAgICANCiMgICAgIH0NCiMgICB9KQ0KIyAgIA0KIyAgIGlmKHNraXBfdG9fbmV4dCkgeyBuZXh0IH0gIA0KIyAgIA0KIyB9DQoNCg0KIyBwYXJhbGVsbGl6ZSB0aGUgZXN0aW1hdGlvbg0KDQojIG51bUNvcmVzIDwtIGRldGVjdENvcmVzKCkNCiMgaWYgKG51bUNvcmVzID4gNCkgew0KIyAgIHJlZ2lzdGVyRG9QYXJhbGxlbChjb3JlcyA9IDgpDQojIH0gZWxzZSB7ICAgIA0KIyAgIHByaW50KCJUb28gZmV3IGNvcmVzISIpIA0KIyB9IA0KDQojIGRpdmlkaW5nIGNvZGUgaW4gMTBrIGNodW5rcw0KY2h1bmtfbnVtYmVyIDwtIDEwMDAwICAgICAgIA0KdXJscyA8LSBzcGxpdCh4LCAgICAgICAgICANCiAgICAgICAgICBjdXQoc2VxX2Fsb25nKHgpLA0KICAgICAgICAgICAgICBjaHVua19udW1iZXIsDQogICAgICAgICAgbGFiZWxzID0gRkFMU0UpKQ0KDQojIGNsb3NlIHdvcmtlcnMsIG9wZW4gd29ya2VycyBpbiBhIGZ1dHVyZSBwbGFuDQpjbG9zZUFsbENvbm5lY3Rpb25zKCkNCnBsYW4obXVsdGlzZXNzaW9uKHdvcmtlcnMgPSBhdmFpbGFibGVDb3JlcygpKSkNCiAgDQp0aWMoKSAjIHN0YXJ0Li4uLg0KcHVic19tZXRhZGF0YWMgPC0gbGlzdCgpDQogIA0KZm9yIChpIGluIDkwMDE6MTAwMDApIHsgIyBzbyBvdmVyIGFsbCB0aGUgc2UgY2h1bmtzDQogICAgDQogIHByaW50KHBhc3RlMChyb3VuZCgoMTAwLzEwMDApKihpLTkwMDApLCBkaWdpdHMgPSAyKSwgIiUsIG9yICIsIGktOTAwMCwiIG91dCBvZiAxMDAwIikpICANCiAgDQogIFN5cy5zbGVlcChydW5pZigxLCAwLCAwLjAxKSkNCiAgc2tpcF90b19uZXh0IDwtIEZBTFNFDQogICAgDQogIHRyeUNhdGNoKHsNCiAgICAgIA0KICAgIHB1YnNfbWV0YWRhdGFjW1tpXV0gPSBmdXJycjo6ZnV0dXJlX21hcCh1cmxzW1tpXV0sIHB1cnJyOjpwb3NzaWJseSguZiA9IGZ1bmN0aW9uKG8pIHsgIyBtYXAgYWxsIHRoZSB1cmxzICpJRiBQT1NTSUJMRSoNCiAgICB4X2dldCA9ICByZWFkX2h0bWwobykNCiAgICB4X2dldCA9IHRvU3RyaW5nKHhfZ2V0KSAjIHRvIHN0cmluZywgb3RoZXJ3aXNlIGRyZWFkZWQgZXh0ZXJuYWwgcG9pbnRlciBlcnJvcg0KICAgIH0sIG90aGVyd2lzZSA9IE5VTEwpIA0KICAgICkNCiAgIA0KICAgIH0pDQogICAgDQogICAgaWYoc2tpcF90b19uZXh0KSB7IG5leHQgfSAgDQogICAgDQogIH0NCnRvYygpICMgLi4uYW5kIGVuZCwgaG93IG11Y2ggdGltZSBwYXNzZWQ/DQoNCg0KIzMgaGFzIDIwMDAsIGRvZXNuJ3Qgc3RhcnQgYXQgMjAwMSwgc28gMjAwMCBuZWVkcyB0byBiZSBkZWxldGVkIGJlZm9yZWhhbmQNCg0KDQojIGFubm95aW5nIGNoZWNrcywgZ2l2ZW4gdW5saXN0IG1lcmdlcyBzb21lIG9mIHRoZSBzYW1lIGh0bWxzIEkgdGhpbmsNCmxvYWQoZmlsZSA9ICJkdXRjaF9wcm9mc19wdWJfc3RyaW5nczEucmRhIikNCnB1YnNfbWV0YWRhYzEgPC0gcHVic19tZXRhZGF0YWNbYygxOjEwMDApXQ0KcHVic19tZXRhZGFjMSA8LSB1bmxpc3QocHVic19tZXRhZGFjMSwgcmVjdXJzaXZlID0gRkFMU0UpDQp1cmxzMSA8LSB1bmxpc3QodXJsc1tjKDE6MTAwMCldLCByZWN1cnNpdmUgPSBGQUxTRSkNCmxlbmd0aChwdWJzX21ldGFkYWMxKT09bGVuZ3RoKHVybHMxKQ0KDQoNCmxvYWQoZmlsZSA9ICJkdXRjaF9wcm9mc19wdWJfc3RyaW5nczIucmRhIikNCnB1YnNfbWV0YWRhYzIgPC0gcHVic19tZXRhZGF0YWNbYygxMDAxOjIwMDApXQ0KcHVic19tZXRhZGFjMiA8LSB1bmxpc3QocHVic19tZXRhZGFjMiwgcmVjdXJzaXZlID0gRkFMU0UpDQp1cmxzMiA8LSB1bmxpc3QodXJsc1tjKDEwMDE6MjAwMCldLCByZWN1cnNpdmUgPSBGQUxTRSkNCmxlbmd0aChwdWJzX21ldGFkYWMyKT09bGVuZ3RoKHVybHMyKQ0KDQpsb2FkKGZpbGUgPSAiZHV0Y2hfcHJvZnNfcHViX3N0cmluZ3MzLnJkYSIpDQpwdWJzX21ldGFkYWMzIDwtIHB1YnNfbWV0YWRhdGFjW2MoMjAwMTozMDAwKV0NCnB1YnNfbWV0YWRhYzMgPC0gdW5saXN0KHB1YnNfbWV0YWRhYzMsIHJlY3Vyc2l2ZSA9IEZBTFNFKQ0KdXJsczMgPC0gdW5saXN0KHVybHNbYygyMDAxOjMwMDApXSwgcmVjdXJzaXZlID0gRkFMU0UpDQpsZW5ndGgocHVic19tZXRhZGFjMyk9PWxlbmd0aCh1cmxzMykNCg0KDQpsb2FkKGZpbGUgPSAiZHV0Y2hfcHJvZnNfcHViX3N0cmluZ3M0LnJkYSIpDQpwdWJzX21ldGFkYWM0IDwtIHB1YnNfbWV0YWRhdGFjW2MoMzAwMTo0MDAwKV0NCnB1YnNfbWV0YWRhYzQgPC0gdW5saXN0KHB1YnNfbWV0YWRhYzQsIHJlY3Vyc2l2ZSA9IEZBTFNFKQ0KdXJsczQgPC0gdW5saXN0KHVybHNbYygzMDAxOjQwMDApXSwgcmVjdXJzaXZlID0gRkFMU0UpDQpsZW5ndGgocHVic19tZXRhZGFjNCk9PWxlbmd0aCh1cmxzNCkNCg0KbG9hZChmaWxlID0gImR1dGNoX3Byb2ZzX3B1Yl9zdHJpbmdzNS5yZGEiKQ0KcHVic19tZXRhZGFjNSA8LSBwdWJzX21ldGFkYXRhY1tjKDQwMDE6NTAwMCldDQpwdWJzX21ldGFkYWM1IDwtIHVubGlzdChwdWJzX21ldGFkYWM1LCByZWN1cnNpdmUgPSBGQUxTRSkNCnVybHM1IDwtIHVubGlzdCh1cmxzW2MoNDAwMTo1MDAwKV0sIHJlY3Vyc2l2ZSA9IEZBTFNFKQ0KbGVuZ3RoKHB1YnNfbWV0YWRhYzUpPT1sZW5ndGgodXJsczUpDQoNCmxvYWQoZmlsZSA9ICJkdXRjaF9wcm9mc19wdWJfc3RyaW5nczYucmRhIikNCnB1YnNfbWV0YWRhYzYgPC0gcHVic19tZXRhZGF0YWNbYyg1MDAxOjYwMDApXQ0KcHVic19tZXRhZGFjNiA8LSB1bmxpc3QocHVic19tZXRhZGFjNiwgcmVjdXJzaXZlID0gRkFMU0UpDQp1cmxzNiA8LSB1bmxpc3QodXJsc1tjKDUwMDE6NjAwMCldLCByZWN1cnNpdmUgPSBGQUxTRSkNCmxlbmd0aChwdWJzX21ldGFkYWM2KT09bGVuZ3RoKHVybHM2KQ0KDQpsb2FkKGZpbGUgPSAiZHV0Y2hfcHJvZnNfcHViX3N0cmluZ3M3LnJkYSIpDQpwdWJzX21ldGFkYWM3IDwtIHB1YnNfbWV0YWRhdGFjW2MoNjAwMTo3MDAwKV0NCnB1YnNfbWV0YWRhYzcgPC0gdW5saXN0KHB1YnNfbWV0YWRhYzcsIHJlY3Vyc2l2ZSA9IEZBTFNFKQ0KdXJsczcgPC0gdW5saXN0KHVybHNbYyg2MDAxOjcwMDApXSwgcmVjdXJzaXZlID0gRkFMU0UpDQpsZW5ndGgocHVic19tZXRhZGFjNyk9PWxlbmd0aCh1cmxzNykNCg0KbG9hZChmaWxlID0gImR1dGNoX3Byb2ZzX3B1Yl9zdHJpbmdzOC5yZGEiKQ0KcHVic19tZXRhZGFjOCA8LSBwdWJzX21ldGFkYXRhY1tjKDcwMDE6ODAwMCldDQpwdWJzX21ldGFkYWM4IDwtIHVubGlzdChwdWJzX21ldGFkYWM4LCByZWN1cnNpdmUgPSBGQUxTRSkNCnVybHM4IDwtIHVubGlzdCh1cmxzW2MoNzAwMTo4MDAwKV0sIHJlY3Vyc2l2ZSA9IEZBTFNFKQ0KbGVuZ3RoKHB1YnNfbWV0YWRhYzgpPT1sZW5ndGgodXJsczgpDQoNCmxvYWQoZmlsZSA9ICJkdXRjaF9wcm9mc19wdWJfc3RyaW5nczkucmRhIikNCnB1YnNfbWV0YWRhYzkgPC0gcHVic19tZXRhZGF0YWNbYyg4MDAxOjkwMDApXQ0KcHVic19tZXRhZGFjOSA8LSB1bmxpc3QocHVic19tZXRhZGFjOSwgcmVjdXJzaXZlID0gRkFMU0UpDQp1cmxzOSA8LSB1bmxpc3QodXJsc1tjKDgwMDE6OTAwMCldLCByZWN1cnNpdmUgPSBGQUxTRSkNCmxlbmd0aChwdWJzX21ldGFkYWM5KT09bGVuZ3RoKHVybHM5KQ0KDQpsb2FkKGZpbGUgPSAiZHV0Y2hfcHJvZnNfcHViX3N0cmluZ3MxMC5yZGEiKQ0KcHVic19tZXRhZGFjMTAgPC0gcHVic19tZXRhZGF0YWNbYyg5MDAxOjEwMDAwKV0NCnB1YnNfbWV0YWRhYzEwIDwtIHVubGlzdChwdWJzX21ldGFkYWMxMCwgcmVjdXJzaXZlID0gRkFMU0UpDQp1cmxzMTAgPC0gdW5saXN0KHVybHNbYyg5MDAxOjEwMDAwKV0sIHJlY3Vyc2l2ZSA9IEZBTFNFKQ0KbGVuZ3RoKHB1YnNfbWV0YWRhYzEwKT09bGVuZ3RoKHVybHMxMCkNCg0KcHVic19tZXRhZGFjIDwtIGMocHVic19tZXRhZGFjMSwgcHVic19tZXRhZGFjMiwgcHVic19tZXRhZGFjMywgcHVic19tZXRhZGFjNCwgcHVic19tZXRhZGFjNSwgDQogICAgICAgICAgICAgICAgICBwdWJzX21ldGFkYWM2LCBwdWJzX21ldGFkYWM3LCBwdWJzX21ldGFkYWM4LCBwdWJzX21ldGFkYWM5LCBwdWJzX21ldGFkYWMxMCkNCg0KdXJsbCA8LSBjKHVybHMxLCB1cmxzMiwgdXJsczMsIHVybHM0LCB1cmxzNSwgdXJsczYsIHVybHM3LCB1cmxzOCwgdXJsczksIHVybHMxMCkNCg0Kcm0ocHVic19tZXRhZGFjMSwgcHVic19tZXRhZGFjMiwgcHVic19tZXRhZGFjMywgcHVic19tZXRhZGFjNCwgcHVic19tZXRhZGFjNSwgDQpwdWJzX21ldGFkYWM2LCBwdWJzX21ldGFkYWM3LCBwdWJzX21ldGFkYWM4LCBwdWJzX21ldGFkYWM5LCBwdWJzX21ldGFkYWMxMCkNCnJtKHVybHMxLCB1cmxzMiwgdXJsczMsIHVybHM0LCB1cmxzNSwgdXJsczYsIHVybHM3LCB1cmxzOCwgdXJsczksIHVybHMxMCkNCg0KbGVuZ3RoKHB1YnNfbWV0YWRhYyk9PWxlbmd0aCh1cmxsKQ0KDQojLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQojIDdGYW5kIHNpbmNlIHdlIGhhdmUgcHViIG1ldGFkYXRhIG5vdywgd2UgY2FuIGNsZWFuIHRoYXQgdXAuDQojLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQojIExPT1AgVEhST1VHSCBUSEUgWE1MUyBBTkQgRklORCBNRVRBREFUQSBGUk9NIFRIRSBXRUJTSVRFDQptZXRhY29scyA8LSBsaXN0KCkNCm1ldGFpbmZvIDwtIGxpc3QoKQ0KbWV0YWF1dGhvcnMgPC0gbGlzdCgpDQptZXRhZGYgPC0gbGlzdCgpDQpwdWJzX21ldGFkYXRhIDwtIGxpc3QoKQ0KZm9yIChpIGluIDc0NDA3MTpsZW5ndGgocHVic19tZXRhZGFjKSkgeyAjIG5vdyB0aGlzIGlzIHdoZXJlIHNvbWUgbWFnaXggaGFwcGVucw0KICANCiAgaWYgKGlzLm51bGwocHVic19tZXRhZGFjW1tpXV0pKSB7DQogICAgIA0KICAgIG1ldGFkZltbaV1dIDwtIGFzLmRhdGEuZnJhbWUoIm51bGx2YWx1ZSIpDQogICAgbWV0YWRmW1tpXV1bIm5hcmNpc191cmwiXSA8LSB1cmxsW2ldDQogIA0KICANCiAgIyBlbHNlIGlmIChwdWJzX21ldGFkYXRhW1tpXV1bMV0gPT0gIkhUVFAgZXJyb3IgNDAwIikgew0KICAjICAgDQogICMgICBtZXRhZGZbW2ldXSA8LSBhcy5kYXRhLmZyYW1lKCJIVFRQIGVycm9yIDQwMCIpDQogICMgICBtZXRhZGZbW2ldXVsibmFyY2lzX2lkIl0gPC0gcHViX3VybHNfY2xlYW5baSwgMl0NCiAgIyAgIG1ldGFkZltbaV1dWyJuYXJjaXNfdXJsIl0gPC0gcHViX3VybHNfY2xlYW5baSwgMV0NCiAgIyAgIA0KICB9IGVsc2Ugew0KICANCiAgICBwdWJzX21ldGFkYWNbW2ldXSA8LSByZWFkX2h0bWwocHVic19tZXRhZGFjW1tpXV0pICANCiAgDQogICAgbWV0YWNvbHNbW2ldXSA8LSBwdWJzX21ldGFkYWNbW2ldXSAlPiUgIyB0aXRsZQ0KICAgICAgcnZlc3Q6Omh0bWxfbm9kZXMoJ2JvZHknKSAlPiUNCiAgICAgIHhtbDI6OnhtbF9maW5kX2FsbCgiLy90aCIpICU+JQ0KICAgICAgcnZlc3Q6Omh0bWxfdGV4dCgpDQogICAgDQogICAgbWV0YWluZm9bW2ldXSA8LSBwdWJzX21ldGFkYWNbW2ldXSAlPiUgIyB0aXRsZQ0KICAgICAgcnZlc3Q6Omh0bWxfbm9kZXMoJ2JvZHknKSAlPiUNCiAgICAgIHhtbDI6OnhtbF9maW5kX2FsbCgiLy90ZCIpICU+JQ0KICAgICAgcnZlc3Q6Omh0bWxfdGV4dCgpDQogICAgDQogICAgbWV0YWF1dGhvcnNbW2ldXSA8LSAgaHRtbF9hdHRyKGh0bWxfbm9kZXMocHVic19tZXRhZGFjW1tpXV0sICJhIiksICJocmVmIikgIyBnZXQgdGhlIGxpbmsNCiAgICBtZXRhYXV0aG9yc1tbaV1dIDwtIG1ldGFhdXRob3JzW1tpXV1bZ3JlcGwoInBlcnNvbi8iLCBtZXRhYXV0aG9yc1tbaV1dKV0gIyB0aGlzIG9uZSBpcyBrZXkgdG8gZ2V0IHRoZSBjbyBhdXRob3JzIG9mIHRoZSBzdHVkZW50IQ0KICAgIA0KICAgIG1ldGFjb2xzW1tpXV0gPC0gIGdzdWIoIlxuIiwgIiIsIG1ldGFjb2xzW1tpXV0pDQogICAgbWV0YWNvbHNbW2ldXSA8LSAgZ3N1YigiXHQiLCAiIiwgbWV0YWNvbHNbW2ldXSkNCiAgICBtZXRhY29sc1tbaV1dIDwtICBnc3ViKCJcciIsICIiLCBtZXRhY29sc1tbaV1dKQ0KICAgIG1ldGFjb2xzW1tpXV0gPC0gIGdzdWIoIiZuYnNwJm5ic3AiLCAiIiwgbWV0YWNvbHNbW2ldXSkNCiAgICANCiAgICBtZXRhZGZbW2ldXSA8LSBhcy5kYXRhLmZyYW1lKHQodW5saXN0KG1ldGFpbmZvW1tpXV0pKSkgIyB0cmFuc3Bvc2UgdGhlIG9iamVjdCBmb3Igcm93LWNvbHVtbg0KICAgIG5hbWVzKG1ldGFkZltbaV1dKSA8LSB0KHVubGlzdChtZXRhY29sc1tbaV1dKSkgIyBzYW1lDQogICAgbWV0YWRmW1tpXV1bLGMobGVuZ3RoKG1ldGFkZltbaV1dKSldIDwtIE5VTEwNCiAgICANCiAgICBtZXRhZGZbW2ldXVsibmFyY2lzX3VybCJdIDwtIHVybGxbaV0NCiAgICAjbWV0YWRmW1tpXV1bIm5hcmNpc191cmwiXSA8LSBwdWJfdXJsc19jbGVhbltpLCAxXQ0KICAgIG1ldGFkZltbaV1dWyJuYXJjaXNfY29hdXRob3JzIl0gPC0gcGFzdGUobWV0YWF1dGhvcnNbW2ldXSwgY29sbGFwc2UgPSAiICwgIikgDQogICAgIyBjYW4gZXhwYW5kIHRvIGxvbmcgbGF0ZXIsIGJ1dCB0aGVzZSBhcmUgY29hdXRob3IgaWRzDQogICAgIyBzbyB0aGlzIExBU1QgbGluZSBpcyBzdXBlciBlc3NlbnRpYWwgbW92aW5nIGZvcndhcmQNCiAgICANCiAgfQ0KfQ0KcHVic19tZXRhZGYgPC0gYmluZF9yb3dzKG1ldGFkZikNCg0KDQpzYXZlKHB1YnNfbWV0YWRmLCBmaWxlID0gIm1lZGlhX3Byb2ZzX3B1YnMucmRhIikNCnB1YnNfbWV0YWRmJHB1Yl91cmwgPC0gcHVic19tZXRhZGYkbmFyY2lzX3VybA0KDQpsb2FkKGZpbGUgPSAibWVkaWFfcHJvZnNfcHViczEucmRhIikNCg0KbWV0YWRmDQpybShwdWJzX21ldGFkYXRhYykNCg0KaWQgPC0gbGlzdCgpDQpmb3IgKGkgaW4gMSkgeyAjIFNvdCBoaXMgdG9vayBhIHdoaWxlLCBzYXZlZCBpbiBzaXggZGlmZmVyZW50IERGcw0KICANCiAgICBpZFtbaV1dIDwtIHJlYWRfaHRtbChwdWJzX21ldGFkYXRhY3hbW2ldXSkNCiAgICBpZFtbaV1dIDwtIGh0bWxfYXR0cihodG1sX25vZGVzKGlkW1tpXV0sICJhIiksICJocmVmIikgIyBnZXQgdGhlIGxpbmsNCg0KfQ0KZ3JlcGwoaWRbWzFdXSwgImh0dHBzOi8vd3d3Lm5hcmNpcy5ubC9wdWJsaWNhdGlvbi9SZWNvcmRJRC9vYWkiKQ0KDQoNCmxvYWQoZmlsZSA9ICJtZWRpYV9wcm9mc19wcm9maWxlcy5yZGEiKQ0KbWV0YWRmJHByb2ZpbGVfaWQgPC0gbWV0YWRmJG5hcmNpc191cmwNCm1ldGFkZiRwdWJfdXJsIDwtIE5VTEwNCnNhdmUobWV0YWRmLCBmaWxlID0gIm1lZGlhX3Byb2ZzX3Byb2ZpbGVzLnJkYSIpDQoNCmBgYA0KDQoNCg0KIVtBbiBleGFtcGxlIG9mIGEgTkFSQ0lTIHBlcnNvbmFsIHBhZ2VdKC4vbmFyY2lzX3NjcmVlbnNob3RzL3BlcnNvbmFsX3BhZ2UucG5nKXt3aWR0aD03ODJweCwgaGVpZ2h0PTk4NnB4fVwNCg==</div>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeSourceEmbed("NARCIS_collection.Rmd");
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

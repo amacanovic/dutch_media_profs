@@ -1,5 +1,6 @@
 field,printed_total_m,printed_total_w,printed_total_ttest,online_total_m,online_total_w,online_total_ttest,twitter_total_m,twitter_total_w,twitter_total_ttest
-STEM,88.29,53.82,***,111.94,93.97,,513.96,479.37,
-Medicine,98.3,60.46,***,201.07,186.83,,1073.35,785.73,*
-Social sciences,157.36,103.07,***,37.19,37.36,,155.4,168.93,
+Physical Sciences,91.88,65.46,*,103.79,86.22,,402.31,244.56,*
+Life Sciences,81.61,35.68,***,135.32,105.72,.,785.32,811.13,
+Health Sciences,98.3,60.46,***,201.07,186.83,,1073.35,785.73,*
+Social Sciences,155.8,102.89,***,37.04,37.61,,160.56,177.21,
 Arts and Humanities,95.29,46.17,***,5.44,4.87,,21.08,18.88,

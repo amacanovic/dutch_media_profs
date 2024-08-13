@@ -1,9 +1,11 @@
 ---
-title: "Supplemental analyses - online supplement and companion website"
+title: "Supplemental analyses"
 author: "Ana Macanovic"
 date: "2024-07-24"
 ---
 
+
+This script produces supplemental analyses referred to in the main text.
 
 Load the packages:
 ```{r message=  F, warning = F, eval = T}
@@ -38,27 +40,206 @@ opts_chunk$set(message = FALSE)
 ```
 
 
-Load the panel and tidy up some columns:
+Load the panel:
 ```{r warning = F, message = F}
-prof_panel_coa <- read_csv("panel_datasets/prof_panel_tidy_26_7.csv")
-
-prof_panel_filter <- filter(prof_panel_coa,
-                            year < 2024 & !is.na(general_field))
-
-prof_panel_filter$coa_online_all_total <- prof_panel_filter$coa_online_news_total + prof_panel_filter$coa_blogs_total
-prof_panel_filter$coa_online_all_total_l <- prof_panel_filter$coa_online_news_total_l + prof_panel_filter$coa_blogs_total_l
-prof_panel_filter$coa_online_all <- prof_panel_filter$coa_online_news + prof_panel_filter$coa_blogs
-prof_panel_filter$coa_online_all_l <- prof_panel_filter$coa_online_news_l + prof_panel_filter$coa_blogs_l
-
-prof_panel_filter$coa_tot_online_all_total <- prof_panel_filter$coa_tot_online_news_total + prof_panel_filter$coa_tot_blogs_total
-prof_panel_filter$coa_tot_online_all_total_l <- prof_panel_filter$coa_tot_online_news_total_l + prof_panel_filter$coa_tot_blogs_total_l
-prof_panel_filter$coa_tot_online_all <- prof_panel_filter$coa_tot_online_news + prof_panel_filter$coa_tot_blogs
-prof_panel_filter$coa_tot_online_all_l <- prof_panel_filter$coa_tot_online_news + prof_panel_filter$coa_tot_blogs_l
-
-prof_panel_filter$coa_online_all <- prof_panel_filter$coa_online_news + prof_panel_filter$coa_blogs
+prof_panel_filter <- read_csv("panel_datasets/prof_panel_final_26_7.csv")
 ```
 
-# Figure 1B per cohort
+First, get the totals for the last observation for each professor:
+```{r}
+prof_totals <- prof_panel_filter %>%
+  group_by(profile_id)%>%
+  filter(year == max(year) & !is.na(scopus_field_overall))
+
+prof_totals$inferred_gender <- as.factor(prof_totals$inferred_gender)
+```
+
+
+# Figure S1: Averages of online mentions with name
+
+Different online news types comparisons:
+```{r}
+fields <- unique(prof_panel_filter$scopus_field_overall)
+fields <- fields[!is.na(fields)]
+field_comparisons <- data.frame(matrix(NA, ncol = 4, nrow = length(fields)))
+
+for (i in 1:length(fields)){
+  field <- fields[i]
+  data <- filter(prof_totals, 
+                 scopus_field_overall == field)
+  field_comparisons[i, 1] <- field
+  field_comparisons[i, 2] <- nrow(data)
+  field_comparisons[i, 3] <- round(t.test(alt_online_all_total ~ inferred_gender, data=data, paired=FALSE)$p.value, 5)
+  field_comparisons[i, 4] <- round(t.test(alt_online_fname_all_total ~ inferred_gender, data=data, paired=FALSE)$p.value, 5)
+}
+
+colnames(field_comparisons) <- c("field", "profs", "online_total", "online_names_total")
+field_comparisons$comparison <-  "ttest"
+
+
+mean_values_field <- prof_totals %>%
+  filter(!is.na(scopus_field_overall))%>%
+  group_by(inferred_gender, scopus_field_overall)%>%
+  summarise(online_total = mean(alt_online_all_total, na.rm = TRUE),
+            online_names_total =  mean(alt_online_fname_all_total, na.rm = TRUE))%>%
+  mutate(across(2:3, \(x) round(x, 2)))
+
+#mean_values_field$field <- "overall"
+colnames(mean_values_field)[1] <- "comparison"
+colnames(mean_values_field)[2] <- "field"
+mean_values_field <- mean_values_field[c("comparison", "field", "online_total", "online_names_total")]
+
+field_comparisons <- field_comparisons[c("comparison", "field", "online_total", "online_names_total")]
+
+field_comparisons <- rbind(mean_values_field,
+                           field_comparisons)
+
+field_comparisons <- field_comparisons %>%
+  arrange(field)
+```
+
+Plot the means comparison:
+```{r}
+field_comparisons_plot <- filter(field_comparisons, comparison != "ttest")
+
+field_comparisons_plot$field <- factor(field_comparisons_plot$field,
+                                       levels = c("Physical Sciences",
+                                                  "Life Sciences",
+                                                  "Health Sciences",
+                                                  "Social Sciences",
+                                                  "Arts and Humanities"))
+field_comparisons_plot$comparison <- ordered(field_comparisons_plot$comparison,
+                                   levels = c("m", "w"))
+
+significance_testing <-  field_comparisons
+
+significance_testing <-  significance_testing %>%
+  filter(comparison == "ttest")%>%
+  mutate_at(vars(`online_total`, `online_names_total`), .funs = list(
+    ~case_when(
+      . <= 0.001 ~ '***',
+      . <= 0.01 ~ '**',
+      . <= 0.05 ~ '*',
+      . <= 0.1 ~ '.',
+      . > 0.1 ~ ''
+    )))
+
+significance_testing$field <- factor(significance_testing$field,
+                                   levels = c("Physical Sciences",
+                                              "Life Sciences",
+                                              "Health Sciences",
+                                              "Social Sciences",
+                                              "Arts and Humanities"))
+significance_testing <- significance_testing %>%
+  arrange(field)
+
+significance_testing$group1 <- "m"
+significance_testing$group2 <- "w"
+significance_testing$x <- c(1, 2, 3, 4, 5)
+significance_testing$xmin <- c(0.75,1.75,2.75,3.75,4.75)
+significance_testing$xmax <- c(1.25,2.25, 3.25,4.25, 5.25)
+significance_testing$comparison <- "m"
+
+
+ 
+average_online <- field_comparisons_plot %>%
+   filter(comparison != "ttest")%>%
+   ggplot(aes(x=fct_rev(field), y=online_total, fill = comparison)) + 
+   geom_bar(position=position_dodge(.5),stat="identity", alpha=1, width = 0.5)+
+   guides(fill = guide_legend(reverse = FALSE, title = "Inferred gender"))+
+   scale_fill_manual(values = c("#61D04F", "#F5C710")  , labels = c("Men", "Women"))+
+   ggtitle("Online news attention\n")+
+  scale_y_continuous(limits = c(0, 212), breaks = seq(0, 212, by = 53))+
+   stat_pvalue_manual(
+     significance_testing,
+     y.position = c(11, 43, 208, 140, 110),
+     label.size = 3,
+     coord.flip = TRUE,
+     tip.length = 0.005,
+     label = "{online_total}",
+   )+
+   ylab("Average mentions over lifetime")+
+   labs(color = "Inferred gender")+
+   theme_minimal_vgrid()+
+  theme(plot.title = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.y = element_text(size = 11),
+        axis.text.x = element_text(size = 10) ,
+        axis.title.x = element_text(size = 11),
+        legend.title=element_text(size=11), 
+        legend.text=element_text(size=10))+
+  coord_flip()+
+  xlab("Field")
+
+
+average_online_names <- field_comparisons_plot %>%
+   filter(comparison != "ttest")%>%
+   ggplot(aes(x=fct_rev(field), y=online_names_total, fill = comparison)) + 
+   geom_bar(position=position_dodge(.5),stat="identity", alpha=1, width = 0.5)+
+   guides(fill = guide_legend(reverse = FALSE, title = "Inferred gender"))+
+   scale_fill_manual(values = c("#61D04F", "#F5C710")  , labels = c("Men", "Women"))+
+   ggtitle("Online news attention - \nincluding full name")+
+  scale_y_continuous(limits = c(0, 16), breaks = seq(0, 16, by = 4))+
+   stat_pvalue_manual(
+     significance_testing,
+     y.position = c(1, 3, 4.5, 9.8, 8.5),
+     label.size = 3,
+     coord.flip = TRUE,
+     tip.length = 0.005,
+     label = "{online_names_total}",
+   )+
+   ylab("Average mentions over lifetime")+
+   labs(color = "Inferred gender")+
+   theme_minimal_vgrid()+
+  theme(plot.title = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.y = element_text(size = 11),
+        axis.text.x = element_text(size = 10) ,
+        axis.title.x = element_text(size = 11),
+        legend.title=element_text(size=11), 
+        legend.text=element_text(size=10))+
+  coord_flip()+
+  xlab("Field")
+```
+
+Combine these plots into one (Figure 1, panel A):
+```{r fig.width=8, fig.height=3}
+legend_average <- get_legend(
+  # create some space to the left of the legend
+  average_online
+)
+
+combi_plot_averages <- plot_grid(average_online + 
+                                   theme(legend.position="none", 
+                                         axis.title.x = element_blank(),
+                                         axis.title.y=element_blank())
+                                 + panel_border(), 
+                                 average_online_names + theme(legend.position="none",
+                                                        axis.title.x = element_blank(),
+                                                        axis.title.y=element_blank(),
+                                                        axis.text.y = element_blank())
+                                 + panel_border(), 
+                                 legend_average,
+                                 ncol = 3,
+                                 rel_widths = c(1.55, 1.11, 0.6))
+
+combi_plot_averages
+```
+Write this out:
+```{r}
+ggsave2(
+  filename = "results/supplement_figures/online_averages_name.png",
+  plot = combi_plot_averages,
+  width = 8,
+  height = 3,
+  units = c("in"),
+  dpi = 600,
+  bg = "white"
+)
+
+```
+
+# Figure S2: Figure 1B per cohort
 
 Produce a variant of Figure 1B, but per cohort:
 
@@ -68,8 +249,8 @@ First, get representation per field in our dataset:
 repr_field_2023 <- prof_panel_filter %>%
   group_by(profile_id)%>%
   filter(year == max(year))%>%
-  filter(!is.na(general_field))%>%
-  group_by(general_field, entry_batch_2023, inferred_gender)%>%
+  filter(!is.na(scopus_field_overall))%>%
+  group_by(scopus_field_overall, entry_batch_2023, inferred_gender)%>%
   summarise(n = n())%>%
   pivot_wider(values_from = n, names_from = inferred_gender)
 
@@ -92,11 +273,11 @@ women_field_2023$year <- 2023
 
 # get their decile based on their total performance within their entry batch
 women_field_2023 <- women_field_2023 %>%
-  filter(!is.na(general_field))%>%
-  select(profile_id, year, inferred_gender, general_field, entry_batch_2023, count_pubs_total,
+  filter(!is.na(scopus_field_overall))%>%
+  select(profile_id, year, inferred_gender, scopus_field_overall, entry_batch_2023, count_pubs_total,
          cited_by_total_all, news_all_total, alt_online_all_total, alt_twitter_total)%>%
   replace(is.na(.), 0)%>%
-  group_by(general_field, entry_batch_2023)%>%
+  group_by(scopus_field_overall, entry_batch_2023)%>%
   mutate(`News` = ntile(-news_all_total, 10),
          `Online news` = ntile(-alt_online_all_total, 10),
          `Twitter` = ntile(-alt_twitter_total, 10))
@@ -108,13 +289,13 @@ Get shares of women among top n% scientists per attention domain:
 # then leave only top 10 and 20
 share_women_field_2023 <- women_field_2023 %>%
   ungroup()%>%
-  select(profile_id, year, inferred_gender, general_field,entry_batch_2023, `News`:`Twitter`)%>%
+  select(profile_id, year, inferred_gender, scopus_field_overall,entry_batch_2023, `News`:`Twitter`)%>%
   pivot_longer(`News`:`Twitter`)%>%
-  group_by(general_field, entry_batch_2023, inferred_gender, name, value)%>%
+  group_by(scopus_field_overall, entry_batch_2023, inferred_gender, name, value)%>%
   summarise(n = n())%>%
   pivot_wider(values_from = n, names_from = inferred_gender)%>%
   replace(is.na(.), 0)%>%
-  group_by(general_field, entry_batch_2023, name)%>%
+  group_by(scopus_field_overall, entry_batch_2023, name)%>%
   mutate(m = cumsum(m),
          w = cumsum(w))%>%
   filter(value %in% c(1, 2))
@@ -129,8 +310,8 @@ repr_field_2023$value <- 0
 repr_field_2023 <- repr_field_2023[c(colnames(share_women_field_2023)[1:5],"share_women_field")]
 
 share_women_field_2023 <- merge(share_women_field_2023,
-                                repr_field_2023[c("general_field", "entry_batch_2023", "share_women_field")],
-                                by = c("general_field", "entry_batch_2023"))
+                                repr_field_2023[c("scopus_field_overall", "entry_batch_2023", "share_women_field")],
+                                by = c("scopus_field_overall", "entry_batch_2023"))
 
 share_women_field_2023$share_women_field <- ifelse(share_women_field_2023$name == "News",
                                                    share_women_field_2023$share_women_field,
@@ -142,17 +323,18 @@ Plot this out:
 Top 10%:
 ```{r warning = F}
 
-share_women_field_2023$general_field <- factor(share_women_field_2023$general_field,
-                                               levels = c("STEM",
-                                                          "Medicine",
-                                                          "Social sciences",
-                                                          "Arts and Humanities"))
+share_women_field_2023$scopus_field_overall <- factor(share_women_field_2023$scopus_field_overall,
+                                                      levels = c("Physical Sciences",
+                                                                 "Life Sciences",
+                                                                 "Health Sciences",
+                                                                 "Social Sciences",
+                                                                 "Arts and Humanities"))
 
 repr_attn_10 <- share_women_field_2023 %>%
   filter(value == 1 & name %in% c("News", "Online news", "Twitter"))%>%
-  ggplot(aes(y=share_women, x=fct_rev(general_field))) + 
+  ggplot(aes(y=share_women, x=fct_rev(scopus_field_overall))) + 
   geom_point(aes(shape=name, color=name), position=position_dodge(width=0.5), stat="identity", size = 2.5)+
-  geom_bar(stat="identity", aes(y=share_women_field, x=general_field), alpha=0.2, width = 0.4)+
+  geom_bar(stat="identity", aes(y=share_women_field, x=scopus_field_overall), alpha=0.2, width = 0.4)+
   guides(fill = guide_legend(reverse=TRUE, title = "Measure"))+
   scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
   scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
@@ -161,8 +343,8 @@ repr_attn_10 <- share_women_field_2023 %>%
   xlab("")+
   ylab("% Women")+
   facet_grid(entry_batch_2023 ~ .)+
-  labs(color = "Attention type",
-       shape = "Attention type")+
+  labs(color = "Attention domain",
+       shape = "Attention domain")+
   ggtitle("Top 10% of attention domains")+
   theme_minimal_vgrid()+
   theme(plot.title = element_text(size = 10),
@@ -176,9 +358,9 @@ repr_attn_10 <- share_women_field_2023 %>%
 
 repr_attn_20 <- share_women_field_2023 %>%
   filter(value == 2 & name %in% c("News", "Online news", "Twitter"))%>%
-  ggplot(aes(y=share_women, x= fct_rev(general_field))) + 
+  ggplot(aes(y=share_women, x= fct_rev(scopus_field_overall))) + 
   geom_point(aes(shape=name, color=name), position=position_dodge(width=0.2), stat="identity", size = 2.5)+
-  geom_bar(stat="identity", aes(y=share_women_field, x=general_field), alpha=0.2, width = 0.4)+
+  geom_bar(stat="identity", aes(y=share_women_field, x=scopus_field_overall), alpha=0.2, width = 0.4)+
   guides(fill = guide_legend(reverse=TRUE, title = "Measure"))+  
   scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
   scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
@@ -187,8 +369,8 @@ repr_attn_20 <- share_women_field_2023 %>%
   xlab("")+
   ylab("% Women")+
   facet_grid(entry_batch_2023 ~ .)+
-  labs(color = "Attention type",
-       shape = "Attention type")+
+  labs(color = "Attention domain",
+       shape = "Attention domain")+
   ggtitle("Top 20% of attention domains")+
   theme_minimal_vgrid()+
   theme(plot.title = element_text(size = 10),
@@ -219,11 +401,11 @@ women_field_2023$year <- 2023
 
 # get their share based on their total performance within their entry batch
 women_field_2023_attn_share <- women_field_2023 %>%
-  filter(!is.na(general_field))%>%
-  select(profile_id, year, inferred_gender, general_field, entry_batch_2023, count_pubs_total,
+  filter(!is.na(scopus_field_overall))%>%
+  select(profile_id, year, inferred_gender, scopus_field_overall, entry_batch_2023, count_pubs_total,
          cited_by_total_all, alt_online_all_total, news_all_total, alt_twitter_total)%>%
   replace(is.na(.), 0)%>%
-  group_by(general_field, entry_batch_2023)%>%
+  group_by(scopus_field_overall, entry_batch_2023)%>%
   summarise( 
     news_w = sum(news_all_total[inferred_gender == "w"]),
     online_w = sum(alt_online_all_total[inferred_gender == "w"]),
@@ -235,7 +417,7 @@ women_field_2023_attn_share <- women_field_2023 %>%
   mutate(`News` = news_w/news,
          `Online news` = online_w/online,
          `Twitter` = twitter_w/twitter)%>%
-  select(general_field, entry_batch_2023, `News`:`Twitter`)%>%
+  select(scopus_field_overall, entry_batch_2023, `News`:`Twitter`)%>%
   pivot_longer(`News`:`Twitter`, names_to = "name", values_to = "share_women")
 
 women_field_2023_attn_share$share_women <- ifelse(is.nan(women_field_2023_attn_share$share_women), 
@@ -245,8 +427,8 @@ women_field_2023_attn_share$share_women <- ifelse(is.nan(women_field_2023_attn_s
 Combine the field representation with the attention representation:
 ```{r}
 share_women_field_2023_attn_share <- merge(women_field_2023_attn_share,
-                                           repr_field_2023[c("general_field", "entry_batch_2023", "share_women_field")],
-                                           by = c("general_field", "entry_batch_2023"))
+                                           repr_field_2023[c("scopus_field_overall", "entry_batch_2023", "share_women_field")],
+                                           by = c("scopus_field_overall", "entry_batch_2023"))
 
 share_women_field_2023_attn_share$share_women_field <- ifelse(share_women_field_2023_attn_share$name == "News",
                                                               share_women_field_2023_attn_share$share_women_field,
@@ -255,17 +437,18 @@ share_women_field_2023_attn_share$share_women_field <- ifelse(share_women_field_
 
 Plot this out:
 ```{r warning = F}
-share_women_field_2023_attn_share$general_field <- factor(share_women_field_2023_attn_share$general_field,
-                                                          levels = c("STEM",
-                                                                     "Medicine",
-                                                                     "Social sciences",
-                                                                     "Arts and Humanities"))
+share_women_field_2023_attn_share$scopus_field_overall <- factor(share_women_field_2023_attn_share$scopus_field_overall,
+                                                                 levels = c("Physical Sciences",
+                                                                            "Life Sciences",
+                                                                            "Health Sciences",
+                                                                            "Social Sciences",
+                                                                            "Arts and Humanities"))
 
 repr_attn_share <- share_women_field_2023_attn_share %>%
   filter(name %in% c("News", "Online news", "Twitter"))%>%
-  ggplot(aes(y=share_women, x=fct_rev(general_field))) + 
+  ggplot(aes(y=share_women, x=fct_rev(scopus_field_overall))) + 
   geom_point(aes(shape=name, color=name), position=position_dodge(width=0.2), stat="identity", size = 2.5)+
-  geom_bar(stat="identity", aes(y=share_women_field, x=general_field), alpha=0.2, width = 0.4)+
+  geom_bar(stat="identity", aes(y=share_women_field, x=scopus_field_overall), alpha=0.2, width = 0.4)+
   guides(fill = guide_legend(reverse=TRUE, title = "Measure"))+
   scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
   scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
@@ -274,8 +457,8 @@ repr_attn_share <- share_women_field_2023_attn_share %>%
   xlab("")+
   ylab("% Women")+
   facet_grid(entry_batch_2023 ~ .)+
-  labs(color = "Attention type",
-       shape = "Attention type")+
+  labs(color = "Attention domain",
+       shape = "Attention domain")+
   ggtitle("Total attention")+
   theme_minimal_vgrid()+
   theme(plot.title = element_text(size = 10),
@@ -323,7 +506,7 @@ Print out Figure 1 in the main text.
 ggsave2(
   filename = "results/supplement_figures/Figure_1B_cohort.png",
   plot = combi_plot,
-  width = 10,
+  width = 11,
   height = 10,
   units = c("in"),
   dpi = 600,
@@ -334,15 +517,8 @@ ggsave2(
 
 
 
-# Average numbers of mentions and comparison per gender
 
-
-Let's look across professors' total careers.
-```{r}
-sources_check <- prof_panel_filter %>%
-  group_by(profile_id)%>%
-  filter(year == max(year) & !is.na(overall_field))
-```
+# Tables S4-S5: Average numbers of mentions and comparison per gender
 
 ## T-test
 
@@ -351,9 +527,9 @@ Overall comparison between men and women:
 overall_comparisons <- data.frame(matrix(NA, ncol = 4, nrow = 1))
 i <- 1
 overall_comparisons[i, 1] <- "overall"
-overall_comparisons[i, 2] <- round(t.test(news_all_total ~ inferred_gender, data=sources_check, paired=FALSE)$p.value, 5)
-overall_comparisons[i, 3] <- round(t.test(alt_online_all_total ~ inferred_gender, data=sources_check, paired=FALSE)$p.value, 5)
-overall_comparisons[i, 4] <- round(t.test(alt_twitter_total ~ inferred_gender, data=sources_check, paired=FALSE)$p.value, 5)
+overall_comparisons[i, 2] <- round(t.test(news_all_total ~ inferred_gender, data=prof_totals, paired=FALSE)$p.value, 5)
+overall_comparisons[i, 3] <- round(t.test(alt_online_all_total ~ inferred_gender, data=prof_totals, paired=FALSE)$p.value, 5)
+overall_comparisons[i, 4] <- round(t.test(alt_twitter_total ~ inferred_gender, data=prof_totals, paired=FALSE)$p.value, 5)
 
 colnames(overall_comparisons) <-  c("field",  "printed_total", 
                                     "online_total", "twitter_total")
@@ -361,9 +537,9 @@ colnames(overall_comparisons) <-  c("field",  "printed_total",
 overall_comparisons$comparison <-  "ttest"
 
 
-mean_values <- sources_check %>%
+mean_values <- prof_totals %>%
   group_by(inferred_gender)%>%
-  filter(!is.na(general_field))%>%
+  filter(!is.na(scopus_field_overall))%>%
   summarise(printed_total = mean(news_all_total, na.rm = TRUE),
             online_total = mean(alt_online_all_total, na.rm = TRUE),
             twitter_total =  mean(alt_twitter_total, na.rm = TRUE))%>%
@@ -386,14 +562,14 @@ overall_comparisons
 
 Within-field comparison:
 ```{r}
-fields <- unique(as.character(prof_panel_filter$general_field))
+fields <- unique(as.character(prof_panel_filter$scopus_field_overall))
 fields <- fields[!is.na(fields)]
 field_comparisons <- data.frame(matrix(NA, ncol = 5, nrow = length(fields)))
 
 for (i in 1:length(fields)){
   field <- fields[i]
-  data <- filter(sources_check, 
-                 general_field == field)
+  data <- filter(prof_totals, 
+                 scopus_field_overall == field)
   field_comparisons[i, 1] <- field
   field_comparisons[i, 2] <- nrow(data)
   field_comparisons[i, 3] <- round(t.test(news_all_total ~ inferred_gender, data=data, paired=FALSE)$p.value, 5)
@@ -406,9 +582,9 @@ colnames(field_comparisons) <- c("field", "profs",
 field_comparisons$comparison <-  "ttest"
 
 
-mean_values_field <- sources_check %>%
-  filter(!is.na(general_field))%>%
-  group_by(inferred_gender, general_field)%>%
+mean_values_field <- prof_totals %>%
+  filter(!is.na(scopus_field_overall))%>%
+  group_by(inferred_gender, scopus_field_overall)%>%
   summarise(printed_total = mean(news_all_total, na.rm = TRUE),
             online_total = mean(alt_online_all_total, na.rm = TRUE),
             twitter_total =  mean(alt_twitter_total, na.rm = TRUE))%>%
@@ -429,10 +605,11 @@ field_comparisons <- rbind(mean_values_field,
                            field_comparisons)
 
 field_comparisons$field <- factor(field_comparisons$field,
-                                  levels = c("STEM",
-                                             "Medicine",
-                                             "Social sciences",
-                                             "Arts and Humanities"))
+                                  levels = c("Physical Sciences",
+                                              "Life Sciences",
+                                              "Health Sciences",
+                                              "Social Sciences",
+                                              "Arts and Humanities"))
 
 field_comparisons <- field_comparisons %>%
   arrange(field)
@@ -440,7 +617,7 @@ field_comparisons <- field_comparisons %>%
 
 Within-field and year group comparison:
 ```{r warning = F}
-year_groups <- unique(sources_check$entry_batch_2023)
+year_groups <- unique(prof_totals$entry_batch_2023)
 year_groups <- year_groups[! year_groups == "up to NA"]
 years <- c("up to 10","up to 20", "up to 30", "up to 40", "up to 50")
 year_groups <- year_groups[order(match(year_groups,years))]
@@ -453,8 +630,8 @@ for (i in 1:length(year_groups)){
   
   for (j in 1:length(fields)){
     field <- fields[j]
-    data <- filter(sources_check, 
-                   years_since_entry == year_group & general_field == field)
+    data <- filter(prof_totals, 
+                   years_since_entry == year_group & scopus_field_overall == field)
     
     women <- filter(data, inferred_gender == "w")
     men <- filter(data, inferred_gender == "m")
@@ -485,7 +662,7 @@ for (i in 1:length(year_groups)){
       }
     }
   }
-  row_index <- row_index + 4 
+  row_index <- row_index + 5 
 }
 
 colnames(year_groups_field_comparisons) <- c("year_group", "field", "profs", 
@@ -493,9 +670,9 @@ colnames(year_groups_field_comparisons) <- c("year_group", "field", "profs",
                                              "twitter_total")
 year_groups_field_comparisons$comparison <- "ttest"
 
-mean_values_year_field <- sources_check %>%
-  filter(!is.na(general_field))%>%
-  group_by(inferred_gender, entry_batch_2023, general_field)%>%
+mean_values_year_field <- prof_totals %>%
+  filter(!is.na(scopus_field_overall))%>%
+  group_by(inferred_gender, entry_batch_2023, scopus_field_overall)%>%
   summarise(printed_total = mean(news_all_total, na.rm = TRUE),
             online_total = mean(alt_online_all_total, na.rm = TRUE),
             twitter_total =  mean(alt_twitter_total, na.rm = TRUE))%>%
@@ -510,13 +687,19 @@ mean_values_year_field <- mean_values_year_field[c("comparison", "year_group", "
 year_groups_field_comparisons <- year_groups_field_comparisons[c("comparison", "year_group","field", 
                                                                  "printed_total", "online_total", "twitter_total")]
 
+year_groups_field_comparisons[1, 4:6] <- NaN
+year_groups_field_comparisons$printed_total <- as.numeric(year_groups_field_comparisons$printed_total)
+year_groups_field_comparisons$online_total <- as.numeric(year_groups_field_comparisons$online_total)
+year_groups_field_comparisons$twitter_total <- as.numeric(year_groups_field_comparisons$twitter_total)
+
 year_groups_field_comparisons <- rbind(mean_values_year_field,
                            year_groups_field_comparisons)
 
 year_groups_field_comparisons$field <- factor(year_groups_field_comparisons$field,
-                                              levels = c("STEM",
-                                                         "Medicine",
-                                                         "Social sciences",
+                                              levels = c("Physical Sciences",
+                                                         "Life Sciences",
+                                                         "Health Sciences",
+                                                         "Social Sciences",
                                                          "Arts and Humanities"))
 
 year_groups_field_comparisons <- year_groups_field_comparisons %>%
@@ -556,16 +739,18 @@ field_comparisons_out <- field_comparisons %>%
   ))
 
 field_comparisons_out$field <- ordered(field_comparisons_out$field,
-                                   levels = c("STEM",
-                                              "Medicine",
-                                              "Social sciences",
-                                              "Arts and Humanities"))
+                                       levels = c("Physical Sciences",
+                                                  "Life Sciences",
+                                                  "Health Sciences",
+                                                  "Social Sciences",
+                                                  "Arts and Humanities"))
 
 
 field_comparisons_out <- field_comparisons_out %>%
   arrange(field)
 
 year_groups_field_comparisons_out <- year_groups_field_comparisons %>%
+  filter(!is.na(printed_total))%>%
   pivot_wider(
     names_from = comparison,
     values_from = c(printed_total, online_total, twitter_total)
@@ -581,10 +766,11 @@ year_groups_field_comparisons_out <- year_groups_field_comparisons %>%
   ))
 
 year_groups_field_comparisons_out$field <- ordered(year_groups_field_comparisons_out$field,
-                                   levels = c("STEM",
-                                              "Medicine",
-                                              "Social sciences",
-                                              "Arts and Humanities"))
+                                                   levels = c("Physical Sciences",
+                                                              "Life Sciences",
+                                                              "Health Sciences",
+                                                              "Social Sciences",
+                                                              "Arts and Humanities"))
 
 
 year_groups_field_comparisons_out <- year_groups_field_comparisons_out %>%
@@ -598,20 +784,21 @@ write_csv(year_groups_field_comparisons_out, "results/supplement_tables/table_s2
 ```
 
 
-# Source breakdown
+# Tables S6-S7: Source breakdown
 
 ## News source breakdown per field
 
 ```{r}
-sources_check$general_field <- ordered(sources_check$general_field,
-                                     levels = c("STEM",
-                                              "Medicine",
-                                              "Social sciences",
-                                              "Arts and Humanities"))
+prof_totals$scopus_field_overall <- ordered(prof_totals$scopus_field_overall,
+                                              levels = c("Physical Sciences",
+                                                         "Life Sciences",
+                                                         "Health Sciences",
+                                                         "Social Sciences",
+                                                         "Arts and Humanities"))
 
 # t-test for average number of mentions per resource
-t_test_breakdown_news <- sources_check %>%
-  select(inferred_gender, general_field, news_all_total,news_national_total,
+t_test_breakdown_news <- prof_totals %>%
+  select(inferred_gender, scopus_field_overall, news_all_total,news_national_total,
          news_regional_total, news_intl_total, news_local_intl_total,
          news_intl_other_total, news_finance_total,news_professional_total,
          news_science_total, news_blog_total, news_aggr_total, 
@@ -634,15 +821,15 @@ t_test_breakdown_news$name <- ordered(t_test_breakdown_news$name,
                                                 "news_other_total"))
 
 t_test_breakdown_news <-  t_test_breakdown_news %>%
-  group_by(general_field, name) %>%
+  group_by(scopus_field_overall, name) %>%
   group_map(~ t.test(value ~ inferred_gender, .x, paired = FALSE))
 
 # extract the p-values
 p_values_news <- round(unlist(lapply(t_test_breakdown_news,  function(x) x[names(x) == "p.value"])), 3)
 
-source_breakdown <- sources_check %>%
-  filter(!is.na(general_field))%>%
-  group_by(inferred_gender, general_field)%>%
+source_breakdown <- prof_totals %>%
+  filter(!is.na(scopus_field_overall))%>%
+  group_by(inferred_gender, scopus_field_overall)%>%
   summarise(
     n_total = n(),
     national_total = sum(news_national_total, na.rm = TRUE),
@@ -692,13 +879,13 @@ source_breakdown_news <- source_breakdown %>%
    pivot_longer(national_total:total_share, 
                names_to = c('news_type', '.value'),
                names_pattern = '(.*?)_(.*)')%>%
-  select(general_field, inferred_gender,news_type, n_total, total:share)%>%
+  select(scopus_field_overall, inferred_gender,news_type, n_total, total:share)%>%
   mutate(across(5:6, \(x) round(x, 2)))%>%
   pivot_wider(
     names_from = inferred_gender,
     values_from = c(n_total:share)
   )%>%
-  arrange(general_field)
+  arrange(scopus_field_overall)
 
 # arrange the news types
 source_breakdown_news$news_type <- factor(source_breakdown_news$news_type,
@@ -717,7 +904,7 @@ source_breakdown_news$news_type <- factor(source_breakdown_news$news_type,
                                                 "other"))
 
 source_breakdown_news <- source_breakdown_news %>%
-  arrange(general_field, news_type)
+  arrange(scopus_field_overall, news_type)
 
 # add in the p-values of men/women comparisons
 source_breakdown_news$p_value <- p_values_news
@@ -743,18 +930,18 @@ source_breakdown_news <- source_breakdown_news %>%
             p_value <= 0.05 ~ '*',
             p_value <= 0.1 ~ '.',
             p_value > 0.1 ~ '' ))%>%
-  select(general_field:ave_w, p_sig, share_m:share_w)
+  select(scopus_field_overall:ave_w, p_sig, share_m:share_w)
 
 
 ## write this out
 write_csv(source_breakdown_news, "results/supplement_tables/source_breakdown_news.csv")
 ```
 
-## Online news source breakdown per field:
+## Online news source breakdown per field
 ```{r}
 # t-test for average number of mentions per resource
-t_test_breakdown_online_news <- sources_check %>%
-  select(inferred_gender, general_field, alt_online_all_total,
+t_test_breakdown_online_news <- prof_totals %>%
+  select(inferred_gender, scopus_field_overall, alt_online_all_total,
          alt_general_interest_news_total,alt_general_interest_local_news_total,
          alt_finance_news_total, alt_online_blog_total,
          alt_popsci_news_total, alt_medical_news_total, 
@@ -776,16 +963,16 @@ t_test_breakdown_online_news$name <- ordered(t_test_breakdown_online_news$name,
                                                         "alt_other_news_total"))
 
 t_test_breakdown_online_news <-  t_test_breakdown_online_news %>%
-  group_by(general_field, name) %>%
+  group_by(scopus_field_overall, name) %>%
   group_map(~ t.test(value ~ inferred_gender, .x, paired = FALSE))
 
 # extract the p-values
 p_values_online_news <- round(unlist(lapply(t_test_breakdown_online_news,  function(x) x[names(x) == "p.value"])), 3)
 
 
-source_breakdown <- sources_check %>%
-  filter(!is.na(general_field))%>%
-  group_by(inferred_gender, general_field)%>%
+source_breakdown <- prof_totals %>%
+  filter(!is.na(scopus_field_overall))%>%
+  group_by(inferred_gender, scopus_field_overall)%>%
   summarise(
     n_total = n(),
     all_total = sum(alt_online_all_total, na.rm = TRUE),
@@ -828,13 +1015,13 @@ source_breakdown_online_news <- source_breakdown %>%
    pivot_longer(all_total:other_share, 
                names_to = c('news_type', '.value'),
                names_pattern = '(.*?)_(.*)')%>%
-  select(general_field, inferred_gender,news_type, n_total, total:share)%>%
+  select(scopus_field_overall, inferred_gender,news_type, n_total, total:share)%>%
   mutate(across(5:6, \(x) round(x, 2)))%>%
   pivot_wider(
     names_from = inferred_gender,
     values_from = c(n_total:share)
   )%>%
-  arrange(general_field)
+  arrange(scopus_field_overall)
 
 # arrange the news types
 source_breakdown_online_news$news_type <- ordered(source_breakdown_online_news$news_type,
@@ -851,7 +1038,7 @@ source_breakdown_online_news$news_type <- ordered(source_breakdown_online_news$n
                                                 "other"))
 
 source_breakdown_online_news <- source_breakdown_online_news %>%
-  arrange(general_field, news_type)
+  arrange(scopus_field_overall, news_type)
 
 # add in the p-values of men/women comparisons
 source_breakdown_online_news$p_value <- p_values_online_news
@@ -876,7 +1063,7 @@ source_breakdown_online_news <- source_breakdown_online_news %>%
             p_value <= 0.05 ~ '*',
             p_value <= 0.1 ~ '.',
             p_value > 0.1 ~ '' ))%>%
-  select(general_field:ave_w, p_sig, share_m:share_w)
+  select(scopus_field_overall:ave_w, p_sig, share_m:share_w)
  
 
 # write this out
@@ -886,10 +1073,511 @@ write_csv(source_breakdown_online_news, "results/supplement_tables/source_breakd
 
 
 
-# Correlations
+## Online news source breakdown per field - name mentions
+```{r}
+# t-test for average number of mentions per resource
+t_test_breakdown_online_news_name <- prof_totals %>%
+  select(profile_id,inferred_gender, scopus_field_overall, alt_online_fname_all_total,
+         alt_fname_general_interest_news_total,alt_fname_general_interest_local_news_total,
+         alt_fname_finance_news_total, alt_fname_online_blog_total,
+         alt_fname_popsci_news_total, alt_fname_medical_news_total, 
+         alt_fname_science_news_total, alt_fname_sci_news_aggregator_total,
+         alt_fname_news_aggregator_total, alt_fname_other_news_total)%>%
+  pivot_longer(alt_online_fname_all_total:alt_fname_other_news_total)
+
+t_test_breakdown_online_news_name$name <- ordered(t_test_breakdown_online_news_name$name,
+                                             levels = c("alt_online_fname_all_total",
+                                                        "alt_fname_general_interest_news_total",
+                                                        "alt_fname_general_interest_local_news_total",
+                                                        "alt_fname_finance_news_total",
+                                                        "alt_fname_online_blog_total",
+                                                        "alt_fname_popsci_news_total",
+                                                        "alt_fname_medical_news_total",
+                                                        "alt_fname_science_news_total",
+                                                        "alt_fname_sci_news_aggregator_total",
+                                                        "alt_fname_news_aggregator_total",
+                                                        "alt_fname_other_news_total"))
+
+t_test_breakdown_online_news_name <-  t_test_breakdown_online_news_name %>%
+  group_by(scopus_field_overall, name) %>%
+  group_map(~ t.test(value ~ inferred_gender, .x, paired = FALSE))
+
+# extract the p-values
+p_values_online_news_name <- round(unlist(lapply(t_test_breakdown_online_news_name,  function(x) x[names(x) == "p.value"])), 3)
+
+
+source_breakdown_name <- prof_totals %>%
+  filter(!is.na(scopus_field_overall))%>%
+  group_by(inferred_gender, scopus_field_overall)%>%
+  summarise(
+    n_total = n(),
+    all_total = sum(alt_online_fname_all_total, na.rm = TRUE),
+    gen_total = sum(alt_fname_general_interest_news_total, na.rm = TRUE),
+    local_total = sum(alt_fname_general_interest_local_news_total, na.rm = TRUE),
+    finance_total = sum(alt_fname_finance_news_total, na.rm = TRUE),
+    blogs_total = sum(alt_fname_online_blog_total, na.rm = TRUE),
+    popsci_total = sum(alt_fname_popsci_news_total, na.rm = TRUE),
+    medical_total = sum(alt_fname_medical_news_total, na.rm = TRUE),
+    sci_total = sum(alt_fname_science_news_total, na.rm = TRUE),
+    scaggr_total = sum(alt_fname_sci_news_aggregator_total, na.rm = TRUE),
+    aggr_total = sum(alt_fname_news_aggregator_total, na.rm = TRUE),
+    other_total = sum(alt_fname_other_news_total, na.rm = TRUE),
+    all_ave = mean(alt_online_fname_all_total, na.rm = TRUE),
+    gen_ave = mean(alt_fname_general_interest_news_total, na.rm = TRUE),
+    local_ave = mean(alt_fname_general_interest_local_news_total, na.rm = TRUE),
+    finance_ave = mean(alt_fname_finance_news_total, na.rm = TRUE),
+    blogs_ave = mean(alt_fname_online_blog_total, na.rm = TRUE),
+    popsci_ave = mean(alt_fname_popsci_news_total, na.rm = TRUE),
+    medical_ave = mean(alt_fname_medical_news_total, na.rm = TRUE),
+    sci_ave = mean(alt_fname_science_news_total, na.rm = TRUE),
+    scaggr_ave = mean(alt_fname_sci_news_aggregator_total, na.rm = TRUE),
+    aggr_ave = mean(alt_fname_news_aggregator_total, na.rm = TRUE),
+    other_ave = mean(alt_fname_other_news_total, na.rm = TRUE))%>%
+  mutate(across(contains('_ave'), \(x) round(x, 2)))
+
+source_breakdown_name$all_share <- source_breakdown_name$all_total/source_breakdown_name$all_total
+source_breakdown_name$gen_share <- source_breakdown_name$gen_total/source_breakdown_name$all_total
+source_breakdown_name$local_share <- source_breakdown_name$local_total/source_breakdown_name$all_total
+source_breakdown_name$finance_share <- source_breakdown_name$finance_total/source_breakdown_name$all_total
+source_breakdown_name$blogs_share <- source_breakdown_name$blogs_total/source_breakdown_name$all_total
+source_breakdown_name$popsci_share <- source_breakdown_name$popsci_total/source_breakdown_name$all_total
+source_breakdown_name$medical_share <- source_breakdown_name$medical_total/source_breakdown_name$all_total
+source_breakdown_name$sci_share <- source_breakdown_name$sci_total/source_breakdown_name$all_total
+source_breakdown_name$scaggr_share <- source_breakdown_name$scaggr_total/source_breakdown_name$all_total
+source_breakdown_name$aggr_share <- source_breakdown_name$aggr_total/source_breakdown_name$all_total
+source_breakdown_name$other_share <- source_breakdown_name$other_total/source_breakdown_name$all_total
+
+source_breakdown_online_news_name <- source_breakdown_name %>%
+   pivot_longer(all_total:other_share, 
+               names_to = c('news_type', '.value'),
+               names_pattern = '(.*?)_(.*)')%>%
+  select(scopus_field_overall, inferred_gender,news_type, n_total, total:share)%>%
+  mutate(across(5:6, \(x) round(x, 2)))%>%
+  pivot_wider(
+    names_from = inferred_gender,
+    values_from = c(n_total:share)
+  )%>%
+  arrange(scopus_field_overall)
+
+# arrange the news types
+source_breakdown_online_news_name$news_type <- ordered(source_breakdown_online_news_name$news_type,
+                                     levels = c("all", 
+                                                "gen",
+                                                "local",
+                                                "finance",
+                                                "blogs",    
+                                                "popsci",
+                                                "medical",
+                                                "sci",
+                                                "scaggr",
+                                                "aggr",
+                                                "other"))
+
+source_breakdown_online_news_name <- source_breakdown_online_news_name %>%
+  arrange(scopus_field_overall, news_type)
+
+# add in the p-values of men/women comparisons
+source_breakdown_online_news_name$p_value <- p_values_online_news_name
+
+source_breakdown_online_news_name <- source_breakdown_online_news_name %>%
+   mutate(news_type = recode(news_type, 
+                             `all` = "All online news", 
+                             `name` = "Containing professors' names",
+                             `gen` = "General interest news",
+                             `local` = "General interest news (local)",
+                             `finance` = "Financial news",
+                             `blogs` = "Online blogs", 
+                             `popsci` = "Popular science news",
+                             `medical` = "Medial news",
+                             `sci` = "Science news",
+                             `scaggr` = "Science news aggregators",
+                             `aggr` = "News aggregators",
+                             `other` = "Other news"),
+          p_sig = case_when(
+            p_value <= 0.001 ~ '***',
+            p_value <= 0.01 ~ '**',
+            p_value <= 0.05 ~ '*',
+            p_value <= 0.1 ~ '.',
+            p_value > 0.1 ~ '' ))%>%
+  select(scopus_field_overall:ave_w, p_sig, share_m:share_w)
+ 
+
+# write this out
+write_csv(source_breakdown_online_news_name, "results/supplement_tables/source_breakdown_online_news_names.csv")
+```
+
+
+# Table S8: Share online mentions with name per field
+
+For this, we need to get the shares among the mentions for which we did retrieve
+the full text.
+
+First, get these data:
+```{r}
+# fill in own credentials
+port <- 5432
+user <- "postgres"
+password <- "dutchmediaprofssql"
+database_name <- "postgres"
+
+
+con <- dbConnect(Postgres(),
+                 dbname= database_name,
+                 port = port,
+                 user = user, 
+                 password = password)
+
+con # Checks connection is working
+altmetric_prepared <- dbReadTable(con, "altmetric_att_prepared")
+content_altmetric <- dbGetQuery(con, "select \"url\" from pub_att_news_full_text where \"response\"='200'")
+
+# content found?
+altmetric_prepared$content_found <- ifelse(altmetric_prepared$url %in% content_altmetric$url, TRUE, FALSE)
+
+# merge with professor gender
+prof_gender <- dbReadTable(con, "gender_table")
+
+```
+
+Compile the counts we need:
+```{r}
+# get a year from the "posted on" string
+altmetric_prepared$year <- year(as_date(altmetric_prepared$posted_on))
+
+prof_year_attention_online <- altmetric_prepared %>%
+  # filter out those without any text...
+  filter(year >= 2011 & year <= 2023 & content_found == TRUE)%>%
+  group_by(profile_id, source_type, year)%>%
+  summarise(alt_attn = n())%>%
+  arrange(profile_id, source_type, year)%>%
+  pivot_wider(names_from = source_type, values_from = c(alt_attn))%>%
+  replace(is.na(.), 0)%>%
+  arrange(profile_id, year)
+
+colnames(prof_year_attention_online)[-c(1:2)] <- paste0("alt_", colnames(prof_year_attention_online)[-c(1:2)])
+# rearrange to match the column order of the other dataframe above
+prof_year_attention_online <- prof_year_attention_online[c("profile_id", "year", "alt_news_aggregator", "alt_online_blog", "alt_sci_news_aggregator" , "alt_finance_news" , "alt_general_interest_local_news", "alt_general_interest_news", "alt_medical_news", "alt_other_news", "alt_popsci_news", "alt_science_news")]
+
+## those where we have names last included:
+
+prof_year_attention_online_names <- altmetric_prepared %>%
+  filter(year >= 2011 & year <= 2023 & last_name_mention == TRUE & content_found == TRUE)%>%
+  group_by(profile_id, source_type, year)%>%
+  summarise(alt_attn = n())%>%
+  arrange(profile_id, source_type, year)%>%
+  pivot_wider(names_from = source_type, values_from = c(alt_attn))%>%
+  replace(is.na(.), 0)%>%
+  arrange(profile_id, year)
+
+colnames(prof_year_attention_online_names)[-c(1:2)] <- paste0("alt_name_", colnames(prof_year_attention_online_names)[-c(1:2)])
+
+# rearrange to match the column order of the other dataframe above
+prof_year_attention_online_names <- prof_year_attention_online_names[c("profile_id", "year", "alt_name_news_aggregator", "alt_name_online_blog", "alt_name_sci_news_aggregator" , "alt_name_finance_news" , "alt_name_general_interest_local_news", "alt_name_general_interest_news", "alt_name_medical_news", "alt_name_other_news", "alt_name_popsci_news", "alt_name_science_news")]
+
+## And for the full name included:
+
+prof_year_attention_online_full_names <- altmetric_prepared %>%
+  filter(year >= 2011 & year <= 2023 & first_last_mention == TRUE & content_found == TRUE)%>%
+  group_by(profile_id, source_type, year)%>%
+  summarise(alt_attn = n())%>%
+  arrange(profile_id, source_type, year)%>%
+  pivot_wider(names_from = source_type, values_from = c(alt_attn))%>%
+  replace(is.na(.), 0)%>%
+  arrange(profile_id, year)
+
+colnames(prof_year_attention_online_full_names)[-c(1:2)] <- paste0("alt_fname_", colnames(prof_year_attention_online_full_names)[-c(1:2)])
+
+# rearrange to match the column order of the other dataframe above
+prof_year_attention_online_full_names <- prof_year_attention_online_full_names[c("profile_id", "year", "alt_fname_news_aggregator", "alt_fname_online_blog", "alt_fname_sci_news_aggregator" , "alt_fname_finance_news" , "alt_fname_general_interest_local_news", "alt_fname_general_interest_news", "alt_fname_medical_news", "alt_fname_other_news", "alt_fname_popsci_news", "alt_fname_science_news")]
+
+
+prof_year_attention_online <- merge(prof_year_attention_online,
+                                    prof_year_attention_online_names,
+                                    by = c("profile_id", "year"),
+                                    all.x = TRUE)
+
+prof_year_attention_online <- merge(prof_year_attention_online,
+                                    prof_year_attention_online_full_names,
+                                    by = c("profile_id", "year"),
+                                    all.x = TRUE)
+
+
+# get the cumulatives
+# As Altmetric data goes back to 2011 in principle, set attention to 0 if year >= 2011, leave as NA
+# otherwise:
+prof_year_attention_online_total <- prof_year_attention_online %>%
+  arrange(profile_id, year)%>%
+  mutate_at(vars(contains('alt_')), ~ifelse(is.na(.), 0, .))%>%
+  group_by(profile_id)%>%
+  mutate(across(alt_news_aggregator:alt_fname_science_news, ~cumsum(.x), .names = "{col}_total"))%>%
+  mutate_at(vars(contains('alt_')), ~ifelse(. == 0 & year < 2011, NA, .))
+
+# and get the final years for further analysis
+prof_year_attention_online_total <- merge(prof_year_attention_online_total,
+                                          prof_totals[c("profile_id", "scopus_field_overall")],
+                                          by = "profile_id",
+                                          all.x = TRUE)
+
+## totals
+prof_year_attention_online_total$alt_online_all <- rowSums(prof_year_attention_online_total[,c("alt_news_aggregator",
+                                                                "alt_online_blog",
+                                                                "alt_sci_news_aggregator",
+                                                                "alt_finance_news",
+                                                                "alt_general_interest_local_news",
+                                                                "alt_general_interest_news",            
+                                                                "alt_medical_news",
+                                                                "alt_other_news",
+                                                                "alt_popsci_news",
+                                                                "alt_science_news")])
+
+
+
+prof_year_attention_online_total$alt_name_online_all <- rowSums(prof_year_attention_online_total[,c("alt_name_news_aggregator",
+                                                                      "alt_name_online_blog",
+                                                                      "alt_name_sci_news_aggregator",
+                                                                      "alt_name_finance_news",
+                                                                      "alt_name_general_interest_local_news",
+                                                                      "alt_name_general_interest_news",            
+                                                                      "alt_name_medical_news",
+                                                                      "alt_name_other_news",
+                                                                      "alt_name_popsci_news",
+                                                                      "alt_name_science_news")])
+
+prof_year_attention_online_total$alt_online_fname_all <- rowSums(prof_year_attention_online_total[,c("alt_fname_news_aggregator",
+                                                                           "alt_fname_online_blog",
+                                                                           "alt_fname_sci_news_aggregator",
+                                                                           "alt_fname_finance_news",
+                                                                           "alt_fname_general_interest_local_news",
+                                                                           "alt_fname_general_interest_news",            
+                                                                           "alt_fname_medical_news",
+                                                                           "alt_fname_other_news",
+                                                                           "alt_fname_popsci_news",
+                                                                           "alt_fname_science_news")])
+
+
+prof_year_attention_online_total$alt_online_all_total <- rowSums(prof_year_attention_online_total[,c("alt_news_aggregator_total",
+                                                                "alt_online_blog_total",
+                                                                "alt_sci_news_aggregator_total",
+                                                                "alt_finance_news_total",
+                                                                "alt_general_interest_local_news_total",
+                                                                "alt_general_interest_news_total",            
+                                                                "alt_medical_news_total",
+                                                                "alt_other_news_total",
+                                                                "alt_popsci_news_total",
+                                                                "alt_science_news_total")])
+
+
+prof_year_attention_online_total$alt_online_name_all_total <- rowSums(prof_year_attention_online_total[,c("alt_name_news_aggregator_total",
+                                                                      "alt_name_online_blog_total",
+                                                                      "alt_name_sci_news_aggregator_total",
+                                                                      "alt_name_finance_news_total",
+                                                                      "alt_name_general_interest_local_news_total",
+                                                                      "alt_name_general_interest_news_total",            
+                                                                      "alt_name_medical_news_total",
+                                                                      "alt_name_other_news_total",
+                                                                      "alt_name_popsci_news_total",
+                                                                      "alt_name_science_news_total")])
+
+prof_year_attention_online_total$alt_online_fname_all_total <- rowSums(prof_year_attention_online_total[,c("alt_fname_news_aggregator_total",
+                                                                      "alt_fname_online_blog_total",
+                                                                      "alt_fname_sci_news_aggregator_total",
+                                                                      "alt_fname_finance_news_total",
+                                                                      "alt_fname_general_interest_local_news_total",
+                                                                      "alt_fname_general_interest_news_total",            
+                                                                      "alt_fname_medical_news_total",
+                                                                      "alt_fname_other_news_total",
+                                                                      "alt_fname_popsci_news_total",
+                                                                      "alt_fname_science_news_total")])
+
+prof_year_attention_online_total <- merge(prof_year_attention_online_total,
+                            prof_gender[c("profile_id", "inferred_gender")],
+                            by = "profile_id",
+                            all.x = TRUE)
+
+```
+
+Get the final year:
+```{r}
+prof_totals_online <- prof_year_attention_online_total %>%
+  group_by(profile_id)%>%
+  filter(year == max(year) & !is.na(scopus_field_overall))
+```
+
+Now, get the proportions of mentions that contain name mentions as well:
+```{r}
+online_mentions <- prof_totals_online %>%
+  filter(!is.na(scopus_field_overall) & alt_online_all_total > 0)%>%
+  group_by(inferred_gender, scopus_field_overall) %>%
+  bind_rows(., prof_totals_online %>% filter(!is.na(scopus_field_overall) & alt_online_all_total > 0)%>% mutate(scopus_field_overall = as.character("All"))) %>%
+  summarise(
+    n_total = n(),
+    all_total = sum(alt_online_all_total, na.rm = TRUE))
+
+online_mentions_name <- prof_totals_online %>%
+  filter(!is.na(scopus_field_overall) & alt_online_name_all_total > 0)%>%
+  group_by(inferred_gender, scopus_field_overall) %>%
+  bind_rows(., prof_totals_online %>% filter(!is.na(scopus_field_overall) & alt_online_name_all_total > 0)%>% mutate(scopus_field_overall = as.character("All"))) %>%
+  summarise(
+    n_name_total = n(),
+    all_name_total = sum(alt_online_name_all_total, na.rm = TRUE))
+
+
+online_mentions_fname <- prof_totals_online %>%
+  filter(!is.na(scopus_field_overall) & alt_online_fname_all_total > 0)%>%
+  group_by(inferred_gender, scopus_field_overall) %>%
+  bind_rows(., prof_totals_online %>% filter(!is.na(scopus_field_overall) & alt_online_fname_all_total > 0)%>% mutate(scopus_field_overall = as.character("All"))) %>%
+  summarise(
+    n_fname_total = n(),
+    all_fname_total = sum(alt_online_fname_all_total, na.rm = TRUE))
+
+online_mentions_combi <- merge(online_mentions,
+                               online_mentions_name,
+                               by = c("inferred_gender", "scopus_field_overall"))
+
+online_mentions_combi <- merge(online_mentions_combi,
+                               online_mentions_fname,
+                               by = c("inferred_gender", "scopus_field_overall"))
+
+online_mentions_combi %>%
+  arrange(scopus_field_overall)
+
+## Last name
+prop_all <- prop.test(c(47094, 13088), c(326089, 102903))
+
+# phys
+prop_phys <- prop.test(c(16876, 2502), c(138026, 23772))
+
+# life
+prop_life <- prop.test(c(8481, 1792), c(138026, 23772))
+
+# MEDICINE
+prop_med <- prop.test(c(14904, 5895), c(150183, 60930))
+
+# Soc. sci
+prop_soc <- prop.test(c(6695, 2824), c(37103, 17806))
+
+# A&H
+prop_art <- prop.test(c(141, 76), c(777, 395))
+
+
+options(scipen=999)
+# populate a table
+prop_table_online_name <- data.frame(matrix(NA, nrow = 0, ncol = 4))
+prop_table_online_name[1, ] <- c("all", round(prop_all$estimate, 5), round(prop_all$p.value, 5))
+prop_table_online_name[2, ] <- c("phys", round(prop_phys$estimate, 5), round(prop_phys$p.value, 5))
+prop_table_online_name[3, ] <- c("life", round(prop_life$estimate, 5), round(prop_life$p.value, 5))
+prop_table_online_name[4, ] <- c("medicine", round(prop_med$estimate, 5), round(prop_med$p.value, 5))
+prop_table_online_name[5, ] <- c("soc_sci", round(prop_soc$estimate, 5), round(prop_soc$p.value, 5))
+prop_table_online_name[6, ] <- c("arts", round(prop_art$estimate, 5), round(prop_art$p.value, 5))
+prop_table_online_name$sig <-  ifelse(prop_table_online_name$X4 <= 0.001, 
+                                      "***",
+                                      ifelse(prop_table_online_name$X4 <= 0.01, 
+                                             "**",
+                                             ifelse(prop_table_online_name$X4 <= 0.05, 
+                                                    "*",
+                                                    ifelse(prop_table_online_name$X4 <= 0.1, 
+                                                           ".", ""))))
+
+colnames(prop_table_online_name) <- c("Field", "Men", "Women", "p", " ")
+
+
+(prop_table_online_save <- prop_table_online_name %>%
+  regulartable() %>%
+  set_caption("Share of mentions of men's and women's paper mentions containing professors' last names")%>%
+  autofit())
+
+word_document_name <-
+    read_docx() %>%
+    body_add_flextable(prop_table_online_save) %>%
+    print(target = "results/supplement_tables/online_news_last_mention_shares.docx")
+
+## Full names
+prop_all <- prop.test(c(23906, 5616), c(326089, 102903))
+
+# phys
+prop_phys <- prop.test(c(10204, 1231), c(138026, 23772))
+
+# life
+prop_life <- prop.test(c(4888, 916), c(138026, 23772))
+
+
+# MEDICINE
+prop_med <- prop.test(c(5171, 1819), c(150183, 60930))
+
+# Soc. sci
+prop_soc <- prop.test(c(3556, 1589), c(37103, 17806))
+
+# A&H
+prop_art <- prop.test(c(89, 61), c(777, 395))
+
+# populate a table
+prop_table_online_name <- data.frame(matrix(NA, nrow = 0, ncol = 4))
+prop_table_online_name[1, ] <- c("all", round(prop_all$estimate, 5), round(prop_all$p.value, 5))
+prop_table_online_name[2, ] <- c("phys", round(prop_phys$estimate, 5), round(prop_phys$p.value, 5))
+prop_table_online_name[3, ] <- c("life", round(prop_life$estimate, 5), round(prop_life$p.value, 5))
+prop_table_online_name[4, ] <- c("medicine", round(prop_med$estimate, 5), round(prop_med$p.value, 5))
+prop_table_online_name[5, ] <- c("soc_sci", round(prop_soc$estimate, 5), round(prop_soc$p.value, 5))
+prop_table_online_name[6, ] <- c("arts", round(prop_art$estimate, 5), round(prop_art$p.value, 5))
+
+prop_table_online_name$sig <-  ifelse(prop_table_online_name$X4 <= 0.001, 
+                                      "***",
+                                      ifelse(prop_table_online_name$X4 <= 0.01, 
+                                             "**",
+                                             ifelse(prop_table_online_name$X4 <= 0.05, 
+                                                    "*",
+                                                    ifelse(prop_table_online_name$X4 <= 0.1, 
+                                                           ".", ""))))
+
+colnames(prop_table_online_name) <- c("Field", "Men", "Women", "p", " ")
+
+
+(prop_table_online_save <- prop_table_online_name %>%
+  regulartable() %>%
+  set_caption("Share of mentions of men's and women's paper mentions containing professors' full names")%>%
+  autofit())
+
+word_document_name <-
+    read_docx() %>%
+    body_add_flextable(prop_table_online_save) %>%
+    print(target = "results/supplement_tables/online_news_first_last_mention_shares.docx")
+```
+
+
+Overall share of mentions with names?
+```{r}
+share_mentions_field <- prof_totals_online %>%
+  filter(!is.na(scopus_field_overall) & alt_online_all_total > 0)%>%
+  bind_rows(., prof_totals_online %>% mutate(scopus_field_overall = as.character("All"))) %>%
+  group_by(scopus_field_overall) %>%
+  summarise(
+    n_total = n(),
+    all_total = sum(alt_online_all_total, na.rm = TRUE),
+    all_name = sum(alt_online_name_all_total, na.rm = TRUE),
+    all_fname = sum(alt_online_fname_all_total, na.rm = TRUE),
+    )
+
+share_mentions_field$share_name <- round(share_mentions_field$all_name/share_mentions_field$all_total, 5)
+share_mentions_field$share_fname <- round(share_mentions_field$all_fname/share_mentions_field$all_total, 5)
+
+share_mentions_field
+
+(prop_table_online_save <- share_mentions_field %>%
+    select(scopus_field_overall, share_name, share_fname)%>%
+  regulartable() %>%
+  set_caption("Share of mentions containing professors' names overall")%>%
+  autofit())
+
+word_document_name <-
+    read_docx() %>%
+    body_add_flextable(prop_table_online_save) %>%
+    print(target = "results/supplement_tables/online_news_fname_shares_both_men_women.docx")
+
+```
+
+# Figure S3: Correlations
 
 Correlations between variables in our models:
-```{r}
+```{r fig.height=10, fig.width=10}
 labels_cor <-c("Publications",
                "Citations",
                "News attention",
@@ -928,7 +1616,8 @@ png(height=10, width=10,
 corrplot(correlation_matrix, 
          method="number",
          tl.col = "black",
-         mar=c(0,0,2,0))
+         mar=c(0,0,2,0),
+        col=colorRampPalette(c("white", "#6388b4"))(100))
 
 # Then
 dev.off()
@@ -936,185 +1625,17 @@ dev.off()
 ```
 
 
-# Regression robustness checks
-
-First, run some code to prepare for regression analyses.
-
-Log of variables:
-```{r}
-prof_panel_filter$news_all_log <- log(prof_panel_filter$news_all+1)
-prof_panel_filter$news_all_l_log <- log(prof_panel_filter$news_all_l+1)
-
-prof_panel_filter$alt_online_all_log <- log(prof_panel_filter$alt_online_all+1)
-prof_panel_filter$alt_online_all_l_log <- log(prof_panel_filter$alt_online_all_l+1)
-
-prof_panel_filter$alt_twitter_log <- log(prof_panel_filter$alt_twitter+1)
-prof_panel_filter$alt_twitter_l_log <- log(prof_panel_filter$alt_twitter_l+1)
-# there is a problem with this variable
-prof_panel_filter$cited_by_total_all_l_log <- log(prof_panel_filter$cited_by_total_all_l+1)
-prof_panel_filter$cited_by_total_all_l_log[which(is.nan(prof_panel_filter$cited_by_total_all_l_log))] <- NA
-prof_panel_filter$cited_by_total_all_l_log[which(is.infinite(prof_panel_filter$cited_by_total_all_l_log))] <- NA
-prof_panel_filter$alt_online_all_total_l_log <- log(prof_panel_filter$alt_online_all_total_l+1)
-prof_panel_filter$alt_twitter_total_l_log <- log(prof_panel_filter$alt_twitter_total_l+1)
-prof_panel_filter$coa_tot_cited_by_total_l_log <- log(prof_panel_filter$coa_tot_cited_by_total_l+1)
-prof_panel_filter$coa_online_all_total_l_log <- log(prof_panel_filter$coa_online_all_total_l+1)
-prof_panel_filter$coa_tot_online_all_total_l_log <- log(prof_panel_filter$coa_tot_online_all_total_l+1)
-prof_panel_filter$coa_twitter_total_l_log <- log(prof_panel_filter$coa_twitter_total_l+1)
-prof_panel_filter$coa_tot_twitter_total_l_log <- log(prof_panel_filter$coa_tot_twitter_total_l+1)
-
-prof_panel_filter$news_all_total_l_log <- log(prof_panel_filter$news_all_total_l+1)
-```
-
-Obtain binary variables for any attention received that year:
-```{r}
-prof_panel_filter$any_news <- as.factor(ifelse(prof_panel_filter$news_all > 0, 1, 0))
-prof_panel_filter$any_news_l <- as.factor(ifelse(prof_panel_filter$news_all_l > 0, 1, 0))
-
-prof_panel_filter$any_online_news <- as.factor(ifelse(prof_panel_filter$alt_online_all > 0, 1, 0))
-prof_panel_filter$any_online_news_l <- as.factor(ifelse(prof_panel_filter$alt_online_all_l > 0, 1, 0))
-
-prof_panel_filter$any_online_news_gen <- as.factor(ifelse(prof_panel_filter$alt_online_general_all > 0, 1, 0))
-prof_panel_filter$any_online_news_gen_l <- as.factor(ifelse(prof_panel_filter$alt_online_general_all_l > 0, 1, 0))
-
-prof_panel_filter$any_online_news_name <- as.factor(ifelse(prof_panel_filter$alt_online_name_all > 0, 1, 0))
-prof_panel_filter$any_online_news_name_l <- as.factor(ifelse(prof_panel_filter$alt_online_name_all_l > 0, 1, 0))
-
-prof_panel_filter$any_twitter <- as.factor(ifelse(prof_panel_filter$alt_twitter > 0, 1, 0))
-prof_panel_filter$any_twitter_l <- as.factor(ifelse(prof_panel_filter$alt_twitter_l > 0, 1, 0))
-
-prof_panel_filter$any_grant <- as.factor(ifelse(prof_panel_filter$any_nwo > 0|prof_panel_filter$any_erc, 1, 0))
-prof_panel_filter$any_grant_l <- as.factor(ifelse(prof_panel_filter$any_nwo_l > 0|prof_panel_filter$any_erc_l, 1, 0))
-```
-
-Then, construct a binary variables for belonging to the top 10/20% in the attention for each source.
-```{r}
-panel_filter_long <- prof_panel_filter %>%
-  pivot_longer(c(alt_online_all, alt_online_name_all, news_all, alt_twitter), names_to = "measure", values_to = "value")
-
-top_10_attn <- panel_filter_long %>%
-  filter(!is.na(general_field) & !is.na(year) & year > 2011)%>%
-  group_by(general_field, year, measure)%>%
-  filter(quantile(value, 0.90, na.rm = TRUE)<=value)%>%
-  select(profile_id, general_field, year, measure, value)
-
-top_10_attn$measure <- paste0(top_10_attn$measure, "_top_10")
-
-
-top_10_attn <- top_10_attn %>%
-  pivot_wider(names_from = "measure")%>%
-  mutate(across(contains('top_10'),  ~ifelse(is.na(.), 0, 1)))
-
-prof_panel_filter <- merge(prof_panel_filter,
-                           top_10_attn[c("year", "profile_id", "general_field", "alt_online_all_top_10", "alt_online_name_all_top_10", "alt_twitter_top_10", "news_all_top_10")],
-                           by = c("profile_id", "year", "general_field"),
-                           all.x = TRUE,
-                           all.y = FALSE)
-
-top_20_attn <- panel_filter_long %>%
-  filter(!is.na(general_field) & !is.na(year) & year > 2011)%>%
-  group_by(general_field, year, measure)%>%
-  filter(quantile(value, 0.80, na.rm = TRUE)<=value)%>%
-  select(profile_id, general_field, year, measure, value)
-
-top_20_attn$measure <- paste0(top_20_attn$measure, "_top_20")
-
-
-top_20_attn <- top_20_attn %>%
-  pivot_wider(names_from = "measure")%>%
-  mutate(across(contains('top_20'),  ~ifelse(is.na(.), 0, 1)))
-
-prof_panel_filter <- merge(prof_panel_filter,
-                           top_20_attn[c("year", "profile_id", "general_field", "alt_online_all_top_20", "alt_online_name_all_top_20", "alt_twitter_top_20", "news_all_top_20")],
-                           by = c("profile_id", "year", "general_field"),
-                           all.x = TRUE,
-                           all.y = FALSE)
-
-prof_panel_filter <- filter(prof_panel_filter, !is.na(general_field))
-
-# if NA, needs to be 0
-prof_panel_filter <- prof_panel_filter %>%
-  mutate(across(contains('top_10'),  ~ifelse(is.na(.), 0, .)))%>%
-  mutate(across(contains('top_20'),  ~ifelse(is.na(.), 0, .)))
-```
-
-
-
-Make a list to save all the results into:
-```{r}
-all_reg_rob_list <- list()
-```
-
-## Main models - full results
-
-### Printed news attention
-
-```{r warning = F}
-news_formula_main_model <- "news_all ~ inferred_gender + news_all_l + cited_by_total_all_l + alt_online_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-news_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                       lm_formula = news_formula_main_model,
-                                       year_cutoff_upper = 2023,
-                                       year_cutoff_lower = 2012)
-```
-
-### Online news attention 
-```{r}
-online_news_formula_main_model <- "alt_online_all ~ inferred_gender + alt_online_all_l + cited_by_total_all_l + news_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-online_news_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                              lm_formula = online_news_formula_main_model,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
-```
-
-### Twitter/X
-```{r}
-twitter_formula_main_model <- "alt_twitter ~ inferred_gender + alt_twitter_l + cited_by_total_all_l + news_all_total_l + alt_online_all_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-twitter_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                              lm_formula = twitter_formula_main_model,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
-```
-
-
-### Combined coefficients
-
-Combine this all to plot the coefficients in one plot.
-```{r warning = F}
-options(scipen=999)
-
-table_models <- neat_regression_table(news_model[[1]],
-                                      online_news_model[[1]],
-                                      twitter_model[[1]])
-
-# add to the list
-all_reg_rob_list[['linear_main']] <- table_models
-
-(table_models_save <- table_models %>%
-  regulartable() %>%
-  set_caption("Main model - full results")%>%
-  autofit())
-
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/main_model_table.docx")
-```
-
-
-
-## Main models - details per printed/online news source
-
-### Printed news - various specifications
+# Figure S4: Printed news - various specifications
 Plot Figure 2, panel A, but with various dependent variables:
 ```{r}
 # list of various dependent variable combinations:
 covariate_list_news <- c(
   "news_all ~ news_all_l",
   "news_off_all ~ news_off_all_l",
+  "news_online_all ~ news_online_all_l",
   "news_ded_all ~ news_ded_all_l",
   "news_inst_all ~ news_inst_all_l",
+  "news_no_inst_all ~ news_no_inst_all_l",
   "news_ded_inst_all ~ news_ded_inst_all_l"
 )
 
@@ -1123,7 +1644,7 @@ news_formula_rest <- "+ inferred_gender + cited_by_total_all_l + alt_online_all_
 # combine the formulas
 news_formula_list <- paste(covariate_list_news, news_formula_rest)
 
-news_dep_var_model2 <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
+news_dep_var_model2 <- lm_fitter_cl_robust_scopus(panel_dataset = prof_panel_filter,
                                        lm_formula_list = news_formula_list,
                                        year_cutoff_upper = 2023,
                                        year_cutoff_lower = 2012)
@@ -1131,26 +1652,30 @@ news_dep_var_model2 <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
 
 A faceted plot of gender differences with various dependent variables:
 
-```{r fig.width=10, fig.height=4, warning = F, message = F}
+```{r fig.width=13, fig.height=6, warning = F, message = F}
 # use the pairwise comparisons to compare groups in the plot
 p_values <- news_dep_var_model2[[3]]
 # manually add some elements we need to everything to look good
 
-p_values$x <-  ifelse(p_values$field == "stem", 1,
-                      ifelse(p_values$field == "medicine", 2,
-                             ifelse(p_values$field == "soc_sci", 3,
-                                    4)))
+p_values$x <-  ifelse(p_values$field == "phys", 1, 
+                      ifelse(p_values$field == "life", 2,
+                             ifelse(p_values$field == "health", 3,
+                                    ifelse(p_values$field == "soc_sci", 4,
+                                           5))))
 p_values$groups <- 'c("m", "w")'
 
-p_values$xmin <-  ifelse(p_values$field == "stem", 0.8,
-                         ifelse(p_values$field == "medicine", 1.8,
-                                ifelse(p_values$field == "soc_sci", 2.8,
-                                       3.8)))
+p_values$xmin <-  ifelse(p_values$field == "phys", 0.8, 
+                      ifelse(p_values$field == "life", 1.8,
+                             ifelse(p_values$field == "health", 2.8,
+                                    ifelse(p_values$field == "soc_sci", 3.8,
+                                           4.8))))
 
-p_values$xmax <-  ifelse(p_values$field == "stem", 1.2,
-                         ifelse(p_values$field == "medicine", 2.2,
-                                ifelse(p_values$field == "soc_sci", 3.2,
-                                       4.2)))
+
+p_values$xmax <-  ifelse(p_values$field == "phys", 1.2, 
+                      ifelse(p_values$field == "life", 2.2,
+                             ifelse(p_values$field == "health", 3.2,
+                                    ifelse(p_values$field == "soc_sci", 4.2,
+                                           5.2))))
 
 predictions_plot <- news_dep_var_model2[[2]]
 
@@ -1170,14 +1695,18 @@ p_values2 <- merge(p_values,
 predictions_plot$covariate <- factor(predictions_plot$covariate,
                                      levels = c("news_all",
                                                 "news_off_all",
+                                                "news_online_all",
                                                 "news_ded_all",
                                                 "news_inst_all",
+                                                "news_no_inst_all",
                                                 "news_ded_inst_all"))
 covariate_names <- c(
   'news_all' = "All\n news",
   'news_off_all' = "Offline\n news",
+  'news_online_all' = "Online\n news",
   'news_ded_all'="Dedupl.\n news",
   'news_inst_all' = "News with\n institutional \nmention",
+  'news_no_inst_all' = "News without\n institutional \nmention",
   'news_ded_inst_all' = "Dedupl. news\n with institutional \nmention"
 )
 
@@ -1203,15 +1732,16 @@ predictions_plot <- predictions_plot %>%
   )+
   xlab("Field")+
   scale_x_discrete(labels=c("arts" = "Arts &\n Humanities",
-                            "medicine" = "Medicine",
-                            "soc_sci" = "Social sciences",
-                            "stem" = "STEM"))+
+                            "health" = "Health sci.",
+                            "soc_sci" = "Social sci.",
+                            "life" = "Life sci.",
+                            "phys" = "Physical sci."))+
   ylab("Yearly attention")+
   labs(color = "Inferred gender")+
     scale_color_manual(values = c("#61D04F", "#F5C710"), labels = c("Men", "Women"))+
     facet_wrap(.~as.factor(covariate), 
                scales="free_y", 
-               nrow = 1,
+               ncol = 5,
                labeller = as_labeller(covariate_names))+
     theme_minimal_hgrid()+
     theme(plot.title = element_text(size = 10),
@@ -1228,8 +1758,8 @@ predictions_plot <- predictions_plot %>%
 ggsave2(
   filename = "results/supplement_figures/reg_diff_news_specifications.png",
   plot = news_gender_plot,
-  width = 12,
-  height = 4,
+  width = 13,
+  height = 6,
   units = c("in"),
   dpi = 600,
   bg = "white"
@@ -1237,11 +1767,7 @@ ggsave2(
 
 ```
 
-
-
-
-
-### Printed news - various sources
+# Figure S5: Printed news - various sources
 Plot Figure 2, panel A, but with various dependent variables:
 ```{r}
 # list of various dependent variable combinations:
@@ -1266,43 +1792,47 @@ news_formula_rest <- "+ inferred_gender + cited_by_total_all_l + alt_online_all_
 # combine the formulas
 news_formula_list <- paste(covariate_list_news, news_formula_rest)
 
-news_dep_var_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                       lm_formula_list = news_formula_list,
-                                       year_cutoff_upper = 2023,
-                                       year_cutoff_lower = 2012)
+news_dep_var_model <- lm_fitter_cl_robust_scopus(panel_dataset = prof_panel_filter,
+                                                 lm_formula_list = news_formula_list,
+                                                 year_cutoff_upper = 2023,
+                                                 year_cutoff_lower = 2012)
 ```
 
 A faceted plot of gender differences with various dependent variables:
 
-```{r fig.width=10, fig.height=4, warning = F, message = F}
+```{r fig.width=12, fig.height=8, warning = F, message = F}
 # use the pairwise comparisons to compare groups in the plot
 p_values <- news_dep_var_model[[3]]
 # manually add some elements we need to everything to look good
 
-p_values$x <-  ifelse(p_values$field == "stem", 1,
-                      ifelse(p_values$field == "medicine", 2,
-                             ifelse(p_values$field == "soc_sci", 3,
-                                    4)))
+p_values$x <-  ifelse(p_values$field == "phys", 1, 
+                      ifelse(p_values$field == "life", 2,
+                             ifelse(p_values$field == "health", 3,
+                                    ifelse(p_values$field == "soc_sci", 4,
+                                           5))))
 p_values$groups <- 'c("m", "w")'
 
-p_values$xmin <-  ifelse(p_values$field == "stem", 0.8,
-                         ifelse(p_values$field == "medicine", 1.8,
-                                ifelse(p_values$field == "soc_sci", 2.8,
-                                       3.8)))
+p_values$xmin <-  ifelse(p_values$field == "phys", 0.8, 
+                      ifelse(p_values$field == "life", 1.8,
+                             ifelse(p_values$field == "health", 2.8,
+                                    ifelse(p_values$field == "soc_sci", 3.8,
+                                           4.8))))
 
-p_values$xmax <-  ifelse(p_values$field == "stem", 1.2,
-                         ifelse(p_values$field == "medicine", 2.2,
-                                ifelse(p_values$field == "soc_sci", 3.2,
-                                       4.2)))
+
+p_values$xmax <-  ifelse(p_values$field == "phys", 1.2, 
+                      ifelse(p_values$field == "life", 2.2,
+                             ifelse(p_values$field == "health", 3.2,
+                                    ifelse(p_values$field == "soc_sci", 4.2,
+                                           5.2))))
 
 predictions_plot <- news_dep_var_model[[2]]
 
 yaxis <- predictions_plot %>% group_by(field, covariate)%>%summarise(y.position = max(conf.high))
 
-yaxis$y.position <-  ifelse(p_values$covariate == "news_all", yaxis$y.position + 0.3,
-                            ifelse(p_values$covariate == "news_national", yaxis$y.position + 0.2,
-                                   ifelse(p_values$covariate == "news_regional", yaxis$y.position + 0.04,
-                                          ifelse(p_values$covariate == "news_intl", yaxis$y.position + 0.08,
+yaxis$y.position <-  ifelse(yaxis$covariate == "news_all", yaxis$y.position + 0.3,
+                            ifelse(yaxis$covariate == "news_national", yaxis$y.position + 0.2,
+                                   ifelse(yaxis$covariate == "news_regional", yaxis$y.position + 0.04,
+                                          ifelse(yaxis$covariate == "news_intl", yaxis$y.position + 0.08,
                                                  yaxis$y.position + 0.015))))
 
 p_values2 <- merge(p_values,
@@ -1361,9 +1891,10 @@ predictions_plot <- predictions_plot %>%
   )+
   xlab("Field")+
   scale_x_discrete(labels=c("arts" = "Arts &\n Humanities",
-                            "medicine" = "Medicine",
-                            "soc_sci" = "Social sciences",
-                            "stem" = "STEM"))+
+                            "health" = "Health sci.",
+                            "soc_sci" = "Social sci.",
+                            "life" = "Life sci.",
+                            "phys" = "Physical sci."))+
   ylab("Yearly attention")+
   labs(color = "Inferred gender")+
     scale_color_manual(values = c("#61D04F", "#F5C710"), labels = c("Men", "Women"))+
@@ -1387,7 +1918,7 @@ ggsave2(
   filename = "results/supplement_figures/reg_diff_news_sources.png",
   plot = news_gender_plot,
   width = 12,
-  height = 8,
+  height = 7,
   units = c("in"),
   dpi = 600,
   bg = "white"
@@ -1396,10 +1927,7 @@ ggsave2(
 ```
 
 
-
-
-
-### Online news - various specifications
+# Figure S6: Online news - various specifications
 Plot Figure 2, panel A, but with various dependent variables:
 ```{r}
 # list of various dependent variable combinations:
@@ -1415,7 +1943,7 @@ online_news_formula_rest <- "+ inferred_gender + cited_by_total_all_l + news_all
 # combine the formulas
 online_news_formula_list <- paste(covariate_list_online_news, online_news_formula_rest)
 
-online_news_dep_var_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
+online_news_dep_var_model <- lm_fitter_cl_robust_scopus(panel_dataset = prof_panel_filter,
                                        lm_formula_list = online_news_formula_list,
                                        year_cutoff_upper = 2023,
                                        year_cutoff_lower = 2012)
@@ -1429,21 +1957,25 @@ A faceted plot of gender differences with various dependent variables:
 p_values <- online_news_dep_var_model[[3]]
 # manually add some elements we need to everything to look good
 
-p_values$x <-  ifelse(p_values$field == "stem", 1,
-                      ifelse(p_values$field == "medicine", 2,
-                             ifelse(p_values$field == "soc_sci", 3,
-                                    4)))
+p_values$x <-  ifelse(p_values$field == "phys", 1, 
+                      ifelse(p_values$field == "life", 2,
+                             ifelse(p_values$field == "health", 3,
+                                    ifelse(p_values$field == "soc_sci", 4,
+                                           5))))
 p_values$groups <- 'c("m", "w")'
 
-p_values$xmin <-  ifelse(p_values$field == "stem", 0.8,
-                         ifelse(p_values$field == "medicine", 1.8,
-                                ifelse(p_values$field == "soc_sci", 2.8,
-                                       3.8)))
+p_values$xmin <-  ifelse(p_values$field == "phys", 0.8, 
+                      ifelse(p_values$field == "life", 1.8,
+                             ifelse(p_values$field == "health", 2.8,
+                                    ifelse(p_values$field == "soc_sci", 3.8,
+                                           4.8))))
 
-p_values$xmax <-  ifelse(p_values$field == "stem", 1.2,
-                         ifelse(p_values$field == "medicine", 2.2,
-                                ifelse(p_values$field == "soc_sci", 3.2,
-                                       4.2)))
+
+p_values$xmax <-  ifelse(p_values$field == "phys", 1.2, 
+                      ifelse(p_values$field == "life", 2.2,
+                             ifelse(p_values$field == "health", 3.2,
+                                    ifelse(p_values$field == "soc_sci", 4.2,
+                                           5.2))))
 
 predictions_plot <- online_news_dep_var_model[[2]]
 
@@ -1461,24 +1993,12 @@ predictions_plot$covariate <- factor(predictions_plot$covariate,
                                      levels = c("alt_online_all",
                                                 "alt_online_single_all",
                                                 "alt_online_name_all",
-                                                "alt_online_fname_all",
-                                                "alt_general_interest_news",
-                                                "alt_finance_news",
-                                                "alt_online_blog",
-                                                "alt_popsci_news",
-                                                "alt_science_news",
-                                                "alt_other_news"))
+                                                "alt_online_fname_all"))
 covariate_names <- c(
   'alt_online_all' = "All\n online news",
   'alt_online_single_all' = "Online news - \nsingle-authored \npublications",
   'alt_online_name_all' = "Online news - \nincluding last name",
-  'alt_online_fname_all' = "Online news - \nincluding full name",
-  'alt_finance_news'="Finance\n online news",
-  'alt_general_interest_news' = "General interest\n online news",
-  'alt_popsci_news' = "Popular science\n online news",
-  'alt_science_news'="Scince\n online news",
-  'alt_online_blog' = "Online blogs",
-  'alt_other_news' = "Other\n online news"
+  'alt_online_fname_all' = "Online news - \nincluding full name"
 )
 predictions_plot <- predictions_plot %>%
   arrange(covariate, field)
@@ -1501,9 +2021,10 @@ predictions_plot <- predictions_plot %>%
   )+
   xlab("Field")+
   scale_x_discrete(labels=c("arts" = "Arts &\n Humanities",
-                            "medicine" = "Medicine",
-                            "soc_sci" = "Social sciences",
-                            "stem" = "STEM"))+
+                            "health" = "Health sci.",
+                            "soc_sci" = "Social sci.",
+                            "life" = "Life sci.",
+                            "phys" = "Physical sci."))+
   ylab("Yearly attention")+
   labs(color = "Inferred gender")+
     scale_color_manual(values = c("#61D04F", "#F5C710"), labels = c("Men", "Women"))+
@@ -1527,7 +2048,7 @@ ggsave2(
   filename = "results/supplement_figures/reg_diff_online_news_specifications.png",
   plot = online_news_gender_plot,
   width = 12,
-  height = 4.5,
+  height = 4,
   units = c("in"),
   dpi = 600,
   bg = "white"
@@ -1537,17 +2058,21 @@ ggsave2(
 
 
 
-### Online news - various sources
+# Figure S7: Online news - various sources
 Plot Figure 2, panel A, but with various dependent variables:
 ```{r}
 # list of various dependent variable combinations:
 covariate_list_online_news <- c(
   "alt_online_all ~ alt_online_all_l",
   "alt_general_interest_news ~ alt_general_interest_news_l",
+  "alt_general_interest_local_news ~ alt_general_interest_local_news_l",
   "alt_finance_news ~ alt_finance_news_l",
   "alt_online_blog ~ alt_online_blog_l",
   "alt_popsci_news ~ alt_popsci_news_l",
   "alt_science_news ~ alt_science_news_l",
+  "alt_medical_news ~ alt_medical_news_l",
+  "alt_news_aggregator ~ alt_news_aggregator_l",
+  "alt_sci_news_aggregator ~ alt_sci_news_aggregator_l",
   "alt_other_news ~ alt_other_news_l"
 )
 
@@ -1556,7 +2081,7 @@ online_news_formula_rest <- "+ inferred_gender + cited_by_total_all_l + news_all
 # combine the formulas
 online_news_formula_list <- paste(covariate_list_online_news, online_news_formula_rest)
 
-online_news_dep_var_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
+online_news_dep_var_model <- lm_fitter_cl_robust_scopus(panel_dataset = prof_panel_filter,
                                        lm_formula_list = online_news_formula_list,
                                        year_cutoff_upper = 2023,
                                        year_cutoff_lower = 2012)
@@ -1565,26 +2090,30 @@ online_news_dep_var_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filt
 
 A faceted plot of gender differences with various dependent variables:
 
-```{r fig.width=12, fig.height=4, warning = F, message = F}
+```{r fig.width=12, fig.height=9, warning = F, message = F}
 # use the pairwise comparisons to compare groups in the plot
 p_values <- online_news_dep_var_model[[3]]
 # manually add some elements we need to everything to look good
 
-p_values$x <-  ifelse(p_values$field == "stem", 1,
-                      ifelse(p_values$field == "medicine", 2,
-                             ifelse(p_values$field == "soc_sci", 3,
-                                    4)))
+p_values$x <-  ifelse(p_values$field == "phys", 1, 
+                      ifelse(p_values$field == "life", 2,
+                             ifelse(p_values$field == "health", 3,
+                                    ifelse(p_values$field == "soc_sci", 4,
+                                           5))))
 p_values$groups <- 'c("m", "w")'
 
-p_values$xmin <-  ifelse(p_values$field == "stem", 0.8,
-                         ifelse(p_values$field == "medicine", 1.8,
-                                ifelse(p_values$field == "soc_sci", 2.8,
-                                       3.8)))
+p_values$xmin <-  ifelse(p_values$field == "phys", 0.8, 
+                      ifelse(p_values$field == "life", 1.8,
+                             ifelse(p_values$field == "health", 2.8,
+                                    ifelse(p_values$field == "soc_sci", 3.8,
+                                           4.8))))
 
-p_values$xmax <-  ifelse(p_values$field == "stem", 1.2,
-                         ifelse(p_values$field == "medicine", 2.2,
-                                ifelse(p_values$field == "soc_sci", 3.2,
-                                       4.2)))
+
+p_values$xmax <-  ifelse(p_values$field == "phys", 1.2, 
+                      ifelse(p_values$field == "life", 2.2,
+                             ifelse(p_values$field == "health", 3.2,
+                                    ifelse(p_values$field == "soc_sci", 4.2,
+                                           5.2))))
 
 predictions_plot <- online_news_dep_var_model[[2]]
 
@@ -1600,23 +2129,27 @@ p_values2 <- merge(p_values,
 
 predictions_plot$covariate <- factor(predictions_plot$covariate,
                                      levels = c("alt_online_all",
-                                                "alt_online_single_all",
-                                                "alt_online_name_all",
                                                 "alt_general_interest_news",
+                                                "alt_general_interest_local_news",
                                                 "alt_finance_news",
                                                 "alt_online_blog",
                                                 "alt_popsci_news",
                                                 "alt_science_news",
+                                                "alt_medical_news",
+                                                "alt_news_aggregator",
+                                                "alt_sci_news_aggregator",
                                                 "alt_other_news"))
 covariate_names <- c(
   'alt_online_all' = "All\n online news",
-  'alt_online_single_all' = "Online news - \nsingle-authored",
-  'alt_online_name_all' = "Online\n news w/name",
   'alt_finance_news'="Finance\n online news",
   'alt_general_interest_news' = "General interest\n online news",
+  'alt_general_interest_local_news' = "General interest\n online news \n(local)",
   'alt_popsci_news' = "Popular science\n online news",
   'alt_science_news'="Scince\n online news",
   'alt_online_blog' = "Online blogs",
+  'alt_medical_news' = "Medical online \nnews portals",
+  'alt_news_aggregator' = "News aggregator \nportals",
+  'alt_sci_news_aggregator' = "Science news \naggregator portals",
   'alt_other_news' = "Other\n online news"
 )
 predictions_plot <- predictions_plot %>%
@@ -1640,14 +2173,15 @@ predictions_plot <- predictions_plot %>%
   )+
   xlab("Field")+
   scale_x_discrete(labels=c("arts" = "Arts &\n Humanities",
-                            "medicine" = "Medicine",
-                            "soc_sci" = "Social sciences",
-                            "stem" = "STEM"))+
+                            "health" = "Health sci.",
+                            "soc_sci" = "Social sci.",
+                            "life" = "Life sci.",
+                            "phys" = "Physical sci."))+
   ylab("Yearly attention")+
   labs(color = "Inferred gender")+
     scale_color_manual(values = c("#61D04F", "#F5C710"), labels = c("Men", "Women"))+
     facet_wrap(.~as.factor(covariate), 
-               nrow = 2,
+               ncol = 5,
                scales="free", 
                labeller = as_labeller(covariate_names))+
     theme_minimal_hgrid()+
@@ -1666,7 +2200,7 @@ ggsave2(
   filename = "results/supplement_figures/reg_diff_online_news_sources.png",
   plot = online_news_gender_plot,
   width = 12,
-  height = 6,
+  height = 9,
   units = c("in"),
   dpi = 600,
   bg = "white"
@@ -1674,1166 +2208,366 @@ ggsave2(
 
 ```
 
+# Figure S8: Regression coefficients - all fields
 
-
-## Main models - excluding 2020 and 2021
-
+Gender as factor:
 ```{r}
-prof_panel_filter_2020 <- filter(prof_panel_filter,
-                                 ! year %in% c(2020, 2021))
+prof_panel_filter$inferred_gender <- as.factor(prof_panel_filter$inferred_gender)
 ```
 
-### Printed news attention
+
+## Printed news attention
 
 ```{r warning = F}
 news_formula_main_model <- "news_all ~ inferred_gender + news_all_l + cited_by_total_all_l + alt_online_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
 
-news_model_2019 <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter_2020,
+news_model <- lm_fitter_cl_robust_scopus(panel_dataset = prof_panel_filter,
                                        lm_formula = news_formula_main_model,
                                        year_cutoff_upper = 2023,
                                        year_cutoff_lower = 2012)
 ```
 
-### Online news attention 
+## Online news attention 
 ```{r}
 online_news_formula_main_model <- "alt_online_all ~ inferred_gender + alt_online_all_l + cited_by_total_all_l + news_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
 
-online_news_model_2019 <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter_2020,
+online_news_model <- lm_fitter_cl_robust_scopus(panel_dataset = prof_panel_filter,
                                               lm_formula = online_news_formula_main_model,
                                               year_cutoff_upper = 2023,
                                               year_cutoff_lower = 2012)
 ```
 
-### Twitter/X
+## Twitter/X
 ```{r}
 twitter_formula_main_model <- "alt_twitter ~ inferred_gender + alt_twitter_l + cited_by_total_all_l + news_all_total_l + alt_online_all_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
 
-twitter_model_2019 <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter_2020,
+twitter_model <- lm_fitter_cl_robust_scopus(panel_dataset = prof_panel_filter,
                                               lm_formula = twitter_formula_main_model,
                                               year_cutoff_upper = 2023,
                                               year_cutoff_lower = 2012)
 ```
 
 
-### Combined coefficients
+## Combined coefficients
 
 Combine this all to plot the coefficients in one plot.
 ```{r warning = F}
 options(scipen=999)
 
-table_models_2019 <- neat_regression_table(news_model_2019[[1]],
-                                           online_news_model_2019[[1]],
-                                           twitter_model_2019[[1]])
+table_models <- neat_regression_table(news_model[[1]],
+                                      online_news_model[[1]],
+                                      twitter_model[[1]])
 
-# add to the list
-all_reg_rob_list[['linear_2019']] <- table_models_2019
-
-(table_models_save <- table_models_2019 %>%
+(table_models_save <- table_models %>%
   regulartable() %>%
-  set_caption("Main model - up until 2020")%>%
+  set_caption("Main model - full results")%>%
   autofit())
 
 word_document_name <-
     read_docx() %>%
     body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/main_model_table_2019.docx")
+    print(target = "results/supplement_tables/main_model_table.docx")
+```
+
+Plot out selected regression coefficients for physical sciences:
+```{r fig.width=12, fig.height= 4, warning = F}
+# reorder the factor for Figure 2
+all_models_plot$term <- ordered(all_models_plot$term,
+                                     levels = c("(Intercept)",
+                                                "inferred_genderw",
+                                                "cited_by_total_all_l",
+                                                "news_all_total_l",
+                                                "alt_online_all_total_l", 
+                                                "alt_twitter_total_l",
+                                                "coa_tot_cited_by_total_l",
+                                                "coa_tot_online_all_total_l",
+                                                "coa_tot_twitter_total_l",
+                                                "years_since_first_pub",
+                                                "t_min_1",
+                                                "as.factor(year)2014",
+                                                "as.factor(year)2015",
+                                                "as.factor(year)2016",
+                                                "as.factor(year)2017",
+                                                "as.factor(year)2018",
+                                                "as.factor(year)2019",
+                                                "as.factor(year)2020",
+                                                "as.factor(year)2021",
+                                                "as.factor(year)2022",
+                                                "as.factor(year)2023",
+                                                "R^2"))
+
+
+(selected_plot <- all_models_plot %>%
+  filter(term %in% c("cited_by_total_all_l",
+                     "coa_tot_cited_by_total_l",
+                     "coa_tot_online_all_total_l",
+                     "coa_tot_twitter_total_l",
+                     "t_min_1") & field == "phys") %>%
+  ggplot(aes(Estimate, field, color = model, label = stars)) +
+  geom_point(position = position_dodge(width = -0.7), size = 3) +
+  geom_errorbar(aes(xmin = lower_ci, xmax = upper_ci),
+                width=0,
+                size=0.7,
+                position = position_dodge(width = -0.7)) +
+  geom_text(hjust=0, vjust=0, position = position_dodge(width = -0.7), size = 3.5)+
+   scale_y_discrete(labels=c("arts" = "Arts &\n Humanities",
+                            "health" = "Medicine",
+                            "soc_sci" = "Social sciences",
+                            "life" = "Life sciences",
+                            "phys" = "Physical sciences"),
+                       name = "Field")+
+    scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
+  scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
+  scale_x_continuous(
+    n.breaks = 3,
+    labels = function(x) format(x, scientific = TRUE))+
+  # add in a dotted line at zero
+  labs(
+    x = "Regression coefficient",
+    y = NULL,
+    color = "Attention type"
+  ) + 
+  geom_vline(xintercept = 0,  colour="black", linetype = "longdash")+
+  facet_wrap( ~ term, scales="free_x", labeller = as_labeller(covariate_names), ncol = 5)+
+  theme_bw()+
+   theme(plot.title = element_text(size = 10),
+         axis.text.y = element_text(size = 10),
+         axis.title.y = element_blank(),
+         axis.text.x = element_text(size = 10, angle = 30, hjust = 0.9) ,
+         axis.title.x = element_text(size = 11),
+         legend.title=element_text(size=10), 
+         legend.text=element_text(size=9),
+         strip.text.x=element_text(size = 9)))
+```
+
+And plot out the coefficients for all fields:
+```{r}
+(all_fields_plot <- all_models_plot %>%
+  filter(term %in% c("cited_by_total_all_l",
+                     "coa_tot_cited_by_total_l",
+                     "coa_tot_online_all_total_l",
+                     "coa_tot_twitter_total_l",
+                     "t_min_1")) %>%
+  ggplot(aes(Estimate, field, color = model, label = stars)) +
+  geom_point(position = position_dodge(width = -0.7), size = 3) +
+  geom_errorbar(aes(xmin = lower_ci, xmax = upper_ci),
+                width=0,
+                size=0.7,
+                position = position_dodge(width = -0.7)) +
+  geom_text(hjust=0, vjust=0, position = position_dodge(width = -0.7), size = 3.5)+
+   scale_y_discrete(labels=c("arts" = "Arts & Humanities",
+                             "medicine" = "Medicine",
+                             "soc_sci" = "Social science",
+                             "stem" = "STEM"),
+                       name = "Field")+
+    scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
+  scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
+  scale_x_continuous(
+    n.breaks = 3,
+    labels = function(x) format(x, scientific = TRUE))+
+  # add in a dotted line at zero
+  labs(
+    x = "Regression coefficient",
+    y = NULL,
+    color = "Attention type"
+  ) + 
+  geom_vline(xintercept = 0,  colour="black", linetype = "longdash")+
+  facet_wrap( ~ term, scales="free_x", labeller = as_labeller(covariate_names), ncol = 5)+
+  theme_bw()+
+   theme(plot.title = element_text(size = 10),
+         axis.text.y = element_text(size = 10),
+         axis.title.y = element_blank(),
+         axis.text.x = element_text(size = 10, angle = 30, hjust = 0.9) ,
+         axis.title.x = element_text(size = 11),
+         legend.title=element_text(size=10), 
+         legend.text=element_text(size=9),
+         strip.text.x=element_text(size = 9)))
+
+
+ggsave2(
+  filename = "results/supplement_figures/Figure_2B_all_fields.png",
+  plot = all_fields_plot,
+  width = 12,
+  height = 4,
+  units = c("in"),
+  dpi = 600,
+  bg = "white"
+)
 ```
 
 
 
-## Main models - without the first lag
+
+# Figure S9: Fixed effects models - all fields
 
 ### Printed news attention
 
 ```{r warning = F}
-news_formula_model_nolag <- "news_all ~ inferred_gender + cited_by_total_all_l + alt_online_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
+news_formula_main_model <- "news_all ~ news_all_l + cited_by_total_all_l + alt_online_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub"
 
-news_model_nolag <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                       lm_formula = news_formula_model_nolag,
-                                       year_cutoff_upper = 2023,
-                                       year_cutoff_lower = 2012)
+news_model <- fe_re_fitter_cl_robust_scopus(panel_dataset = prof_panel_filter,
+                                            lm_formula = news_formula_main_model,
+                                            year_cutoff_upper = 2023,
+                                            year_cutoff_lower = 2012,
+                                            index = c("profile_id", "year"),
+                                            fe_re = "fe")
 ```
 
-### Online news attention 
-
-```{r}
-online_news_formula_model_nolag <- "alt_online_all ~ inferred_gender + cited_by_total_all_l + news_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-online_news_model_nolag <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                              lm_formula = online_news_formula_model_nolag,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
-```
-
-### Twitter/X attention
-
-```{r}
-twitter_formula_model_nolag <- "alt_twitter ~ inferred_gender + cited_by_total_all_l + news_all_total_l + alt_online_all_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-twitter_model_nolag <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                              lm_formula = twitter_formula_model_nolag,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
-```
-
-### Combined coefficients
-
-Combine this all to plot the coefficients in one plot.
-```{r}
-options(scipen=999)
-
-table_models_nolag <- neat_regression_table(news_model_nolag[[1]],
-                                           online_news_model_nolag[[1]],
-                                           twitter_model_nolag[[1]])
-
-# add to the list
-all_reg_rob_list[['linear_nolag']] <- table_models_nolag
-
-(table_models_save <- table_models_nolag %>%
-  regulartable() %>%
-  set_caption("Main model - no first lag")%>%
-  autofit())
-
-
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/main_model_table_nolag.docx")
-```
-
-
-## Main models - including grants
-
-### Printed news attention
-
-```{r warning = F}
-news_formula_grant_model <- "news_all ~ inferred_gender + news_all_l + cited_by_total_all_l + alt_online_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+as.factor(any_grant_l)+years_since_first_pub + as.factor(year)"
-
-news_grant_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                       lm_formula = news_formula_grant_model,
-                                       year_cutoff_upper = 2023,
-                                       year_cutoff_lower = 2012)
-```
 
 ### Online news attention 
 ```{r}
-online_news_formula_grant_model <- "alt_online_all ~ inferred_gender + alt_online_all_l + cited_by_total_all_l + news_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+as.factor(any_grant_l)+years_since_first_pub + as.factor(year)"
+online_news_formula_main_model <- "alt_online_all ~ alt_online_all_l + cited_by_total_all_l + news_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub"
 
-online_news_grant_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                              lm_formula = online_news_formula_grant_model,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
-```
-
-### Twitter attention 
-```{r}
-twitter_formula_grant_model <- "alt_twitter ~ inferred_gender + alt_twitter_l + cited_by_total_all_l + news_all_total_l + alt_online_all_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+as.factor(any_grant_l)+years_since_first_pub + as.factor(year)"
-
-twitter_grant_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                              lm_formula = twitter_formula_grant_model,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
-```
-
-### Combined coefficients
-
-Combine this all to plot the coefficients in one plot.
-```{r}
-table_models_grant <- neat_regression_table(news_grant_model[[1]],
-                                            online_news_grant_model[[1]],
-                                            twitter_grant_model[[1]])
-
-# add to the list
-all_reg_rob_list[['linear_grants']] <- table_models_grant
-
-(table_models_save <- table_models_grant %>%
-    regulartable() %>% 
-    set_caption("Main model - including grants")%>%
-  autofit())
-
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/main_model_table_grant.docx")
-```
-
-
-
-## Main models - excluding those who held a public post
-
-Load data on profesors who had a public position:
-```{r}
-# Connect to the database:
-# fill in own credentials
-port <- 5432
-user <- "postgres"
-password <- "dutchmediaprofssql"
-database_name <- "postgres"
-
-
-con <- dbConnect(Postgres(),
-                 dbname= database_name,
-                 port = port,
-                 user = user, 
-                 password = password)
-
-con # Checks connection is working
-
-public_roles <- dbReadTable(con, "govt_positions")
-
-prof_panel_filter_public <- filter(prof_panel_filter,
-                                   ! profile_id %in% public_roles$profile_id)
-```
-
-
-### Printed news attention
-
-```{r warning = F}
-news_formula_main_model <- "news_all ~ inferred_gender + news_all_l + cited_by_total_all_l + alt_online_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-news_model_no_public <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter_public,
-                                       lm_formula = news_formula_main_model,
-                                       year_cutoff_upper = 2023,
-                                       year_cutoff_lower = 2012)
-```
-
-### Online news attention 
-```{r}
-online_news_formula_main_model <- "alt_online_all ~ inferred_gender + alt_online_all_l + cited_by_total_all_l + news_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-online_news_model_no_public <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter_public,
-                                              lm_formula = online_news_formula_main_model,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
+online_news_model <- fe_re_fitter_cl_robust_scopus(panel_dataset = prof_panel_filter,
+                                                   lm_formula = online_news_formula_main_model,
+                                                   year_cutoff_upper = 2023,
+                                                   year_cutoff_lower = 2012,
+                                                   index = c("profile_id", "year"),
+                                                   fe_re = "fe")
 ```
 
 ### Twitter/X
 ```{r}
-twitter_formula_main_model <- "alt_twitter ~ inferred_gender + alt_twitter_l + cited_by_total_all_l + news_all_total_l + alt_online_all_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
+twitter_formula_main_model <- "alt_twitter ~ alt_twitter_l + cited_by_total_all_l + news_all_total_l + alt_online_all_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub"
 
-twitter_model_no_public <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter_public,
-                                              lm_formula = twitter_formula_main_model,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
-```
-
-
-### Combined coefficients
-
-Combine this all to plot the coefficients in one plot.
-```{r}
-options(scipen=999)
-
-table_models_no_public <- neat_regression_table(news_model_no_public[[1]],
-                                           online_news_model_no_public[[1]],
-                                           twitter_model_no_public[[1]])
-
-# add to the list
-all_reg_rob_list[['linear_no_public']] <- table_models_no_public
-
-(table_models_save <- table_models_no_public %>%
-    regulartable() %>% 
-    set_caption("Main model - excluding professors with positions in government")%>%
-  autofit())
-
-
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/main_model_table_no_public.docx")
-```
-
-
-
-
-## Main models - log-transformed variables
-
-### Printed news attention
-```{r warning = F}
-news_formula_log_model <- "news_all_log ~ inferred_gender + news_all_l_log + cited_by_total_all_l_log + alt_online_all_total_l_log + alt_twitter_total_l_log +coa_tot_cited_by_total_l_log + coa_tot_online_all_total_l_log + coa_tot_twitter_total_l_log+years_since_first_pub + as.factor(year)"
-
-news_log_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                       lm_formula_list = news_formula_log_model,
-                                       year_cutoff_upper = 2023,
-                                       year_cutoff_lower = 2012)
-```
-
-### Online news attention 
-
-```{r}
-online_news_formula_log_model <- "alt_online_all_log ~ inferred_gender + alt_online_all_l_log + cited_by_total_all_l_log + news_all_total_l_log + alt_twitter_total_l_log +coa_tot_cited_by_total_l_log + coa_tot_online_all_total_l_log + coa_tot_twitter_total_l_log+years_since_first_pub + as.factor(year)"
-
-online_news_log_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                              lm_formula = online_news_formula_log_model,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
-```
-
-### Twitter attention models
-
-```{r}
-twitter_formula_log_model <- "alt_twitter_log ~ inferred_gender + alt_twitter_l_log + cited_by_total_all_l_log + news_all_total_l_log + alt_online_all_total_l_log +coa_tot_cited_by_total_l_log + coa_tot_online_all_total_l_log + coa_tot_twitter_total_l_log+years_since_first_pub + as.factor(year)"
-
-twitter_log_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                              lm_formula_list = twitter_formula_log_model,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
-```
-
-
-### Combined coefficients
-
-Print out selected coefficients in a table:
-```{r}
-table_models_log <- neat_regression_table(news_log_model[[1]],
-                                          online_news_log_model[[1]],
-                                          twitter_log_model[[1]])
-
-# add to the list
-all_reg_rob_list[['linear_log']] <- table_models_log
-
-(table_models_save <- table_models_log %>%
-    regulartable() %>% 
-    set_caption("Main model - log transformed")%>%
-  autofit())
-
-
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/main_model_table_log.docx")
-```
-
-
-## Main models - log-transformed variables and no first lag
-
-### Printed news attention
-```{r warning = F}
-news_formula_log_model <- "news_all_log ~ inferred_gender + cited_by_total_all_l_log + alt_online_all_total_l_log + alt_twitter_total_l_log +coa_tot_cited_by_total_l_log + coa_tot_online_all_total_l_log + coa_tot_twitter_total_l_log+years_since_first_pub + as.factor(year)"
-
-news_log_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                       lm_formula_list = news_formula_log_model,
-                                       year_cutoff_upper = 2023,
-                                       year_cutoff_lower = 2012)
-```
-
-### Online news attention 
-
-```{r}
-online_news_formula_log_model <- "alt_online_all_log ~ inferred_gender  + cited_by_total_all_l_log + news_all_total_l_log + alt_twitter_total_l_log +coa_tot_cited_by_total_l_log + coa_tot_online_all_total_l_log + coa_tot_twitter_total_l_log+years_since_first_pub + as.factor(year)"
-
-online_news_log_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                              lm_formula = online_news_formula_log_model,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
-```
-
-### Twitter attention models
-
-```{r}
-twitter_formula_log_model <- "alt_twitter_log ~ inferred_gender  + cited_by_total_all_l_log + news_all_total_l_log + alt_online_all_total_l_log +coa_tot_cited_by_total_l_log + coa_tot_online_all_total_l_log + coa_tot_twitter_total_l_log+years_since_first_pub + as.factor(year)"
-
-twitter_log_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                              lm_formula_list = twitter_formula_log_model,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
-```
-
-
-### Combined coefficients
-
-Print out selected coefficients in a table:
-```{r}
-table_models_log <- neat_regression_table(news_log_model[[1]],
-                                          online_news_log_model[[1]],
-                                          twitter_log_model[[1]])
-
-# add to the list
-all_reg_rob_list[['linear_log_nolag']] <- table_models_log
-
-(table_models_save <- table_models_log %>%
-    regulartable() %>% 
-    set_caption("Main model - log transformed")%>%
-  autofit())
-
-
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/main_model_table_log_nolag.docx")
-```
-
-
-
-## Main models - log-transformed variables excluding 2020 and 2021
-
-### Printed news attention
-```{r warning = F}
-news_formula_log_model <- "news_all_log ~ inferred_gender + news_all_l_log + cited_by_total_all_l_log + alt_online_all_total_l_log + alt_twitter_total_l_log +coa_tot_cited_by_total_l_log + coa_tot_online_all_total_l_log + coa_tot_twitter_total_l_log+years_since_first_pub + as.factor(year)"
-
-news_log_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter_2020,
-                                       lm_formula_list = news_formula_log_model,
-                                       year_cutoff_upper = 2023,
-                                       year_cutoff_lower = 2012)
-```
-
-### Online news attention 
-
-```{r}
-online_news_formula_log_model <- "alt_online_all_log ~ inferred_gender + alt_online_all_l_log + cited_by_total_all_l_log + news_all_total_l_log + alt_twitter_total_l_log +coa_tot_cited_by_total_l_log + coa_tot_online_all_total_l_log + coa_tot_twitter_total_l_log+years_since_first_pub + as.factor(year)"
-
-online_news_log_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter_2020,
-                                              lm_formula = online_news_formula_log_model,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
-```
-
-### Twitter attention models
-
-```{r}
-twitter_formula_log_model <- "alt_twitter_log ~ inferred_gender + alt_twitter_l_log + cited_by_total_all_l_log + news_all_total_l_log + alt_online_all_total_l_log +coa_tot_cited_by_total_l_log + coa_tot_online_all_total_l_log + coa_tot_twitter_total_l_log+years_since_first_pub + as.factor(year)"
-
-twitter_log_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter_2020,
-                                              lm_formula_list = twitter_formula_log_model,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
-```
-
-
-### Combined coefficients
-
-Print out selected coefficients in a table:
-```{r}
-table_models_log <- neat_regression_table(news_log_model[[1]],
-                                          online_news_log_model[[1]],
-                                          twitter_log_model[[1]])
-
-# add to the list
-all_reg_rob_list[['linear_log_2019']] <- table_models_log
-
-(table_models_save <- table_models_log %>%
-    regulartable() %>% 
-    set_caption("Main model - log transformed until 2020")%>%
-  autofit())
-
-
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/main_model_table_log_2019.docx")
-```
-
-
-## Main models - log-transformed excluding those who held a public post
-
-Load data on profesors who had a public position:
-```{r}
-# Connect to the database:
-# fill in own credentials
-port <- 5432
-user <- "postgres"
-password <- "dutchmediaprofssql"
-database_name <- "postgres"
-
-
-con <- dbConnect(Postgres(),
-                 dbname= database_name,
-                 port = port,
-                 user = user, 
-                 password = password)
-
-con # Checks connection is working
-
-public_roles <- dbReadTable(con, "govt_positions")
-
-prof_panel_filter_public <- filter(prof_panel_filter,
-                                   ! profile_id %in% public_roles$profile_id)
-```
-
-
-### Printed news attention
-
-```{r warning = F}
-news_formula_log_model <- "news_all_log ~ inferred_gender + news_all_l_log + cited_by_total_all_l_log + alt_online_all_total_l_log + alt_twitter_total_l_log +coa_tot_cited_by_total_l_log + coa_tot_online_all_total_l_log + coa_tot_twitter_total_l_log+years_since_first_pub + as.factor(year)"
-
-news_model_no_public <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter_public,
-                                       lm_formula = news_formula_log_model,
-                                       year_cutoff_upper = 2023,
-                                       year_cutoff_lower = 2012)
-```
-
-### Online news attention 
-```{r}
-online_news_formula_log_model <- "alt_online_all_log ~ inferred_gender + alt_online_all_l_log + cited_by_total_all_l_log + news_all_total_l_log + alt_twitter_total_l_log +coa_tot_cited_by_total_l_log + coa_tot_online_all_total_l_log + coa_tot_twitter_total_l_log+years_since_first_pub + as.factor(year)"
-
-online_news_model_no_public <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter_public,
-                                              lm_formula = online_news_formula_log_model,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
-```
-
-### Twitter/X
-```{r}
-twitter_formula_log_model <- "alt_twitter_log ~ inferred_gender + alt_twitter_l_log + cited_by_total_all_l_log + news_all_total_l_log + alt_online_all_total_l_log +coa_tot_cited_by_total_l_log + coa_tot_online_all_total_l_log + coa_tot_twitter_total_l_log+years_since_first_pub + as.factor(year)"
-
-twitter_model_no_public <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter_public,
-                                              lm_formula = twitter_formula_log_model,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 2012)
-```
-
-
-### Combined coefficients
-
-Combine this all to plot the coefficients in one plot.
-```{r}
-options(scipen=999)
-
-table_models_no_public_log <- neat_regression_table(news_model_no_public[[1]],
-                                                    online_news_model_no_public[[1]],
-                                                    twitter_model_no_public[[1]])
-
-# add to the list
-all_reg_rob_list[['linear_no_public_log']] <- table_models_no_public_log
-
-(table_models_save <- table_models_no_public_log %>%
-    regulartable() %>% 
-    set_caption("Main model - log transformed excluding professors with positions in government")%>%
-  autofit())
-
-
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/main_model_table_no_public_log.docx")
-```
-
-## Poisson models - main
-
-Models comparable to the main models, but fitting a poisson regression instead.
-
-### Printed news attention
-
-```{r}
-news_formula_main_model <- "news_all ~ inferred_gender + news_all_l + cited_by_total_all_l + alt_online_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-news_model_poisson <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                           formula_list = news_formula_main_model,
-                                           year_cutoff_upper = 2023,
-                                           year_cutoff_lower = 2012,
-                                           reg_family = "poisson")
-```
-
-### Online news attention 
-```{r}
-online_news_formula_main_model <- "alt_online_all ~ inferred_gender + alt_online_all_l + cited_by_total_all_l + news_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-online_news_model_poisson <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                               formula_list = online_news_formula_main_model,
+twitter_model <- fe_re_fitter_cl_robust_scopus(panel_dataset = prof_panel_filter,
+                                               lm_formula = twitter_formula_main_model,
                                                year_cutoff_upper = 2023,
                                                year_cutoff_lower = 2012,
-                                               reg_family = "poisson")
-```
-
-### Twitter/X
-```{r}
-twitter_formula_main_model <- "alt_twitter ~ inferred_gender + alt_twitter_l + cited_by_total_all_l + news_all_total_l + alt_online_all_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-twitter_model_poisson <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                           formula_list = twitter_formula_main_model,
-                                           year_cutoff_upper = 2023,
-                                           year_cutoff_lower = 2012,
-                                           reg_family = "poisson")
+                                               index = c("profile_id", "year"),
+                                               fe_re = "fe")
 ```
 
 
 ### Combined coefficients
-
-Combine this all to plot the coefficients in one plot.
-```{r warning = F}
-options(scipen=999)
-
-table_models_poisson <- neat_regression_table(news_model_poisson[[1]],
-                                           online_news_model_poisson[[1]],
-                                           twitter_model_poisson[[1]])
-
-# add to the list
-all_reg_rob_list[['poisson_main']] <- table_models_poisson
-
-(table_models_save <- table_models_poisson %>%
-  regulartable() %>%
-  set_caption("Poisson model - main")%>%
-  autofit())
-
-# word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/poisson_model_main.docx")
-```
-
-
-
-## Poisson models - excluding 2020 and 2021
-
-Models comparable to the main models, but fitting a poisson regression instead.
-
-### Printed news attention
-
+Plot out the coefficients.
+First, prepare the dataframe:
 ```{r}
-news_formula_main_model <- "news_all ~ inferred_gender + news_all_l + cited_by_total_all_l + alt_online_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
+model_news <- news_model[[1]]
+model_online_news <- online_news_model[[1]]
+model_twitter <- twitter_model[[1]]
 
-news_model_poisson <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter_2020,
-                                           formula_list = news_formula_main_model,
-                                           year_cutoff_upper = 2023,
-                                           year_cutoff_lower = 2012,
-                                           reg_family = "poisson")
-```
+model_news$model <- "News attention"
+model_online_news$model <- "Online news attention"
+model_twitter$model <- "Twitter attention"
 
-### Online news attention 
-```{r}
-online_news_formula_main_model <- "alt_online_all ~ inferred_gender + alt_online_all_l + cited_by_total_all_l + news_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
+all_models_plot <- rbind(model_news,
+                         model_online_news,
+                         model_twitter)
 
-online_news_model_poisson <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter_2020,
-                                               formula_list = online_news_formula_main_model,
-                                               year_cutoff_upper = 2023,
-                                               year_cutoff_lower = 2012,
-                                               reg_family = "poisson")
-```
-
-### Twitter/X
-```{r}
-twitter_formula_main_model <- "alt_twitter ~ inferred_gender + alt_twitter_l + cited_by_total_all_l + news_all_total_l + alt_online_all_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-twitter_model_poisson <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter_2020,
-                                           formula_list = twitter_formula_main_model,
-                                           year_cutoff_upper = 2023,
-                                           year_cutoff_lower = 2012,
-                                           reg_family = "poisson")
-```
+# do the t-1 of dependent as a single variable
+all_models_plot$term <- ifelse(all_models_plot$term %in% c("news_all_l",
+                                                           "alt_online_all_l",
+                                                           "alt_twitter_l"), 
+                               "t_min_1", 
+                               all_models_plot$term)
 
 
-### Combined coefficients
+all_models_plot$term <- ordered(all_models_plot$term,
+                                levels = c("(Intercept)",
+                                           "inferred_genderw",
+                                           "cited_by_total_all_l",
+                                           "news_all_total_l",
+                                           "alt_online_all_total_l", 
+                                           "alt_twitter_total_l",
+                                           "coa_tot_cited_by_total_l",
+                                           "coa_tot_online_all_total_l",
+                                           "coa_tot_twitter_total_l",
+                                           "years_since_first_pub",
+                                           "t_min_1",
+                                           "as.factor(year)2014",
+                                           "as.factor(year)2015",
+                                           "as.factor(year)2016",
+                                           "as.factor(year)2017",
+                                           "as.factor(year)2018",
+                                           "as.factor(year)2019",
+                                           "as.factor(year)2020",
+                                           "as.factor(year)2021",
+                                           "as.factor(year)2022",
+                                           "as.factor(year)2023",
+                                           "R^2"))
 
-Combine this all to plot the coefficients in one plot.
-```{r warning = F}
-options(scipen=999)
+all_models_plot$model <- ordered(all_models_plot$model,
+                                 levels = c("News attention",
+                                            "Online news attention",
+                                            "Twitter attention" ))
 
-table_models_poisson <- neat_regression_table(news_model_poisson[[1]],
-                                           online_news_model_poisson[[1]],
-                                           twitter_model_poisson[[1]])
+all_models_plot$field <- factor(all_models_plot$field,
+                                 levels = c("phys",
+                                            "life",
+                                            "health",
+                                            "soc_sci",
+                                            "arts"))
 
-# add to the list
-all_reg_rob_list[['poisson_main_2019']] <- table_models_poisson
-
-(table_models_save <- table_models_poisson %>%
-  regulartable() %>%
-  set_caption("Poisson model - up until 2020")%>%
-  autofit())
-
-word_document_name <-
-read_docx() %>%
-body_add_flextable(table_models_save) %>%
-print(target = "results/supplement_tables/poisson_model_main_2019.docx")
-```
-
-
-
-## Poisson models - without the first lag
-
-Models comparable to the main models, but fitting a poisson regression instead.
-
-### Printed news attention
-
-```{r}
-news_formula_main_model <- "news_all ~ inferred_gender + cited_by_total_all_l + alt_online_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-news_model_poisson <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                           formula_list = news_formula_main_model,
-                                           year_cutoff_upper = 2023,
-                                           year_cutoff_lower = 2012,
-                                           reg_family = "poisson")
-```
-
-### Online news attention 
-```{r}
-online_news_formula_main_model <- "alt_online_all ~ inferred_gender + cited_by_total_all_l + news_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-online_news_model_poisson <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                               formula_list = online_news_formula_main_model,
-                                               year_cutoff_upper = 2023,
-                                               year_cutoff_lower = 2012,
-                                               reg_family = "poisson")
-```
-
-### Twitter/X
-```{r}
-twitter_formula_main_model <- "alt_twitter ~ inferred_gender + cited_by_total_all_l + news_all_total_l + alt_online_all_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-twitter_model_poisson <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                           formula_list = twitter_formula_main_model,
-                                           year_cutoff_upper = 2023,
-                                           year_cutoff_lower = 2012,
-                                           reg_family = "poisson")
+covariate_names <- c(
+  't_min_1' = "Dependent variable -\n previous period",
+  'news_all_l'="News attention -\nprevious period",
+  'alt_online_all_l' = "Online news attention -\nprevious period",
+  'alt_twitter_l' = "Twitter attention -\nprevious period",
+  'cited_by_total_all_l'="Total citations",
+  'news_all_total_l'="Total printed news \nattention",
+  'alt_online_all_total_l'="Total online news\n attention",
+  'alt_twitter_total_l'="Total Twitter/X \nattention",
+  'coa_tot_cited_by_total_l' = "Coauthors' total \ncitations",
+  'coa_tot_online_all_total_l' = "Coauthors' total \nonline news attention",
+  'coa_tot_twitter_total_l' = "Coauthors' total \nTwitter/X attention"
+)
 ```
 
 
-### Combined coefficients
+And plot out the coefficients for all fields:
+```{r fig.width=12, fig.height=5}
+(all_fields_plot <- all_models_plot %>%
+  filter(term %in% c("cited_by_total_all_l",
+                     "coa_tot_cited_by_total_l",
+                     "coa_tot_online_all_total_l",
+                     "coa_tot_twitter_total_l",
+                     "t_min_1")) %>%
+  ggplot(aes(Estimate, fct_rev(field), color = model, shape = model, label = stars)) +
+  geom_point(position = position_dodge(width = -0.7), size = 3) +
+  geom_errorbar(aes(xmin = lower_ci, xmax = upper_ci),
+                width=0,
+                size=0.7,
+                position = position_dodge(width = -0.7)) +
+  geom_text(hjust=0, vjust=0, position = position_dodge(width = -0.7), size = 3.5)+
+     scale_y_discrete(labels=c("arts" = "Arts &\n Humanities",
+                            "health" = "Medicine",
+                            "soc_sci" = "Social sciences",
+                            "life" = "Life sciences",
+                            "phys" = "Physical sciences"),
+                       name = "Field")+
+  scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
+  scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
+   scale_x_continuous(
+    n.breaks = 3,
+    labels = function(x) format(x, scientific = TRUE))+
+  # add in a dotted line at zero
+  labs(
+    x = "Regression coefficient",
+    y = NULL,
+    color = "Attention domain",
+    shape = "Attention domain"
+  ) + 
+  geom_vline(xintercept = 0,  colour="black", linetype = "longdash")+
+  facet_wrap( ~ term, scales="free_x", labeller = as_labeller(covariate_names), ncol = 5)+
+  theme_bw()+
+   theme(plot.title = element_text(size = 12),
+         axis.text.y = element_text(size = 12),
+         axis.title.y = element_blank(),
+         axis.text.x = element_text(size = 12, angle = 30, hjust = 0.9) ,
+         axis.title.x = element_text(size = 13),
+         legend.title=element_text(size=12), 
+         legend.text=element_text(size=11),
+         strip.text.x=element_text(size = 11)))
 
-Combine this all to plot the coefficients in one plot.
-```{r warning = F}
-options(scipen=999)
 
-table_models_poisson <- neat_regression_table(news_model_poisson[[1]],
-                                           online_news_model_poisson[[1]],
-                                           twitter_model_poisson[[1]])
-
-# add to the list
-all_reg_rob_list[['poisson_main_nolag']] <- table_models_poisson
-
-(table_models_save <- table_models_poisson %>%
-  regulartable() %>%
-  set_caption("Poisson model - no first lag of the dependent variable")%>%
-  autofit())
-
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/poisson_model_main_nolag.docx")
+ggsave2(
+  filename = "results/supplement_figures/Figure_2B_all_fields_fe.png",
+  plot = all_fields_plot,
+  width = 12,
+  height = 4,
+  units = c("in"),
+  dpi = 600,
+  bg = "white"
+)
 ```
-
-
-
-## Poisson models - including grants
-
-Models comparable to the main models, but fitting a poisson regression instead.
-
-### Printed news attention
-
-```{r}
-news_formula_main_model <- "news_all ~ inferred_gender + news_all_l + cited_by_total_all_l + alt_online_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(any_grant_l) + as.factor(year)"
-
-news_model_poisson <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                           formula_list = news_formula_main_model,
-                                           year_cutoff_upper = 2023,
-                                           year_cutoff_lower = 2012,
-                                           reg_family = "poisson")
-```
-
-### Online news attention 
-```{r}
-online_news_formula_main_model <- "alt_online_all ~ inferred_gender + alt_online_all_l + cited_by_total_all_l + news_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(any_grant_l) + as.factor(year)"
-
-online_news_model_poisson <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                               formula_list = online_news_formula_main_model,
-                                               year_cutoff_upper = 2023,
-                                               year_cutoff_lower = 2012,
-                                               reg_family = "poisson")
-```
-
-### Twitter/X
-```{r}
-twitter_formula_main_model <- "alt_twitter ~ inferred_gender + alt_twitter_l + cited_by_total_all_l + news_all_total_l + alt_online_all_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(any_grant_l) + as.factor(year)"
-
-twitter_model_poisson <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                           formula_list = twitter_formula_main_model,
-                                           year_cutoff_upper = 2023,
-                                           year_cutoff_lower = 2012,
-                                           reg_family = "poisson")
-```
-
-
-### Combined coefficients
-
-Combine this all to plot the coefficients in one plot.
-```{r warning = F}
-options(scipen=999)
-
-table_models_poisson <- neat_regression_table(news_model_poisson[[1]],
-                                           online_news_model_poisson[[1]],
-                                           twitter_model_poisson[[1]])
-
-# add to the list
-all_reg_rob_list[['poisson_main_grants']] <- table_models_poisson
-
-(table_models_save <- table_models_poisson %>%
-  regulartable() %>%
-  set_caption("Poisson model - including grants")%>%
-  autofit())
-
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/poisson_model_main_grants.docx")
-```
-
-
-## Poisson models - excluding those who held a public post
-
-Exclude professors who held a government position.
-
-### Printed news attention
-
-```{r}
-news_formula_main_model <- "news_all ~ inferred_gender + news_all_l + cited_by_total_all_l + alt_online_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-news_model_poisson <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter_public,
-                                           formula_list = news_formula_main_model,
-                                           year_cutoff_upper = 2023,
-                                           year_cutoff_lower = 2012,
-                                           reg_family = "poisson")
-```
-
-### Online news attention 
-```{r}
-online_news_formula_main_model <- "alt_online_all ~ inferred_gender + alt_online_all_l + cited_by_total_all_l + news_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-online_news_model_poisson <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter_public,
-                                               formula_list = online_news_formula_main_model,
-                                               year_cutoff_upper = 2023,
-                                               year_cutoff_lower = 2012,
-                                               reg_family = "poisson")
-```
-
-### Twitter/X
-```{r}
-twitter_formula_main_model <- "alt_twitter ~ inferred_gender + alt_twitter_l + cited_by_total_all_l + news_all_total_l + alt_online_all_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-twitter_model_poisson <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter_public,
-                                           formula_list = twitter_formula_main_model,
-                                           year_cutoff_upper = 2023,
-                                           year_cutoff_lower = 2012,
-                                           reg_family = "poisson")
-```
-
-
-### Combined coefficients
-
-Combine this all to plot the coefficients in one plot.
-```{r warning = F}
-options(scipen=999)
-
-table_models_poisson <- neat_regression_table(news_model_poisson[[1]],
-                                           online_news_model_poisson[[1]],
-                                           twitter_model_poisson[[1]])
-
-# add to the list
-all_reg_rob_list[['poisson_main_no_public']] <- table_models_poisson
-
-(table_models_save <- table_models_poisson %>%
-  regulartable() %>%
-  set_caption("Poisson model - excluding those who held a public post")%>%
-  autofit())
-
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/poisson_model_main_no_public.docx")
-```
-
-
-
-## Logistic models - any attetion
-
-Models comparable to the main models, but fitting a poisson regression instead.
-
-### Printed news attention
-
-```{r warning = F}
-news_formula_main_model <- "any_news  ~ inferred_gender + news_all_l + cited_by_total_all_l + alt_online_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-news_model_logit <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                         formula_list = news_formula_main_model,
-                                         year_cutoff_upper = 2023,
-                                         year_cutoff_lower = 2012,
-                                         reg_family = "binomial")
-```
-
-### Online news attention 
-```{r warning = F}
-online_news_formula_main_model <- "any_online_news  ~ inferred_gender + alt_online_all_l + cited_by_total_all_l + news_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-online_news_model_logit <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                               formula_list = online_news_formula_main_model,
-                                               year_cutoff_upper = 2023,
-                                               year_cutoff_lower = 2012,
-                                               reg_family = "binomial")
-```
-
-### Twitter/X
-```{r warning = F}
-twitter_formula_main_model <- "any_twitter  ~ inferred_gender + alt_twitter_l + cited_by_total_all_l + news_all_total_l + alt_online_all_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-twitter_model_logit <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                           formula_list = twitter_formula_main_model,
-                                           year_cutoff_upper = 2023,
-                                           year_cutoff_lower = 2012,
-                                           reg_family = "binomial")
-```
-
-
-### Combined coefficients
-
-Combine this all to plot the coefficients in one plot.
-```{r warning = F}
-options(scipen=999)
-
-table_models_logit <- neat_regression_table(news_model_logit[[1]],
-                                           online_news_model_logit[[1]],
-                                           twitter_model_logit[[1]])
-# add to the list
-all_reg_rob_list[['logit_any']] <- table_models_logit
-
-(table_models_save <- table_models_logit %>%
-  regulartable() %>%
-  set_caption("Logistic model - any attention")%>%
-  autofit())
-
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/logistic_model_any_att.docx")
-```
-
-
-
-## Logistic models - top 10% attetion
-
-Models comparable to the main models, but fitting a poisson regression instead.
-
-### Printed news attention
-
-```{r ?, warning=FALSE}
-news_formula_main_model <- "news_all_top_10  ~ inferred_gender + news_all_l + cited_by_total_all_l + alt_online_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-news_model_logit <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                           formula_list = news_formula_main_model,
-                                           year_cutoff_upper = 2023,
-                                           year_cutoff_lower = 2012,
-                                           reg_family = "binomial")
-```
-
-### Online news attention 
-```{r warning = F}
-online_news_formula_main_model <- "alt_online_all_top_10  ~ inferred_gender + alt_online_all_l + cited_by_total_all_l + news_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-online_news_model_logit <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                               formula_list = online_news_formula_main_model,
-                                               year_cutoff_upper = 2023,
-                                               year_cutoff_lower = 2012,
-                                               reg_family = "binomial")
-```
-
-### Twitter/X
-```{r warning = F}
-twitter_formula_main_model <- "alt_twitter_top_10  ~ inferred_gender + alt_twitter_l + cited_by_total_all_l + news_all_total_l + alt_online_all_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-twitter_model_logit <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                           formula_list = twitter_formula_main_model,
-                                           year_cutoff_upper = 2023,
-                                           year_cutoff_lower = 2012,
-                                           reg_family = "binomial")
-```
-
-
-### Combined coefficients
-
-Combine this all to plot the coefficients in one plot.
-```{r warning = F}
-options(scipen=999)
-
-table_models_logit <- neat_regression_table(news_model_logit[[1]],
-                                           online_news_model_logit[[1]],
-                                           twitter_model_logit[[1]])
-
-# add to the list
-all_reg_rob_list[['logit_top_10']] <- table_models_logit
-
-(table_models_save <- table_models_logit %>%
-  regulartable() %>%
-  set_caption("Logistic model - top 10% of attention")%>%
-  autofit())
-
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/logistic_model_top10_att.docx")
-```
-
-
-## Logistic models - top 20% attetion
-
-Models comparable to the main models, but fitting a poisson regression instead.
-
-### Printed news attention
-
-```{r warning = F}
-news_formula_main_model <- "news_all_top_20  ~ inferred_gender + news_all_l + cited_by_total_all_l + alt_online_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-news_model_logit <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                           formula_list = news_formula_main_model,
-                                           year_cutoff_upper = 2023,
-                                           year_cutoff_lower = 2012,
-                                           reg_family = "binomial")
-```
-
-### Online news attention 
-```{r warning = F}
-online_news_formula_main_model <- "alt_online_all_top_20  ~ inferred_gender + alt_online_all_l + cited_by_total_all_l + news_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-online_news_model_logit <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                               formula_list = online_news_formula_main_model,
-                                               year_cutoff_upper = 2023,
-                                               year_cutoff_lower = 2012,
-                                               reg_family = "binomial")
-```
-
-### Twitter/X
-```{r warning = F}
-twitter_formula_main_model <- "alt_twitter_top_20  ~ inferred_gender + alt_twitter_l + cited_by_total_all_l + news_all_total_l + alt_online_all_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
-
-twitter_model_logit <- glm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                           formula_list = twitter_formula_main_model,
-                                           year_cutoff_upper = 2023,
-                                           year_cutoff_lower = 2012,
-                                           reg_family = "binomial")
-```
-
-
-### Combined coefficients
-
-Combine this all to plot the coefficients in one plot.
-```{r warning = F}
-options(scipen=999)
-
-table_models_logit <- neat_regression_table(news_model_logit[[1]],
-                                           online_news_model_logit[[1]],
-                                           twitter_model_logit[[1]])
-
-# add to the list
-all_reg_rob_list[['logit_top_20']] <- table_models_logit
-
-(table_models_save <- table_models_logit %>%
-  regulartable() %>%
-  set_caption("Logistic model - top 20% of attention")%>%
-  autofit())
-
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/logistic_model_top20_att.docx")
-```
-
-## Overall view
-
-From the list of all results, we can extract relevant coefficients for a
-bird's-eye view of the robustness of our results.
-
-First, gender differences:
-```{r}
-# extract the gender difference coefficients
-gender_diff_all <- as.data.frame(matrix(NA, ncol = 11, nrow= 0))
-
-for (i in 1:length(all_reg_rob_list)){
-  
-  result_table <- all_reg_rob_list[[i]]
-  
-  relevant_field <- filter(result_table, 
-                           term == "Inferred gender (reference: man)")
-  
-  relevant_field$model <- names(all_reg_rob_list[i])
-  
-  gender_diff_all <- rbind(gender_diff_all,
-                           relevant_field)
-  
-}
-
-# arrange by field and model
-gender_diff_all <- gender_diff_all %>%
-  arrange(field, model)
-
-# write this out
-
-(gender_diff_save <- gender_diff_all %>%
-  regulartable() %>%
-  set_caption("Gender difference - model comparison")%>%
-  autofit())
-
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(gender_diff_save) %>%
-    print(target = "results/supplement_tables/gender_difference_robustness_check.docx")
-```
-
-
-### Gender and printed news attention:
-```{r}
-# printed news
-gender_printed <-  gender_diff_all %>%
-  select(field, coef_printed, sig_printed, model)
-gender_printed$sig <- ifelse(gender_printed$sig_printed %in% c("***", "**", "*"),
-                             "yes",
-                             "no")
-
-gender_printed$coef <- ifelse(gender_printed$coef_printed >= 0,
-                             "pos",
-                             "neg")
-
-gender_printed_overview <- gender_printed %>%
-  group_by(field, sig, coef, .drop = FALSE)%>%
-  summarise(n = n(), .groups = "drop")%>%
-  complete(field, sig, coef, fill = list(n = 0))%>%
-  arrange(field, sig, coef)%>%
-  pivot_wider(names_from = coef, values_from = n)
-
-gender_printed_overview
-```
-
-
-### Gender and online news attention:
-```{r}
-gender_online <-  gender_diff_all %>%
-  select(field, coef_online, sig_online, model)
-gender_online$sig <- ifelse(gender_online$sig_online %in% c("***", "**", "*"),
-                             "yes",
-                             "no")
-
-gender_online$coef <- ifelse(gender_online$coef_online >= 0,
-                             "pos",
-                             "neg")
-
-gender_online_overview <- gender_online %>%
-  group_by(field, sig, coef, .drop = FALSE)%>%
-  summarise(n = n(), .groups = "drop")%>%
-  complete(field, sig, coef, fill = list(n = 0))%>%
-  arrange(field, sig, coef)%>%
-  pivot_wider(names_from = coef, values_from = n)
-
-gender_online_overview$overall <- gender_online_overview$neg + gender_online_overview$pos
-
-gender_online_overview
-```
-
-### Gender and Twitter/X attention:
-```{r}
-gender_twitter <-  gender_diff_all %>%
-  select(field, coef_twitter, sig_twitter, model)
-gender_twitter$sig <- ifelse(gender_twitter$sig_twitter %in% c("***", "**", "*"),
-                             "yes",
-                             "no")
-
-gender_twitter$coef <- ifelse(gender_twitter$coef_twitter >= 0,
-                             "pos",
-                             "neg")
-
-gender_twitter_overview <- gender_twitter %>%
-  group_by(field, sig, coef, .drop = FALSE)%>%
-  summarise(n = n(), .groups = "drop")%>%
-  complete(field, sig, coef, fill = list(n = 0))%>%
-  arrange(field, sig, coef)%>%
-  pivot_wider(names_from = coef, values_from = n)
-
-gender_twitter_overview$overall <- gender_twitter_overview$neg + gender_twitter_overview$pos
-
-gender_twitter_overview
-```
-

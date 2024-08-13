@@ -26,35 +26,55 @@ bibliography: references.bib
 navbar:
   left:
     - icon: fa-home
-    - text: "Code homepage"
+    - text: "About"
+      icon: glyphicon glyphicon-info-sign
       href: index.html
-    - text: "Scripts"
-      icon: glyphicon glyphicon-list
+    - text: "Database preparation"
+      icon: glyphicon glyphicon-menu-hamburger
       menu:
-      - text: "Intro: SQL tutorial"
-        href: SQL_tutorial.html
-      - text: "Prep. 1: Open Alex and Altmetric data download"
+      - text: "NARCIS data scrape"
+        href: NARCIS_collection.html
+      - text: "Open Alex and Altmetric data download"
         href: OpenAlex_Altmetric_data_download.html
-      - text: "Prep. 2: Gender inference"
+      - text: "Gender inference"
         href: Gender_inference.html
-      - text: "Prep. 3: Grant parsing"
+      - text: "Grant parsing"
         href: Grant_parsing.html
-      - text: "Prep. 4: Printed nwes preparation"
+      - text: "Printed nwes preparation"
         href: Printed_news_preparation.html
-      - text: "Prep. 5: Online nwes preparation"
+      - text: "Online nwes preparation"
         href: Online_news_preparation.html
-      - text: "Prep. 6: Panel data compilation"
+      - text: "NARCIS and OA database comparison"
+        href: Data_coverage.html
+    - text: "Variables"
+      icon: glyphicon glyphicon-tasks
+      menu:
+      - text: "Variable preparation"
         href: Panel_data_compilation.html
+    - text: "Results"
+      icon: glyphicon glyphicon-ok-sign
+      menu:
       - text: "Main analyses"
         href: Analyses_main.html
-      - text: "Supplement 1: Database description and coverage"
-        href: Supplement_data_information.html    
-      - text: "Supplement 2: NARCIS and OA database comparison"
-        href: Data_coverage.html
-      - text: "Supplement 3: Additional analyses and robustness checks"
+      - text: "SI S1 Dataset information"
+        href: Supplement_data_information.html  
+      - text: "SI S2-S4 Additional results"
         href: Analyses_supplemental.html
-      - text: "Supplement 4: Additional resources and functions"
+      - text: "Resources and functions"
         href: News_classification_other_functions.html
+    - text: "Regression robustness checks"
+      icon: glyphicon glyphicon-info-sign
+      menu:
+        - text: "Main linear models"
+          href: Analyses_robustness_ols.html
+        - text: "Main linear models - log-transformed"
+          href: Analyses_robustness_ols_log.html
+        - text: "Poisson models"
+          href: Analyses_robustness_poisson.html
+        - text: "Logistic models"
+          href: Analyses_robustness_logit.html
+        - text: "Fixed and random effect models"
+          href: Analyses_robustness_fe_re.html
 
   right:
   - icon: fab fa-github

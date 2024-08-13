@@ -1,7 +1,7 @@
 ---
-title: "Various analyses - May 2024, final dataset"
+title: "Main analyses"
 author: "Ana Macanovic"
-date: "2024-05-15"
+date: "2024-07-15"
 ---
 
 
@@ -31,50 +31,40 @@ fpackage_check(packages_to_load)
 
 ```{r}
 opts_chunk$set(echo = TRUE)
-opts_chunk$set(eval = FALSE)
+opts_chunk$set(eval = TRUE)
 opts_chunk$set(warning = FALSE)
 opts_chunk$set(message = FALSE)
 ```
 
 
-Load the panel and tidy up some columns:
+Load the panel:
 ```{r warning = F, message = F}
-prof_panel <- read_csv("panel_datasets/prof_panel_tidy_26_7.csv")
-
-prof_panel_filter <- filter(prof_panel,
-                            year < 2024 & !is.na(general_field))
-
-prof_panel_filter$coa_online_all_total <- prof_panel_filter$coa_online_news_total + prof_panel_filter$coa_blogs_total
-prof_panel_filter$coa_online_all_total_l <- prof_panel_filter$coa_online_news_total_l + prof_panel_filter$coa_blogs_total_l
-prof_panel_filter$coa_online_all <- prof_panel_filter$coa_online_news + prof_panel_filter$coa_blogs
-prof_panel_filter$coa_online_all_l <- prof_panel_filter$coa_online_news_l + prof_panel_filter$coa_blogs_l
-
-prof_panel_filter$coa_tot_online_all_total <- prof_panel_filter$coa_tot_online_news_total + prof_panel_filter$coa_tot_blogs_total
-prof_panel_filter$coa_tot_online_all_total_l <- prof_panel_filter$coa_tot_online_news_total_l + prof_panel_filter$coa_tot_blogs_total_l
-prof_panel_filter$coa_tot_online_all <- prof_panel_filter$coa_tot_online_news + prof_panel_filter$coa_tot_blogs
-prof_panel_filter$coa_tot_online_all_l <- prof_panel_filter$coa_tot_online_news + prof_panel_filter$coa_tot_blogs_l
-
-prof_panel_filter$coa_online_all <- prof_panel_filter$coa_online_news + prof_panel_filter$coa_blogs
+prof_panel_filter <- read_csv("panel_datasets/prof_panel_final_26_7.csv")
 ```
 
-# Average numbers of mentions and comparison per gender (Figure 1A)
 
+
+# Figure 1A: Mention averages
+
+Average numbers of mentions and comparison per gender.
+
+First, get the totals for the last observation for each professor:
 ```{r}
-sources_check <- prof_panel_filter %>%
+prof_totals <- prof_panel_filter %>%
   group_by(profile_id)%>%
-  filter(year == max(year) & !is.na(overall_field))
+  filter(year == max(year) & !is.na(scopus_field_overall))
 ```
 
 Within-field comparison:
 ```{r}
-fields <- unique(prof_panel_filter$general_field)
+fields <- unique(prof_panel_filter$scopus_field_overall)
 fields <- fields[!is.na(fields)]
 field_comparisons <- data.frame(matrix(NA, ncol = 7, nrow = length(fields)))
 
 for (i in 1:length(fields)){
   field <- fields[i]
-  data <- filter(sources_check, 
-                 general_field == field)
+  data <- filter(prof_totals, 
+                 scopus_field_overall == field)
   field_comparisons[i, 1] <- field
   field_comparisons[i, 2] <- nrow(data)
   field_comparisons[i, 3] <- round(t.test(count_pubs_total ~ inferred_gender, data=data, paired=FALSE)$p.value, 5)
@@ -89,9 +79,9 @@ colnames(field_comparisons) <- c("field", "profs", "pubs_total", "citations_tota
 field_comparisons$comparison <-  "ttest"
 
 
-mean_values_field <- sources_check %>%
-  filter(!is.na(general_field))%>%
-  group_by(inferred_gender, general_field)%>%
+mean_values_field <- prof_totals %>%
+  filter(!is.na(scopus_field_overall))%>%
+  group_by(inferred_gender, scopus_field_overall)%>%
   summarise(pubs_total = mean(count_pubs_total, na.rm = TRUE),
             citations_total = mean(cited_by_total_all, na.rm = TRUE),
             total = mean(news_all_total, na.rm = TRUE),
@@ -120,9 +110,10 @@ Plot the means comparison:
 field_comparisons_plot <- filter(field_comparisons, comparison != "ttest")
 
 field_comparisons_plot$field <- factor(field_comparisons_plot$field,
-                                   levels = c("STEM",
-                                              "Medicine",
-                                              "Social sciences",
+                                   levels = c("Physical Sciences",
+                                              "Life Sciences",
+                                              "Health Sciences",
+                                              "Social Sciences",
                                               "Arts and Humanities"))
 field_comparisons_plot$comparison <- ordered(field_comparisons_plot$comparison,
                                    levels = c("m", "w"))
@@ -142,17 +133,18 @@ significance_testing <-  significance_testing %>%
 
 significance_testing$field <- factor(significance_testing$field,
                                    levels = c("Arts and Humanities",
-                                              "Social sciences",
-                                              "Medicine",
-                                              "STEM"))
+                                              "Social Sciences",
+                                              "Health Sciences",
+                                              "Life Sciences",
+                                              "Physical Sciences"))
 significance_testing <- significance_testing %>%
   arrange(field)
 
 significance_testing$group1 <- "m"
 significance_testing$group2 <- "w"
-significance_testing$x <- c(1,2,3,4)
-significance_testing$xmin <- c(0.75,1.75,2.75,3.75)
-significance_testing$xmax <- c(1.25,2.25, 3.25,4.25)
+significance_testing$x <- c(1,2,3,4, 5)
+significance_testing$xmin <- c(0.75,1.75,2.75,3.75, 4.75)
+significance_testing$xmax <- c(1.25,2.25, 3.25,4.25, 5.25)
 significance_testing$comparison <- "m"
 
 
@@ -161,11 +153,11 @@ average_news <- field_comparisons_plot %>%
    ggplot(aes(x=fct_rev(field), y=total, fill = comparison)) + 
    geom_bar(position=position_dodge(.5),stat="identity", alpha=1, width = 0.5)+
    guides(fill = guide_legend(reverse = FALSE, title = "Inferred gender"))+
-   scale_fill_manual(values = c("#61D04F", "#F5C710") , labels = c("Men", "Women"))+
+   scale_fill_manual(values =  c("#61D04F", "#F5C710")  , labels = c("Men", "Women"))+
    ggtitle("Printed news attention")+
    stat_pvalue_manual(
      significance_testing,
-     y.position = c(100, 162, 102, 94),
+     y.position = c(100, 160, 105, 88, 100),
      label.size = 3,
      coord.flip = TRUE,
      tip.length = 0.005,
@@ -173,7 +165,7 @@ average_news <- field_comparisons_plot %>%
      remove.bracket = FALSE,
      hide.ns = TRUE
    )+
-  scale_y_continuous(limits = c(0, 180), breaks = seq(0, 180, by = 60))+
+  scale_y_continuous(limits = c(0, 160), breaks = seq(0, 160, by = 40))+
    ylab("Average mentions over lifetime")+
   xlab("Field")+
    labs(color = "Inferred gender")+
@@ -192,12 +184,12 @@ average_online <- field_comparisons_plot %>%
    ggplot(aes(x=fct_rev(field), y=online_total, fill = comparison)) + 
    geom_bar(position=position_dodge(.5),stat="identity", alpha=1, width = 0.5)+
    guides(fill = guide_legend(reverse = FALSE, title = "Inferred gender"))+
-   scale_fill_manual(values = c("#61D04F", "#F5C710")  , labels = c("Men", "Women"))+
+   scale_fill_manual(values =  c("#61D04F", "#F5C710")  , labels = c("Men", "Women"))+
    ggtitle("Online news attention")+
   scale_y_continuous(limits = c(0, 212), breaks = seq(0, 212, by = 53))+
    stat_pvalue_manual(
      significance_testing,
-     y.position = c(11, 43, 212, 120),
+     y.position = c(11, 43, 209, 140, 112),
      label.size = 3,
      coord.flip = TRUE,
      tip.length = 0.005,
@@ -222,18 +214,18 @@ average_twitter <- field_comparisons_plot %>%
    ggplot(aes(x=fct_rev(field), y=twitter_total, fill = comparison)) + 
    geom_bar(position=position_dodge(.5),stat="identity", alpha=1, width = 0.5)+
    guides(fill = guide_legend(reverse = FALSE, title = "Inferred gender"))+
-   scale_fill_manual(values = c("#61D04F", "#F5C710")  , labels = c("Men", "Women"))+
+   scale_fill_manual(values =  c("#61D04F", "#F5C710")  , labels = c("Men", "Women"))+
    ggtitle("Twitter/X attention")+
    stat_pvalue_manual(
      significance_testing,
-     y.position = c(50, 200, 1100, 550),
+     y.position = c(50, 200, 1120, 850, 440),
      label.size = 3,
      coord.flip = TRUE,
      tip.length = 0.005,
      label = "{twitter_total}",
      remove.bracket = FALSE,
    )+
-    scale_y_continuous(limits = c(0, 1100), breaks = seq(0, 1100, by = 275))+
+    scale_y_continuous(limits = c(0, 1200), breaks = seq(0, 1200, by = 300))+
    ylab("Average mentions over lifetime")+
    labs(color = "Inferred gender")+
    theme_minimal_vgrid()+
@@ -278,22 +270,22 @@ combi_plot_averages
 ```
 
 
-# Women's representation (Figure 1B)
-
+# Figure 1B: Women's representation
 First, get representation per field in our dataset:
 (6791 professors)
 ```{r}
 repr_field_2023 <- prof_panel_filter %>%
   group_by(profile_id)%>%
   filter(year == max(year))%>%
-  filter(!is.na(general_field))%>%
-  group_by(general_field, inferred_gender)%>%
+  filter(!is.na(scopus_field_overall))%>%
+  group_by(scopus_field_overall, inferred_gender)%>%
   summarise(n = n())%>%
   pivot_wider(values_from = n, names_from = inferred_gender)
 
 repr_field_2023$share_women_field <- repr_field_2023$w/(repr_field_2023$m+repr_field_2023$w)
 
 ```
+
 ## Among top N researchers 
 Now get the representation of women among the top 10% and 20% of researchers in terms
 of total fame in their field in 2023 (based on their entry batch):
@@ -311,29 +303,29 @@ women_field_2023$year <- 2023
 
 # get their decile based on their total performance within their genderal field
 women_field_2023 <- women_field_2023 %>%
-  filter(!is.na(general_field))%>%
-  select(profile_id, year, inferred_gender, general_field, count_pubs_total,
+  filter(!is.na(scopus_field_overall))%>%
+  select(profile_id, year, inferred_gender, scopus_field_overall, count_pubs_total,
          cited_by_total_all, alt_online_all_total, news_all_total, alt_twitter_total)%>%
   replace(is.na(.), 0)%>%
-  group_by(general_field)%>%
+  group_by(scopus_field_overall)%>%
   mutate(`News` = ntile(-news_all_total, 10),
          `Online news` = ntile(-alt_online_all_total, 10),
          `Twitter` = ntile(-alt_twitter_total, 10))
 ```
 
-Get shares of women among top n% scientists per attention type:
+Get shares of women among top n% scientists per attention domain:
 ```{r}
 # rearrange the dataset to get counts of women and men in each decile
 # then leave only top 10 and 20
 share_women_field_2023 <- women_field_2023 %>%
   ungroup()%>%
-  select(profile_id, year, inferred_gender, general_field, `News`:`Twitter`)%>%
+  select(profile_id, year, inferred_gender, scopus_field_overall, `News`:`Twitter`)%>%
   pivot_longer(`News`:`Twitter`)%>%
-  group_by(general_field, inferred_gender, name, value)%>%
+  group_by(scopus_field_overall, inferred_gender, name, value)%>%
   summarise(n = n())%>%
   pivot_wider(values_from = n, names_from = inferred_gender)%>%
   replace(is.na(.), 0)%>%
-  group_by(general_field, name)%>%
+  group_by(scopus_field_overall, name)%>%
   mutate(m = cumsum(m),
          w = cumsum(w))%>%
   filter(value %in% c(1, 2))
@@ -348,8 +340,8 @@ repr_field_2023$value <- 0
 repr_field_2023 <- repr_field_2023[c(colnames(share_women_field_2023)[1:5],"share_women_field")]
 
 share_women_field_2023 <- merge(share_women_field_2023,
-                                repr_field_2023[c("general_field", "share_women_field")],
-                                by = "general_field")
+                                repr_field_2023[c("scopus_field_overall", "share_women_field")],
+                                by = "scopus_field_overall")
 
 share_women_field_2023$share_women_field <- ifelse(share_women_field_2023$name == "News",
                                                    share_women_field_2023$share_women_field,
@@ -361,17 +353,18 @@ Plot this out:
 Top 10%:
 ```{r warning = F}
 
-share_women_field_2023$general_field <- factor(share_women_field_2023$general_field,
-                                               levels = c("STEM",
-                                                          "Medicine",
-                                                          "Social sciences",
-                                                          "Arts and Humanities"))
+share_women_field_2023$scopus_field_overall <- factor(share_women_field_2023$scopus_field_overall,
+                                                    levels = c("Physical Sciences",
+                                                               "Life Sciences",
+                                                               "Health Sciences",
+                                                               "Social Sciences",
+                                                               "Arts and Humanities"))
 
 repr_attn_10 <- share_women_field_2023 %>%
   filter(value == 1 & name %in% c("News", "Online news", "Twitter"))%>%
-  ggplot(aes(y=share_women, x=fct_rev(general_field))) + 
+  ggplot(aes(y=share_women, x=fct_rev(scopus_field_overall))) + 
   geom_point(aes(shape=name, color=name), position=position_dodge(width=0.2), stat="identity", size = 2.5)+
-  geom_bar(stat="identity", aes(y=share_women_field, x=general_field), alpha=0.2, width = 0.4)+
+  geom_bar(stat="identity", aes(y=share_women_field, x=scopus_field_overall), alpha=0.2, width = 0.4)+
   guides(fill = guide_legend(reverse=TRUE, title = "Measure"))+
   scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
   scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
@@ -381,7 +374,7 @@ repr_attn_10 <- share_women_field_2023 %>%
   ylab("% Women")+
   labs(color = "Attention type",
        shape = "Attention type")+
-  ggtitle("Top 10% by received attention")+
+  ggtitle("Top 10% of attention domains")+
   theme_minimal_vgrid()+
   theme(plot.title = element_text(size = 10),
         axis.text.y = element_text(size = 10),
@@ -394,9 +387,9 @@ repr_attn_10 <- share_women_field_2023 %>%
 
 repr_attn_20 <- share_women_field_2023 %>%
   filter(value == 2 & name %in% c("News", "Online news", "Twitter"))%>%
-  ggplot(aes(y=share_women, x= fct_rev(general_field))) + 
+  ggplot(aes(y=share_women, x= fct_rev(scopus_field_overall))) + 
   geom_point(aes(shape=name, color=name), position=position_dodge(width=0.2), stat="identity", size = 2.5)+
-  geom_bar(stat="identity", aes(y=share_women_field, x=general_field), alpha=0.2, width = 0.4)+
+  geom_bar(stat="identity", aes(y=share_women_field, x=scopus_field_overall), alpha=0.2, width = 0.4)+
   guides(fill = guide_legend(reverse=TRUE, title = "Measure"))+  
   scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
   scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
@@ -406,7 +399,7 @@ repr_attn_20 <- share_women_field_2023 %>%
   ylab("% Women")+
   labs(color = "Attention type",
        shape = "Attention type")+
-  ggtitle("Top 20% by received attention")+
+  ggtitle("Top 20% of attention domains")+
   theme_minimal_vgrid()+
   theme(plot.title = element_text(size = 10),
         axis.text.y = element_text(size = 10),
@@ -436,11 +429,11 @@ women_field_2023$year <- 2023
 
 # get their decile based on their total performance within their entry batch
 women_field_2023_attn_share <- women_field_2023 %>%
-  filter(!is.na(general_field))%>%
-  select(profile_id, year, inferred_gender, general_field, count_pubs_total,
+  filter(!is.na(scopus_field_overall))%>%
+  select(profile_id, year, inferred_gender, scopus_field_overall, count_pubs_total,
          cited_by_total_all, alt_online_all_total, news_all_total, alt_twitter_total)%>%
   replace(is.na(.), 0)%>%
-  group_by(general_field)%>%
+  group_by(scopus_field_overall)%>%
   summarise(
     pub_w = sum(count_pubs_total[inferred_gender == "w"]),
     cit_w = sum(cited_by_total_all[inferred_gender == "w"]), 
@@ -459,14 +452,14 @@ women_field_2023_attn_share <- women_field_2023 %>%
          `Online news` = online_w/online,
          `News` = news_w/news,
          `Twitter` = twitter_w/twitter)%>%
-  select(general_field, `Publications`:`Twitter`)%>%
-  pivot_longer(!general_field, names_to = "name", values_to = "share_women")
+  select(scopus_field_overall, `Publications`:`Twitter`)%>%
+  pivot_longer(!scopus_field_overall, names_to = "name", values_to = "share_women")
 ```
 Combine the field representation with the attention representation:
 ```{r}
 share_women_field_2023_attn_share <- merge(women_field_2023_attn_share,
-                                repr_field_2023[c("general_field", "share_women_field")],
-                                by = "general_field")
+                                repr_field_2023[c("scopus_field_overall", "share_women_field")],
+                                by = "scopus_field_overall")
 
 share_women_field_2023_attn_share$share_women_field <- ifelse(share_women_field_2023_attn_share$name == "News",
                                                               share_women_field_2023_attn_share$share_women_field,
@@ -475,17 +468,18 @@ share_women_field_2023_attn_share$share_women_field <- ifelse(share_women_field_
 
 Plot this out:
 ```{r warning = F}
-share_women_field_2023_attn_share$general_field <- factor(share_women_field_2023_attn_share$general_field,
-                                                          levels = c("STEM",
-                                                                     "Medicine",
-                                                                     "Social sciences",
-                                                                     "Arts and Humanities"))
+share_women_field_2023_attn_share$scopus_field_overall <- factor(share_women_field_2023_attn_share$scopus_field_overall,
+                                                          levels = c("Physical Sciences",
+                                                               "Life Sciences",
+                                                               "Health Sciences",
+                                                               "Social Sciences",
+                                                               "Arts and Humanities"))
 
 repr_attn_share <- share_women_field_2023_attn_share %>%
   filter(name %in% c("News", "Online news", "Twitter"))%>%
-  ggplot(aes(y=share_women, x=fct_rev(general_field))) + 
+  ggplot(aes(y=share_women, x=fct_rev(scopus_field_overall))) + 
   geom_point(aes(shape=name, color=name), position=position_dodge(width=0.2), stat="identity", size = 2.5)+
-  geom_bar(stat="identity", aes(y=share_women_field, x=general_field), alpha=0.2, width = 0.4)+
+  geom_bar(stat="identity", aes(y=share_women_field, x=scopus_field_overall), alpha=0.2, width = 0.4)+
   guides(fill = guide_legend(reverse=TRUE, title = "Measure"))+
   scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
   scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
@@ -562,106 +556,11 @@ ggsave2(
 
 ```
 
-# Regression models
+# Figure 2: Regression models
 
-First, obtain binary variables for any attention received that year:
+Set the gender indicator to a factor:
 ```{r}
-prof_panel_filter$any_news <- as.factor(ifelse(prof_panel_filter$news_all > 0, 1, 0))
-prof_panel_filter$any_news_l <- as.factor(ifelse(prof_panel_filter$news_all_l > 0, 1, 0))
-
-prof_panel_filter$any_online_news <- as.factor(ifelse(prof_panel_filter$alt_online_all > 0, 1, 0))
-prof_panel_filter$any_online_news_l <- as.factor(ifelse(prof_panel_filter$alt_online_all_l > 0, 1, 0))
-
-prof_panel_filter$any_online_news_gen <- as.factor(ifelse(prof_panel_filter$alt_online_general_all > 0, 1, 0))
-prof_panel_filter$any_online_news_gen_l <- as.factor(ifelse(prof_panel_filter$alt_online_general_all_l > 0, 1, 0))
-
-prof_panel_filter$any_online_news_name <- as.factor(ifelse(prof_panel_filter$alt_online_name_all > 0, 1, 0))
-prof_panel_filter$any_online_news_name_l <- as.factor(ifelse(prof_panel_filter$alt_online_name_all_l > 0, 1, 0))
-
-prof_panel_filter$any_twitter <- as.factor(ifelse(prof_panel_filter$alt_twitter > 0, 1, 0))
-prof_panel_filter$any_twitter_l <- as.factor(ifelse(prof_panel_filter$alt_twitter_l > 0, 1, 0))
-```
-
-Then, construct a binary variables for belonging to the top 10/20% in the attention for each source.
-```{r}
-panel_filter_long <- prof_panel_filter %>%
-  pivot_longer(c(alt_online_all, alt_online_name_all, news_all, alt_twitter), names_to = "measure", values_to = "value")
-
-top_10_attn <- panel_filter_long %>%
-  filter(!is.na(general_field) & !is.na(year) & year > 2011)%>%
-  group_by(general_field, year, measure)%>%
-  filter(quantile(value, 0.90, na.rm = TRUE)<=value)%>%
-  select(profile_id, general_field, year, measure, value)
-
-top_10_attn$measure <- paste0(top_10_attn$measure, "_top_10")
-
-
-top_10_attn <- top_10_attn %>%
-  pivot_wider(names_from = "measure")%>%
-  mutate(across(contains('top_10'),  ~ifelse(is.na(.), 0, 1)))
-
-prof_panel_filter <- merge(prof_panel_filter,
-                           top_10_attn[c("year", "profile_id", "general_field", "alt_online_all_top_10", "alt_online_name_all_top_10", "alt_twitter_top_10", "news_all_top_10")],
-                           by = c("profile_id", "year", "general_field"),
-                           all.x = TRUE,
-                           all.y = FALSE)
-
-top_20_attn <- panel_filter_long %>%
-  filter(!is.na(general_field) & !is.na(year) & year > 2011)%>%
-  group_by(general_field, year, measure)%>%
-  filter(quantile(value, 0.80, na.rm = TRUE)<=value)%>%
-  select(profile_id, general_field, year, measure, value)
-
-top_20_attn$measure <- paste0(top_20_attn$measure, "_top_20")
-
-
-top_20_attn <- top_20_attn %>%
-  pivot_wider(names_from = "measure")%>%
-  mutate(across(contains('top_20'),  ~ifelse(is.na(.), 0, 1)))
-
-prof_panel_filter <- merge(prof_panel_filter,
-                           top_20_attn[c("year", "profile_id", "general_field", "alt_online_all_top_20", "alt_online_name_all_top_20", "alt_twitter_top_20", "news_all_top_20")],
-                           by = c("profile_id", "year", "general_field"),
-                           all.x = TRUE,
-                           all.y = FALSE)
-
-prof_panel_filter <- filter(prof_panel_filter, !is.na(general_field))
-
-# if NA, needs to be 0
-prof_panel_filter <- prof_panel_filter %>%
-  mutate(across(contains('top_10'),  ~ifelse(is.na(.), 0, .)))%>%
-  mutate(across(contains('top_20'),  ~ifelse(is.na(.), 0, .)))
-```
-Log of variables:
-```{r}
-prof_panel_filter$news_all_log <- log(prof_panel_filter$news_all+1)
-prof_panel_filter$news_all_l_log <- log(prof_panel_filter$news_all_l+1)
-
-prof_panel_filter$alt_online_all_log <- log(prof_panel_filter$alt_online_all+1)
-prof_panel_filter$alt_online_all_l_log <- log(prof_panel_filter$alt_online_all_l+1)
-
-prof_panel_filter$alt_twitter_log <- log(prof_panel_filter$alt_twitter+1)
-prof_panel_filter$alt_twitter_l_log <- log(prof_panel_filter$alt_twitter_l+1)
-# there is a problem with this variable
-prof_panel_filter$cited_by_total_all_l_log <- log(prof_panel_filter$cited_by_total_all_l+1)
-prof_panel_filter$cited_by_total_all_l_log[which(is.nan(prof_panel_filter$cited_by_total_all_l_log))] <- NA
-prof_panel_filter$cited_by_total_all_l_log[which(is.infinite(prof_panel_filter$cited_by_total_all_l_log))] <- NA
-prof_panel_filter$alt_online_all_total_l_log <- log(prof_panel_filter$alt_online_all_total_l+1)
-prof_panel_filter$alt_twitter_total_l_log <- log(prof_panel_filter$alt_twitter_total_l+1)
-prof_panel_filter$coa_tot_cited_by_total_l_log <- log(prof_panel_filter$coa_tot_cited_by_total_l+1)
-prof_panel_filter$coa_online_all_total_l_log <- log(prof_panel_filter$coa_online_all_total_l+1)
-prof_panel_filter$coa_twitter_total_l_log <- log(prof_panel_filter$coa_twitter_total_l+1)
-
-prof_panel_filter$news_all_total_l_log <- log(prof_panel_filter$news_all_total_l+1)
-
-```
-
-Split datasets per field:
-```{r}
-stem <- filter(prof_panel_filter, general_field == "STEM")
-soc_sci <- filter(prof_panel_filter, general_field == "Social sciences")
-arts <- filter(prof_panel_filter, general_field == "Arts and Humanities")
-medicine <- filter(prof_panel_filter, general_field == "Medicine")
+prof_panel_filter$inferred_gender <- as.factor(prof_panel_filter$inferred_gender)
 ```
 
 ## Main models
@@ -693,7 +592,7 @@ Individual clustered SE. Models ran per each field separately.
 ```{r warning = F}
 news_formula_main_model <- "news_all ~ inferred_gender + news_all_l + cited_by_total_all_l + alt_online_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
 
-news_main_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
+news_main_model <- lm_fitter_cl_robust_scopus(panel_dataset = prof_panel_filter,
                                        lm_formula = news_formula_main_model,
                                        year_cutoff_upper = 2023,
                                        year_cutoff_lower = 2012)
@@ -704,10 +603,10 @@ Plot gender differences:
 # use the pairwise comparisons to compare groups in the plot
 p_values <- news_main_model[[3]]
 # manually add some elements we need to everything to look good
-p_values$x <- c(1, 2, 3, 4)
+p_values$x <- c(1, 2, 3, 4, 5)
 p_values$groups <- 'c("m", "w")'
-p_values$xmin <- c(0.8, 1.8, 2.8, 3.8)
-p_values$xmax <- c(1.2, 2.2, 3.2, 4.2)
+p_values$xmin <- c(0.8, 1.8, 2.8, 3.8, 4.8)
+p_values$xmax <- c(1.2, 2.2, 3.2, 4.2, 5.2)
 
 predictions_plot <- news_main_model[[2]]
 
@@ -723,20 +622,21 @@ news_gender_plot <- predictions_plot %>%
   scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, by = 2))+
   stat_pvalue_manual(
     p_values,
-    y.position = c(6.4, 7.5, 10, 6.9),
+    y.position = c(7.5, 5, 7.5, 9.4, 6.8),
     label.size = 3,
     tip.length = 0.003,
     label = "{stars}",
     remove.bracket = FALSE,
   )+
   xlab("Field")+
-  scale_x_discrete(labels=c("arts" = "Arts and\n Humanities",
-                            "medicine" = "Medicine",
+  scale_x_discrete(labels=c("arts" = "Arts &\n Humanities",
+                            "health" = "Medicine",
                             "soc_sci" = "Social sciences",
-                            "stem" = "STEM"))+
+                            "life" = "Life sciences",
+                            "phys" = "Physical sciences"))+
   ylab("Yearly attention")+
   labs(color = "Inferred gender")+
-  scale_color_manual(values = c("#61D04F", "#F5C710"), labels = c("Men", "Women"))+
+  scale_color_manual(values =  c("#61D04F", "#F5C710") , labels = c("Men", "Women"))+
   theme_minimal_hgrid()+
   theme(plot.title = element_text(size = 10),
         axis.text.y = element_text(size = 10),
@@ -762,10 +662,10 @@ Individual clustered SE.
 ```{r}
 online_news_formula_main_model <- "alt_online_all ~ inferred_gender + alt_online_all_l + cited_by_total_all_l + news_all_total_l + alt_twitter_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
 
-online_news_main_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
+online_news_main_model <- lm_fitter_cl_robust_scopus(panel_dataset = prof_panel_filter,
                                               lm_formula = online_news_formula_main_model,
                                               year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 1973)
+                                              year_cutoff_lower = 1974)
 ```
 
 Plot gender differences:
@@ -773,10 +673,10 @@ Plot gender differences:
 # use the pairwise comparisons to compare groups in the plot
 p_values <- online_news_main_model[[3]]
 # manually add some elements we need to everything to look good
-p_values$x <- c(1, 2, 3, 4)
+p_values$x <- c(1, 2, 3, 4, 5)
 p_values$groups <- 'c("m", "w")'
-p_values$xmin <- c(0.8, 1.8, 2.8, 3.8)
-p_values$xmax <- c(1.2, 2.2, 3.2, 4.2)
+p_values$xmin <- c(0.8, 1.8, 2.8, 3.8, 4.8)
+p_values$xmax <- c(1.2, 2.2, 3.2, 4.2, 5.2)
 
 predictions_plot <- online_news_main_model[[2]]
 
@@ -793,20 +693,21 @@ online_news_gender_plot <- predictions_plot %>%
   scale_y_continuous(limits = c(0, 25), breaks = seq(0, 25, by = 5))+
   stat_pvalue_manual(
     p_values,
-    y.position = c(13.5, 20.5, 8, 2.5),
+    y.position = c(13.5, 15.5, 18.2, 6.5, 2.5),
     label.size = 3,
     tip.length = 0.003,
     label = "{stars}",
     remove.bracket = FALSE,
   )+
   xlab("Field")+
-  scale_x_discrete(labels=c("arts" = "Arts and\n Humanities",
-                            "medicine" = "Medicine",
+  scale_x_discrete(labels=c("arts" = "Arts &\n Humanities",
+                            "health" = "Medicine",
                             "soc_sci" = "Social sciences",
-                            "stem" = "STEM"))+
+                            "life" = "Life sciences",
+                            "phys" = "Physical sciences"))+
   ylab("Yearly attention")+
   labs(color = "Inferred gender")+
-  scale_color_manual(values = c("#61D04F", "#F5C710"), labels = c("Men", "Women"))+
+  scale_color_manual(values =  c("#61D04F", "#F5C710") , labels = c("Men", "Women"))+
   theme_minimal_hgrid()+
     theme(plot.title = element_text(size = 10),
         axis.text.y = element_text(size = 10),
@@ -832,21 +733,22 @@ Individual clustered SE.
 ```{r}
 twitter_formula_main_model <- "alt_twitter ~ inferred_gender + alt_twitter_l + cited_by_total_all_l + news_all_total_l + alt_online_all_total_l +coa_tot_cited_by_total_l + coa_tot_online_all_total_l + coa_tot_twitter_total_l+years_since_first_pub + as.factor(year)"
 
-twitter_main_model <- lm_fitter_cl_robust(panel_dataset = prof_panel_filter,
-                                              lm_formula = twitter_formula_main_model,
-                                              year_cutoff_upper = 2023,
-                                              year_cutoff_lower = 1973)
+twitter_main_model <- lm_fitter_cl_robust_scopus(panel_dataset = prof_panel_filter,
+                                                 lm_formula = twitter_formula_main_model,
+                                                 year_cutoff_upper = 2023,
+                                                 year_cutoff_lower = 1974)
 ```
 
-Plot gender differences:
+## Figure 2A: Gender differences
+
 ```{r fig.height=3, figh.width = 4}
 # use the pairwise comparisons to compare groups in the plot
 p_values <- twitter_main_model[[3]]
 # manually add some elements we need to everything to look good
-p_values$x <- c(1, 2, 3, 4)
+p_values$x <- c(1, 2, 3, 4, 5)
 p_values$groups <- 'c("m", "w")'
-p_values$xmin <- c(0.8, 1.8, 2.8, 3.8)
-p_values$xmax <- c(1.2, 2.2, 3.2, 4.2)
+p_values$xmin <- c(0.8, 1.8, 2.8, 3.8, 4.8)
+p_values$xmax <- c(1.2, 2.2, 3.2, 4.2, 5.2)
 
 predictions_plot <- twitter_main_model[[2]]
 
@@ -863,20 +765,21 @@ twitter_gender_plot <- predictions_plot %>%
   ggtitle("Twitter/X attention prediction")+
   stat_pvalue_manual(
     p_values,
-    y.position = c(50, 92, 28, 8),
+    y.position = c(38, 68, 93, 25, 8),
     label.size = 3,
     tip.length = 0.003,
     label = "{stars}",
     remove.bracket = FALSE,
   )+
   xlab("Field")+
-  scale_x_discrete(labels=c("arts" = "Arts and\n Humanities",
-                            "medicine" = "Medicine",
+  scale_x_discrete(labels=c("arts" = "Arts &\n Humanities",
+                            "health" = "Medicine",
                             "soc_sci" = "Social sciences",
-                            "stem" = "STEM"))+
+                            "life" = "Life sciences",
+                            "phys" = "Physical sciences"))+
   ylab("Yearly attention")+
   labs(color = "Inferred gender")+
-  scale_color_manual(values = c("#61D04F", "#F5C710"), labels = c("Men", "Women"))+
+  scale_color_manual(values =  c("#61D04F", "#F5C710") , labels = c("Men", "Women"))+
   theme_minimal_hgrid()+
   theme(plot.title = element_text(size = 10),
         axis.text.y = element_text(size = 10),
@@ -887,7 +790,8 @@ twitter_gender_plot <- predictions_plot %>%
         legend.text=element_text(size=10))
 ```
 
-### Combined plots
+## Figure 2B: Other coefficients
+
 Combine this all to plot the coefficients in one plot.
 
 First, prepare the dataframe:
@@ -943,9 +847,10 @@ all_models_plot$model <- ordered(all_models_plot$model,
 
 
 all_models_plot$field <- ordered(all_models_plot$field,
-                                 levels = c("stem",
+                                 levels = c("phys",
+                                            "life",
+                                            "health",
                                             "soc_sci",
-                                            "medicine",
                                             "arts"))
 
 covariate_names <- c(
@@ -980,7 +885,7 @@ combi_plot_regression_pred <- plot_grid(news_gender_plot + theme(legend.position
                                         rel_widths = c(1, 1, 1, 0.4))
 ```
 
-Plot out selected regression coefficients for STEM:
+Plot out selected regression coefficients for physical sciences:
 ```{r fig.width=12, fig.height= 4, warning = F}
 # reorder the factor for Figure 2
 all_models_plot$term <- ordered(all_models_plot$term,
@@ -993,6 +898,7 @@ all_models_plot$term <- ordered(all_models_plot$term,
                                                 "coa_tot_cited_by_total_l",
                                                 "coa_tot_online_all_total_l",
                                                 "coa_tot_twitter_total_l",
+                                                "years_since_first_pub",
                                                 "t_min_1",
                                                 "as.factor(year)2014",
                                                 "as.factor(year)2015",
@@ -1012,20 +918,21 @@ all_models_plot$term <- ordered(all_models_plot$term,
                      "coa_tot_cited_by_total_l",
                      "coa_tot_online_all_total_l",
                      "coa_tot_twitter_total_l",
-                     "t_min_1") & field == "stem") %>%
-  ggplot(aes(Estimate, field, color = model, shape=model, label = stars)) +
+                     "t_min_1") & field == "phys") %>%
+  ggplot(aes(Estimate, field, color = model, label = stars)) +
   geom_point(position = position_dodge(width = -0.7), size = 3) +
   geom_errorbar(aes(xmin = lower_ci, xmax = upper_ci),
                 width=0,
                 size=0.7,
                 position = position_dodge(width = -0.7)) +
   geom_text(hjust=0, vjust=0, position = position_dodge(width = -0.7), size = 3.5)+
-   scale_y_discrete(labels=c("arts" = "Arts and Humanities",
-                             "medicine" = "Medicine",
-                             "soc_sci" = "Social sciences",
-                             "stem" = "STEM"),
+   scale_y_discrete(labels=c("arts" = "Arts &\n Humanities",
+                            "health" = "Medicine",
+                            "soc_sci" = "Social sciences",
+                            "life" = "Life sciences",
+                            "phys" = "Physical sciences"),
                        name = "Field")+
-  scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
+    scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
   scale_shape_discrete(labels = c("Printed news", "Online news", "Twitter/X"))+
   scale_x_continuous(
     n.breaks = 3,
@@ -1034,8 +941,7 @@ all_models_plot$term <- ordered(all_models_plot$term,
   labs(
     x = "Regression coefficient",
     y = NULL,
-    color = "Attention type",
-    shape = "Attention type"
+    color = "Attention type"
   ) + 
   geom_vline(xintercept = 0,  colour="black", linetype = "longdash")+
   facet_wrap( ~ term, scales="free_x", labeller = as_labeller(covariate_names), ncol = 5)+
@@ -1074,59 +980,6 @@ ggsave2(
 
 ```
 
-And plot out the coefficients for all fields:
-```{r}
-(all_fields_plot <- all_models_plot %>%
-  filter(term %in% c("cited_by_total_all_l",
-                     "coa_tot_cited_by_total_l",
-                     "coa_tot_online_all_total_l",
-                     "coa_tot_twitter_total_l",
-                     "t_min_1")) %>%
-  ggplot(aes(Estimate, field, color = model, label = stars)) +
-  geom_point(position = position_dodge(width = -0.7), size = 3) +
-  geom_errorbar(aes(xmin = lower_ci, xmax = upper_ci),
-                width=0,
-                size=0.7,
-                position = position_dodge(width = -0.7)) +
-  geom_text(hjust=0, vjust=0, position = position_dodge(width = -0.7), size = 3.5)+
-   scale_y_discrete(labels=c("arts" = "Arts and Humanities",
-                             "medicine" = "Medicine",
-                             "soc_sci" = "Social sciences",
-                             "stem" = "STEM"),
-                       name = "Field")+
-  scale_color_manual(labels = c("Printed news", "Online news", "Twitter/X"), values = c("#bb7693", "#ef6f6a", "#6388b4"))+
-  scale_x_continuous(
-    n.breaks = 3,
-    labels = function(x) format(x, scientific = TRUE))+
-  # add in a dotted line at zero
-  labs(
-    x = "Regression coefficient",
-    y = NULL,
-    color = "Attention type"
-  ) + 
-  geom_vline(xintercept = 0,  colour="black", linetype = "longdash")+
-  facet_wrap( ~ term, scales="free_x", labeller = as_labeller(covariate_names), ncol = 5)+
-  theme_bw()+
-   theme(plot.title = element_text(size = 10),
-         axis.text.y = element_text(size = 10),
-         axis.title.y = element_blank(),
-         axis.text.x = element_text(size = 10, angle = 30, hjust = 0.9) ,
-         axis.title.x = element_text(size = 11),
-         legend.title=element_text(size=10), 
-         legend.text=element_text(size=9),
-         strip.text.x=element_text(size = 9)))
-
-
-ggsave2(
-  filename = "results/supplement_figures/Figure_2B_all_fields.png",
-  plot = all_fields_plot,
-  width = 12,
-  height = 4,
-  units = c("in"),
-  dpi = 600,
-  bg = "white"
-)
-```
 
 Print out the results into a table:
 ```{r}
@@ -1140,8 +993,8 @@ table_models_save <- table_models %>%
   regulartable() %>% 
   autofit()
 
-word_document_name <-
-    read_docx() %>%
-    body_add_flextable(table_models_save) %>%
-    print(target = "results/supplement_tables/main_model_table.docx")
+# word_document_name <-
+#     read_docx() %>%
+#     body_add_flextable(table_models_save) %>%
+#     print(target = "results/supplement_tables/main_model_table.docx")
 ```

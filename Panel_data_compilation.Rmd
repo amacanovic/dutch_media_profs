@@ -7,6 +7,33 @@ output: html_document
 
 This script compiles our various data resources into a panel data of professors'
 publications, citations, mentions, and coauthorships per year.
+
+Here is the breakdown of the variables used in our main analyses. The code below
+also produces some other variables not used in the main analyses.
+
+| **Variable name**          | **Variable label**                   | **Variable description**                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| _inferred_gender_          | Inferred gender                      | Gender of professor as inferred in our analysis (see “Gender inference” above)                                                                                                                                                                                                                                                                                                                                                                   |
+| _general_field_            | Field                                | Professor’s main field as inferred using their overall publication data (see “Publication and citation data” above)                                                                                                                                                                                                                                                                                                                              |
+| _years_since_first_pub_    | Years since first publication        | Years elapsed since professor’s first publication (1973 at the earliest) until the year in question                                                                                                                                                                                                                                                                                                                                              |
+| _count_pubs_               | Publications                         | Number of publications of the professor in the year in question                                                                                                                                                                                                                                                                                                                                                                                  |
+| _count_pubs_total_         | Total publications                   | _count_pubs_ accumulated from the first year in which the professor published (1973 at the earliest) up until and including the year in question                                                                                                                                                                                                                                                                                                 |
+| _cited_by_                 | Citations                            | Number of citations received by all of the professor’s publications (since 1973 at the earliest) in the year in question. Available only between 2012 and 2023, as per Open Alex.                                                                                                                                                                                                                                                                |
+| _cited_by_total_all_       | Total citations                      | _cited_by_ accumulated from 2012 up until and including the year in question. This count includes the total number of citations received by the professor on all their publications before 2012 (e.g., the count for 2012 includes the total citations received before 2012 and the citations received in 2012. Available only between 2012 and 2023, as per Open Alex.                                                                          |
+| _news_all_                 | Printed news (attention)             | Number of news articles retrieved from LexisNexis that mention professor in the year in question.                                                                                                                                                                                                                                                                                                                                                |
+| _news_all_total_           | Total printed news (attention)       | _news_all_ accumulated up until and including the year in question.                                                                                                                                                                                                                                                                                                                                                                              |
+| _alt_online_all_           | Online news (attention)              | Number of online news articles retrieved from Altmetric that relate to a paper by the professor in the year in question. Available only between 2012 and 2023, as per Altmetric.                                                                                                                                                                                                                                                                 |
+| _alt_online_all_total_     | Total online news (attention)        | _alt_online_all_ accumulated from 2011 up until and including the year in question. Available only between 2011 and 2023, as per Altmetric.                                                                                                                                                                                                                                                                                                      |
+| _alt_twitter_              | Twitter/X (attention)                | Number of Twitter/X mentions retrieved from Altmetric that relate to the professor in the year in question. Available only between 2012 and 2023, as per Altmetric.                                                                                                                                                                                                                                                                              |
+| _alt_twitter_total_        | Total Twitter/X (attention)          | _alt_twitter_  accumulated from 2011 up until and including the year in question. Available only between 2011 and 2023, as per Altmetric.                                                                                                                                                                                                                                                                                                        |
+| _coa_tot_cited_by_         | Coauthors' citations                 | Cumulative citations of all coauthors that one has coauthored with in the year in question, counted until the year in question (e.g., for a professor A in 2015, we select all their coauthors in this year and compile their total citations up until and including 2015 and add them up together in the process resembling the one described for _cited_by_ and _cited_by_total_all_). Available only between 2012 and 2023, as per Open Alex. |
+| _coa_tot_cited_by_total_   | Coauthors' total citations           | _coa_tot_cited_by_ accumulated from 2012 up until and including the year in question. If professor has coauthored with the same coauthor multiple times, we only consider the latest cumulative number of citations of this coauthor. Available only between 2012 and 2023, as per Open Alex.                                                                                                                                                    |
+| _coa_tot_online_all_       | Coauthors' online attention          | Cumulative online news mentions of all coauthors that one has coauthored with in the year in question (compiled in a manner comparable to _coa_tot_cited_by_). Available only between 2011and 2023, as per Altmetric.                                                                                                                                                                                                                            |
+| _coa_tot_online_all_total_ | Coauthors' total online attention    | _coa_tot_online_all_ accumulated from 2011 up until and including the year in question. If professor has coauthored with the same coauthor multiple times, we only consider the latest cumulative number of citations of this coauthor. Available only between 2011and 2023, as per Altmetric.                                                                                                                                                   |
+| _coa_tot_twitter_          | Coauthors’ Twitter/X attention       | Cumulative Twitter/X mentions of all coauthors that one has coauthored with in the year in question (compiled in a manner comparable to _coa_tot_cited_by_). Available only between 2011and 2023, as per Altmetric.                                                                                                                                                                                                                              |
+| _coa_tot_twitter_total_    | Coauthors’ total Twitter/X attention | _coa_tot_twitter_ accumulated from 2011 up until and including the year in question. If professor has coauthored with the same coauthor multiple times, we only consider the latest cumulative number of citations of this coauthor. Available only between 2011and 2023, as per Altmetric.                                                                                                                                                      |
+
+
 Load the packages:
 ```{r message=  F, warning = F, eval = T}
 # load the helper function file
@@ -458,6 +485,12 @@ attention_news_blogs_profs_names$source_type <- ifelse(is.na(attention_news_blog
                                                  attention_news_blogs_profs_names$source_type)
 
 ```
+
+Write this out into the database:
+```{r}
+dbWriteTable(con, "altmetric_att_prepared", attention_news_blogs_profs_names)
+```
+
 
 Compile the attention per professor per year:
 ```{r}
@@ -1849,7 +1882,170 @@ prof_panel_tidy$entry_batch_2023 <- ifelse(prof_panel_tidy$years_since_entry_202
 
 ```
 
-Save this:
+
+Scopus fields as per https://service.elsevier.com/app/answers/detail/a_id/12007/supporthub/scopus/:
+
+```{r}
+prof_panel_tidy <- prof_panel_tidy %>% 
+  mutate(scopus_field_overall = case_match(
+    overall_field,
+    "Arts and Humanities"  ~ "Arts and Humanities",
+    c("Chemical Engineering", "Chemistry", "Computer Science", "Earth and Planetary Sciences",
+    "Energy", "Engineering", "Environmental Science", "Materials Science", "Mathematics", 
+    "Physics and Astronomy") ~ "Physical Sciences",
+    c("Medicine", "Nursing", "Veterinary", "Dentistry", "Health Professions") ~ 
+      "Health Sciences",
+    c("Business, Management and Accounting", "Decision Sciences", 
+      "Economics, Econometrics and Finance", "Psychology", 
+      "Social Sciences") ~ "Social Sciences",
+    c("Agricultural and Biological Sciences", "Biochemistry, Genetics and Molecular Biology",
+      "Immunology and Microbiology", "Neuroscience", 
+      "Pharmacology, Toxicology and Pharmaceutics") ~ "Life Sciences"))
+```
+
+Write this out:
 ```{r}
 write_csv(prof_panel_tidy, "panel_datasets/prof_panel_tidy_26_7.csv")
+```
+
+
+Tidy up some columns, drop professors without general fields:
+```{r}
+prof_panel_filter <- filter(prof_panel_tidy,
+                            year < 2024 & !is.na(general_field))
+
+prof_panel_filter$coa_online_all_total <- prof_panel_filter$coa_online_news_total + prof_panel_filter$coa_blogs_total
+prof_panel_filter$coa_online_all_total_l <- prof_panel_filter$coa_online_news_total_l + prof_panel_filter$coa_blogs_total_l
+prof_panel_filter$coa_online_all <- prof_panel_filter$coa_online_news + prof_panel_filter$coa_blogs
+prof_panel_filter$coa_online_all_l <- prof_panel_filter$coa_online_news_l + prof_panel_filter$coa_blogs_l
+
+prof_panel_filter$coa_tot_online_all_total <- prof_panel_filter$coa_tot_online_news_total + prof_panel_filter$coa_tot_blogs_total
+prof_panel_filter$coa_tot_online_all_total_l <- prof_panel_filter$coa_tot_online_news_total_l + prof_panel_filter$coa_tot_blogs_total_l
+prof_panel_filter$coa_tot_online_all <- prof_panel_filter$coa_tot_online_news + prof_panel_filter$coa_tot_blogs
+prof_panel_filter$coa_tot_online_all_l <- prof_panel_filter$coa_tot_online_news + prof_panel_filter$coa_tot_blogs_l
+
+prof_panel_filter$coa_online_all <- prof_panel_filter$coa_online_news + prof_panel_filter$coa_blogs
+```
+
+Log of relevant variables:
+```{r}
+prof_panel_filter$news_all_log <- log(prof_panel_filter$news_all+1)
+prof_panel_filter$news_all_l_log <- log(prof_panel_filter$news_all_l+1)
+
+prof_panel_filter$alt_online_all_log <- log(prof_panel_filter$alt_online_all+1)
+prof_panel_filter$alt_online_all_l_log <- log(prof_panel_filter$alt_online_all_l+1)
+
+prof_panel_filter$alt_twitter_log <- log(prof_panel_filter$alt_twitter+1)
+prof_panel_filter$alt_twitter_l_log <- log(prof_panel_filter$alt_twitter_l+1)
+
+prof_panel_filter$cited_by_l_log <- log(prof_panel_filter$cited_by_l+1)
+prof_panel_filter$alt_online_all_l_log <- log(prof_panel_filter$alt_online_all_l+1)
+prof_panel_filter$alt_twitter_l_log <- log(prof_panel_filter$alt_twitter_l+1)
+prof_panel_filter$coa_tot_cited_by_l_log <- log(prof_panel_filter$coa_tot_cited_by_l+1)
+prof_panel_filter$coa_online_all_l_log <- log(prof_panel_filter$coa_online_all_l+1)
+prof_panel_filter$coa_tot_online_all_l_log <- log(prof_panel_filter$coa_tot_online_all_l+1)
+prof_panel_filter$coa_twitter_l_log <- log(prof_panel_filter$coa_twitter_l+1)
+prof_panel_filter$coa_tot_twitter_l_log <- log(prof_panel_filter$coa_tot_twitter_l+1)
+prof_panel_filter$news_all_l_log <- log(prof_panel_filter$news_all_l+1)
+
+prof_panel_filter$cited_by_total_all_l_log <- log(prof_panel_filter$cited_by_total_all_l+1)
+prof_panel_filter$alt_online_all_total_l_log <- log(prof_panel_filter$alt_online_all_total_l+1)
+prof_panel_filter$alt_twitter_total_l_log <- log(prof_panel_filter$alt_twitter_total_l+1)
+prof_panel_filter$coa_tot_cited_by_total_l_log <- log(prof_panel_filter$coa_tot_cited_by_total_l+1)
+prof_panel_filter$coa_online_all_total_l_log <- log(prof_panel_filter$coa_online_all_total_l+1)
+prof_panel_filter$coa_tot_online_all_total_l_log <- log(prof_panel_filter$coa_tot_online_all_total_l+1)
+prof_panel_filter$coa_twitter_total_l_log <- log(prof_panel_filter$coa_twitter_total_l+1)
+prof_panel_filter$coa_tot_twitter_total_l_log <- log(prof_panel_filter$coa_tot_twitter_total_l+1)
+prof_panel_filter$news_all_total_l_log <- log(prof_panel_filter$news_all_total_l+1)
+```
+
+Obtain binary variables for any attention received that year:
+```{r}
+prof_panel_filter$any_news <- as.factor(ifelse(prof_panel_filter$news_all > 0, 1, 0))
+prof_panel_filter$any_news_l <- as.factor(ifelse(prof_panel_filter$news_all_l > 0, 1, 0))
+
+prof_panel_filter$any_online_news <- as.factor(ifelse(prof_panel_filter$alt_online_all > 0, 1, 0))
+prof_panel_filter$any_online_news_l <- as.factor(ifelse(prof_panel_filter$alt_online_all_l > 0, 1, 0))
+
+prof_panel_filter$any_online_news_gen <- as.factor(ifelse(prof_panel_filter$alt_online_general_all > 0, 1, 0))
+prof_panel_filter$any_online_news_gen_l <- as.factor(ifelse(prof_panel_filter$alt_online_general_all_l > 0, 1, 0))
+
+prof_panel_filter$any_online_news_name <- as.factor(ifelse(prof_panel_filter$alt_online_all > 0, 1, 0))
+prof_panel_filter$any_online_news_l <- as.factor(ifelse(prof_panel_filter$alt_online_all_l > 0, 1, 0))
+
+prof_panel_filter$any_twitter <- as.factor(ifelse(prof_panel_filter$alt_twitter > 0, 1, 0))
+prof_panel_filter$any_twitter_l <- as.factor(ifelse(prof_panel_filter$alt_twitter_l > 0, 1, 0))
+
+prof_panel_filter$any_grant <- as.factor(ifelse(prof_panel_filter$any_nwo > 0|prof_panel_filter$any_erc, 1, 0))
+prof_panel_filter$any_grant_l <- as.factor(ifelse(prof_panel_filter$any_nwo_l > 0|prof_panel_filter$any_erc_l, 1, 0))
+```
+
+Now get some more printed news variables:
+```{r}
+# only online resources
+prof_panel_filter$news_online_all <- prof_panel_filter$news_all - prof_panel_filter$news_off_all
+prof_panel_filter$news_online_all_l <- prof_panel_filter$news_all_l - prof_panel_filter$news_off_all_l
+
+# only resources without institutional mentions
+prof_panel_filter$news_no_inst_all <- prof_panel_filter$news_all - prof_panel_filter$news_inst_all
+prof_panel_filter$news_no_inst_all_l <- prof_panel_filter$news_all_l - prof_panel_filter$news_inst_all_l
+
+```
+
+
+Then, construct a binary variables for belonging to the top 10/20% in the attention for each source.
+```{r}
+panel_filter_long <- prof_panel_filter %>%
+  pivot_longer(c(alt_online_all, alt_online_all, news_all, alt_twitter), names_to = "measure", values_to = "value")
+
+top_10_attn <- panel_filter_long %>%
+  filter(!is.na(general_field) & !is.na(year) & year > 2011)%>%
+  group_by(general_field, year, measure)%>%
+  filter(quantile(value, 0.90, na.rm = TRUE)<=value)%>%
+  select(profile_id, general_field, year, measure, value)
+
+top_10_attn$measure <- paste0(top_10_attn$measure, "_top_10")
+
+
+top_10_attn <- top_10_attn %>%
+  pivot_wider(names_from = "measure")%>%
+  mutate(across(contains('top_10'),  ~ifelse(is.na(.), 0, 1)))
+
+prof_panel_filter <- merge(prof_panel_filter,
+                           top_10_attn[c("year", "profile_id", "general_field", "alt_online_all_top_10", "alt_online_all_top_10", "alt_twitter_top_10", "news_all_top_10")],
+                           by = c("profile_id", "year", "general_field"),
+                           all.x = TRUE,
+                           all.y = FALSE)
+
+top_20_attn <- panel_filter_long %>%
+  filter(!is.na(general_field) & !is.na(year) & year > 2011)%>%
+  group_by(general_field, year, measure)%>%
+  filter(quantile(value, 0.80, na.rm = TRUE)<=value)%>%
+  select(profile_id, general_field, year, measure, value)
+
+top_20_attn$measure <- paste0(top_20_attn$measure, "_top_20")
+
+
+top_20_attn <- top_20_attn %>%
+  pivot_wider(names_from = "measure")%>%
+  mutate(across(contains('top_20'),  ~ifelse(is.na(.), 0, 1)))
+
+prof_panel_filter <- merge(prof_panel_filter,
+                           top_20_attn[c("year", "profile_id", "general_field", "alt_online_all_top_20", "alt_online_all_top_20", "alt_twitter_top_20", "news_all_top_20")],
+                           by = c("profile_id", "year", "general_field"),
+                           all.x = TRUE,
+                           all.y = FALSE)
+
+prof_panel_filter <- filter(prof_panel_filter, !is.na(general_field))
+
+# if NA, needs to be 0
+prof_panel_filter <- prof_panel_filter %>%
+  mutate(across(contains('top_10'),  ~ifelse(is.na(.), 0, .)))%>%
+  mutate(across(contains('top_20'),  ~ifelse(is.na(.), 0, .)))
+```
+
+
+Save this:
+```{r}
+write_csv(prof_panel_filter, "panel_datasets/prof_panel_final_26_7.csv")
 ```

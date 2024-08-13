@@ -174,13 +174,13 @@ Load publication info for all professors and tidy it up:
 # all professors, their pubs, and the yearly citation breakdown
 oa_prof_pubs <- dbReadTable(con, "oa_prof_pubs")
 
-# detailed information about pubications
+# detailed information about publications
 oa_pubs_unique <- dbReadTable(con, "oa_prof_pubs_unique")
 
 # dataset matching professor IDs to publications
 oa_prof_pub_matching <- dbReadTable(con, "oa_prof_pub_match")
 
-# match publication infromation with professors
+# match publication information with professors
 oa_prof_pubs_unique <- merge(oa_pubs_unique,
                              oa_prof_pub_matching[c("id", "au_id", "au_display_name", "profile_id")],
                              all.x = TRUE,
@@ -192,6 +192,12 @@ Total publications:
 ```{r}
 nrow(oa_pubs_unique)
 ```
+
+Of how many professors?
+```{r}
+length(unique(oa_prof_pubs_unique$profile_id))
+```
+
 
 To build our panel, we only use articles,books, and book chapters published after
 1973 and where we have a publication year:

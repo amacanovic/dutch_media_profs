@@ -253,52 +253,104 @@ $(document).ready(function () {
   </a>
 </li>
 <li>
-  <a href="index.html">Code homepage</a>
+  <a href="index.html">
+    <span class="glyphicon glyphicon glyphicon glyphicon-info-sign"></span>
+     
+    About
+  </a>
 </li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-    <span class="glyphicon glyphicon glyphicon glyphicon-list"></span>
+    <span class="glyphicon glyphicon glyphicon glyphicon-menu-hamburger"></span>
      
-    Scripts
+    Database preparation
      
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="SQL_tutorial.html">Intro: SQL tutorial</a>
+      <a href="NARCIS_collection.html">NARCIS data scrape</a>
     </li>
     <li>
-      <a href="OpenAlex_Altmetric_data_download.html">Prep. 1: Open Alex and Altmetric data download</a>
+      <a href="OpenAlex_Altmetric_data_download.html">Open Alex and Altmetric data download</a>
     </li>
     <li>
-      <a href="Gender_inference.html">Prep. 2: Gender inference</a>
+      <a href="Gender_inference.html">Gender inference</a>
     </li>
     <li>
-      <a href="Grant_parsing.html">Prep. 3: Grant parsing</a>
+      <a href="Grant_parsing.html">Grant parsing</a>
     </li>
     <li>
-      <a href="Printed_news_preparation.html">Prep. 4: Printed nwes preparation</a>
+      <a href="Printed_news_preparation.html">Printed nwes preparation</a>
     </li>
     <li>
-      <a href="Online_news_preparation.html">Prep. 5: Online nwes preparation</a>
+      <a href="Online_news_preparation.html">Online nwes preparation</a>
     </li>
     <li>
-      <a href="Panel_data_compilation.html">Prep. 6: Panel data compilation</a>
+      <a href="Data_coverage.html">NARCIS and OA database comparison</a>
     </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="glyphicon glyphicon glyphicon glyphicon-tasks"></span>
+     
+    Variables
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="Panel_data_compilation.html">Variable preparation</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="glyphicon glyphicon glyphicon glyphicon-ok-sign"></span>
+     
+    Results
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
     <li>
       <a href="Analyses_main.html">Main analyses</a>
     </li>
     <li>
-      <a href="Supplement_data_information.html">Supplement 1: Database description and coverage</a>
+      <a href="Supplement_data_information.html">SI S1 Dataset information</a>
     </li>
     <li>
-      <a href="Data_coverage.html">Supplement 2: NARCIS and OA database comparison</a>
+      <a href="Analyses_supplemental.html">SI S2-S4 Additional results</a>
     </li>
     <li>
-      <a href="Analyses_supplemental.html">Supplement 3: Additional analyses and robustness checks</a>
+      <a href="News_classification_other_functions.html">Resources and functions</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="glyphicon glyphicon glyphicon glyphicon-info-sign"></span>
+     
+    Regression robustness checks
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="Analyses_robustness_ols.html">Main linear models</a>
     </li>
     <li>
-      <a href="News_classification_other_functions.html">Supplement 4: Additional resources and functions</a>
+      <a href="Analyses_robustness_ols_log.html">Main linear models - log-transformed</a>
+    </li>
+    <li>
+      <a href="Analyses_robustness_poisson.html">Poisson models</a>
+    </li>
+    <li>
+      <a href="Analyses_robustness_logit.html">Logistic models</a>
+    </li>
+    <li>
+      <a href="Analyses_robustness_fe_re.html">Fixed and random effect models</a>
     </li>
   </ul>
 </li>
@@ -2857,7 +2909,7 @@ lm_fitter_cl_robust_scopus &lt;- function(panel_dataset,
   health &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Health Sciences&quot;)
   
   for (field in fields){
-    print(field)
+    #print(field)
     lm_model &lt;- NA
     
     field_dataset &lt;- get(field)
@@ -3072,6 +3124,274 @@ glm_fitter_cl_robust &lt;- function(panel_dataset,
 }
 
 
+# scopus classification
+## Function that can fit a poisson or a logistic regression
+
+glm_fitter_cl_robust_scopus &lt;- function(panel_dataset,
+                                 formula_list,
+                                 year_cutoff_upper = 2023,
+                                 year_cutoff_lower = 1974,
+                                 reg_family = c(&quot;poisson&quot;, &quot;binomial&quot;)){
+  
+  all_models &lt;- data.frame(matrix(ncol = 10, nrow = 0))
+  
+  fields &lt;- c(&quot;phys&quot;, &quot;life&quot;, &quot;health&quot;, &quot;soc_sci&quot;, &quot;arts&quot;)
+  life &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Life Sciences&quot;)
+  phys &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Physical Sciences&quot;)
+  soc_sci &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Social Sciences&quot;)
+  arts &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Arts and Humanities&quot;)
+  health &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Health Sciences&quot;)
+  
+  for (field in fields){
+    #print(field)
+    reg_model &lt;- NA
+    coef_test_output &lt;- NA
+    
+    field_dataset &lt;- get(field)
+    
+    field_dataset &lt;- filter(field_dataset,
+                            year &lt;= year_cutoff_upper &amp; year &gt;= year_cutoff_lower)
+    
+    for (model_formula in formula_list){
+      #print(model_formula)
+      
+      if (reg_family == &quot;poisson&quot;){
+        
+        reg_model &lt;- glm(model_formula,
+                         data = field_dataset,
+                         family = &#39;poisson&#39;) 
+        
+        # cluster-robust SEs
+        
+        coef_test_output &lt;- coeftest(reg_model, vcov = vcovCL, cluster = reg_model$data$profile_id)
+        model_result &lt;- coef_test_output[,] %&gt;% 
+          as.data.frame() %&gt;% 
+          rownames_to_column(var = &quot;term&quot;)
+        model_result$lower_ci &lt;- as.data.frame(confint(coef_test_output,
+                                                       level = 0.95))[,1]
+        model_result$upper_ci &lt;- as.data.frame(confint(coef_test_output,
+                                                       level = 0.95))[,2]
+      }
+      
+      if (reg_family == &quot;binomial&quot;){
+        
+        reg_model &lt;- glm(model_formula,
+                         data = field_dataset,
+                         family = &#39;binomial&#39;) 
+        
+        coef_test_output &lt;- coeftest(reg_model, type = &quot;HC0&quot;, cluster = reg_model$data$profile_id)
+        model_result &lt;- coef_test_output[,] %&gt;% 
+          as.data.frame() %&gt;% 
+          rownames_to_column(var = &quot;term&quot;)
+        model_result$lower_ci &lt;- as.data.frame(confint(coef_test_output,
+                                                       level = 0.95))[,1]
+        model_result$upper_ci &lt;- as.data.frame(confint(coef_test_output,
+                                                       level = 0.95))[,2]
+        
+        model_result[nrow(model_result)+1, 1] &lt;- &quot;R^2&quot;
+        pseudo_r &lt;- &quot;no convergence&quot;
+        try(pseudo_r &lt;- round(PseudoR2(reg_model),3))
+        model_result[nrow(model_result), 2:ncol(model_result)] &lt;- pseudo_r
+        
+      }
+      
+      # tidy up
+      model_result$field &lt;- field
+      model_result$covariate &lt;- trimws(str_split_i(model_formula, &quot;~&quot;, 1))
+      # binding field models together
+      all_models &lt;- rbind(all_models,
+                          model_result)
+      
+    }
+  }
+  # adding some stars
+  all_models$stars &lt;- ifelse(all_models$`Pr(&gt;|z|)` &lt;= 0.001, &quot;***&quot;,
+                             ifelse(all_models$`Pr(&gt;|z|)` &lt;= 0.001, &quot;**&quot;,
+                                    ifelse(all_models$`Pr(&gt;|z|)` &lt;= 0.05, &quot;*&quot;,
+                                           ifelse(all_models$`Pr(&gt;|z|)` &lt;= 0.1, &quot;.&quot;, &quot;&quot;))))
+  
+  all_models$field &lt;- factor(all_models$field,
+                             levels = c(&quot;phys&quot;,
+                                        &quot;life&quot;,
+                                        &quot;health&quot;,
+                                        &quot;soc_sci&quot;,
+                                        &quot;arts&quot;))
+  
+  
+  output_list &lt;- list(all_models)
+  
+  return(output_list)
+}
+
+## FE and RE regression
+fe_re_fitter_cl_robust &lt;- function(panel_dataset,
+                                lm_formula_list,
+                                year_cutoff_upper = 2023,
+                                year_cutoff_lower = 1973,
+                                index = c(&quot;profile_id&quot;, &quot;year&quot;),
+                                fe_re = c(&quot;fe&quot;, &quot;re&quot;)){
+  
+  all_models &lt;- data.frame(matrix(ncol = 10, nrow = 0))
+  
+  fields &lt;- c(&quot;stem&quot;, &quot;medicine&quot;, &quot;soc_sci&quot;, &quot;arts&quot;)
+  stem &lt;- filter(panel_dataset, general_field == &quot;STEM&quot;)
+  soc_sci &lt;- filter(panel_dataset, general_field == &quot;Social sciences&quot;)
+  arts &lt;- filter(panel_dataset, general_field == &quot;Arts and Humanities&quot;)
+  medicine &lt;- filter(panel_dataset, general_field == &quot;Medicine&quot;)
+  
+  for (field in fields){
+    plm_model &lt;- NA
+    
+    field_dataset &lt;- get(field)
+    
+    field_dataset &lt;- filter(field_dataset,
+                            year &lt;= year_cutoff_upper &amp; year &gt;= year_cutoff_lower)
+    
+    for (lm_formula in lm_formula_list){
+      
+      if (fe_re == &quot;fe&quot;){
+        
+        plm_model &lt;- plm(lm_formula, 
+                         data = field_dataset,
+                         index = index, 
+                         model = &quot;within&quot;, 
+                         effect = &quot;twoways&quot;)
+      }
+      
+      if (fe_re == &quot;re&quot;){
+        plm_model &lt;- plm(lm_formula,
+                         data = field_dataset,
+                         index = index, 
+                         model = &quot;random&quot;)
+        
+      }
+      
+      # cluster-robust SEs
+      coef_test_output &lt;- coeftest(lm(lm_formula,
+                                      data = field_dataset), vcov = vcovCL)
+      model_result &lt;- coef_test_output[,] %&gt;% 
+        as.data.frame() %&gt;% 
+        rownames_to_column(var = &quot;term&quot;)
+      model_result$lower_ci &lt;- as.data.frame(confint(coef_test_output,
+                                                     level = 0.95))[,1]
+      model_result$upper_ci &lt;- as.data.frame(confint(coef_test_output,
+                                                     level = 0.95))[,2]
+      
+      # extracting R squared
+      model_result[nrow(model_result)+1, 1] &lt;- &quot;R^2&quot;
+      model_result[nrow(model_result), 2:ncol(model_result)] &lt;- round(summary(plm_model)$r.squared,3)
+      model_result$field &lt;- field
+      model_result$covariate &lt;- trimws(str_split_i(lm_formula, &quot;~&quot;, 1))
+      # binding field models together
+      all_models &lt;- rbind(all_models,
+                          model_result)
+      
+          }
+  }
+  # adding some stars
+  all_models$stars &lt;- ifelse(all_models$`Pr(&gt;|t|)` &lt;= 0.001, &quot;***&quot;,
+                             ifelse(all_models$`Pr(&gt;|t|)` &lt;= 0.001, &quot;**&quot;,
+                                    ifelse(all_models$`Pr(&gt;|t|)` &lt;= 0.05, &quot;*&quot;,
+                                           ifelse(all_models$`Pr(&gt;|t|)` &lt;= 0.1, &quot;.&quot;, &quot;&quot;))))
+  
+  all_models$field &lt;- factor(all_models$field,
+                             levels = c(&quot;stem&quot;,
+                                        &quot;medicine&quot;,
+                                        &quot;soc_sci&quot;,
+                                        &quot;arts&quot;))
+  
+  
+  
+  output_list &lt;- list(all_models)
+  
+  return(output_list)
+}
+
+## FE/RE with scopus classification
+fe_re_fitter_cl_robust_scopus &lt;- function(panel_dataset,
+                                   lm_formula_list,
+                                   year_cutoff_upper = 2023,
+                                   year_cutoff_lower = 1973,
+                                   index = c(&quot;profile_id&quot;, &quot;year&quot;),
+                                   fe_re = c(&quot;fe&quot;, &quot;re&quot;)){
+  
+  all_models &lt;- data.frame(matrix(ncol = 10, nrow = 0))
+  
+  fields &lt;- c(&quot;phys&quot;, &quot;life&quot;, &quot;health&quot;, &quot;soc_sci&quot;, &quot;arts&quot;)
+  life &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Life Sciences&quot;)
+  phys &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Physical Sciences&quot;)
+  soc_sci &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Social Sciences&quot;)
+  arts &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Arts and Humanities&quot;)
+  health &lt;- filter(prof_panel_filter, overall_adj_domain == &quot;Health Sciences&quot;)
+  
+  for (field in fields){
+    plm_model &lt;- NA
+    
+    field_dataset &lt;- get(field)
+    
+    field_dataset &lt;- filter(field_dataset,
+                            year &lt;= year_cutoff_upper &amp; year &gt;= year_cutoff_lower)
+    
+    for (lm_formula in lm_formula_list){
+      
+      if (fe_re == &quot;fe&quot;){
+        
+        plm_model &lt;- plm(lm_formula, 
+                         data = field_dataset,
+                         index = index, 
+                         model = &quot;within&quot;, 
+                         effect = &quot;twoways&quot;)
+      }
+      
+      if (fe_re == &quot;re&quot;){
+        plm_model &lt;- plm(lm_formula,
+                         data = field_dataset,
+                         index = index, 
+                         model = &quot;random&quot;)
+        
+      }
+      
+      # cluster-robust SEs
+      coef_test_output &lt;- coeftest(lm(lm_formula,
+                                      data = field_dataset), vcov = vcovCL)
+      model_result &lt;- coef_test_output[,] %&gt;% 
+        as.data.frame() %&gt;% 
+        rownames_to_column(var = &quot;term&quot;)
+      model_result$lower_ci &lt;- as.data.frame(confint(coef_test_output,
+                                                     level = 0.95))[,1]
+      model_result$upper_ci &lt;- as.data.frame(confint(coef_test_output,
+                                                     level = 0.95))[,2]
+      
+      # extracting R squared
+      model_result[nrow(model_result)+1, 1] &lt;- &quot;R^2&quot;
+      model_result[nrow(model_result), 2:ncol(model_result)] &lt;- round(summary(plm_model)$r.squared,3)
+      model_result$field &lt;- field
+      model_result$covariate &lt;- trimws(str_split_i(lm_formula, &quot;~&quot;, 1))
+      # binding field models together
+      all_models &lt;- rbind(all_models,
+                          model_result)
+      
+    }
+  }
+  # adding some stars
+  all_models$stars &lt;- ifelse(all_models$`Pr(&gt;|t|)` &lt;= 0.001, &quot;***&quot;,
+                             ifelse(all_models$`Pr(&gt;|t|)` &lt;= 0.001, &quot;**&quot;,
+                                    ifelse(all_models$`Pr(&gt;|t|)` &lt;= 0.05, &quot;*&quot;,
+                                           ifelse(all_models$`Pr(&gt;|t|)` &lt;= 0.1, &quot;.&quot;, &quot;&quot;))))
+  
+  all_models$field &lt;- factor(all_models$field,
+                             levels = c(&quot;phys&quot;,
+                                        &quot;life&quot;,
+                                        &quot;health&quot;,
+                                        &quot;soc_sci&quot;,
+                                        &quot;arts&quot;))
+  
+  
+  output_list &lt;- list(all_models)
+  
+  return(output_list)
+}
+
 # this function tidies up regression outputs for three
 # outcome variables and arranges them for easy writing
 # into a CSV file
@@ -3159,6 +3479,18 @@ neat_regression_table &lt;- function(
                                       &quot;coa_twitter_total_l_log&quot;,
                                       &quot;coa_tot_twitter_total_l&quot;,
                                       &quot;coa_tot_twitter_total_l_log&quot;,
+                                      &quot;cited_by_l&quot;,
+                                      &quot;cited_by_l_log&quot;,
+                                      &quot;coa_tot_cited_by_l&quot;,
+                                      &quot;coa_tot_cited_by_l_log&quot;,
+                                      &quot;coa_online_all_l&quot;,
+                                      &quot;coa_online_all_l_log&quot;,
+                                      &quot;coa_tot_online_all_l&quot;,
+                                      &quot;coa_tot_online_all_l_log&quot;,
+                                      &quot;coa_twitter_l&quot;,
+                                      &quot;coa_twitter_l_log&quot;,
+                                      &quot;coa_tot_twitter_l&quot;,
+                                      &quot;coa_tot_twitter_l_log&quot;,
                                       &quot;t_min_1&quot;,
                                       &quot;news_all_l&quot;,
                                       &quot;news_all_l_log&quot;,
@@ -3198,10 +3530,20 @@ neat_regression_table &lt;- function(
                          &#39;cited_by_total_all_l_log&#39; = &quot;Total citations (log, t-1)&quot;,
                          &#39;t_min_1&#39; = &quot;Dependent variable (t-1)&quot;,
                          &#39;coa_online_all_total_l_log&#39; = &quot;Coauthors&#39; total online attention total (log, t-1)&quot;,
+                         &#39;coa_tot_online_all_total_l_log&#39; = &quot;Coauthors&#39; total online attention total (log, t-1)&quot;,
                          &#39;coa_tot_cited_by_total_l_log&#39; = &quot;Coauthors&#39; total citations (log, t-1)&quot;,
                          &#39;coa_twitter_total_l_log&#39; = &quot;Coauthors&#39; total Twitter/X attention (log, t-1)&quot;,
+                         &#39;coa_tot_twitter_total_l_log&#39; = &quot;Coauthors&#39; total Twitter/X attention (log, t-1)&quot;,
                          &#39;news_all_l_log&#39; = &quot;Printed news attention (log, t-1)&quot;,
-                         &#39;news_all_total_l_log&#39; = &quot;Total printed news attention (log, t-1)&quot;
+                         &#39;news_all_total_l_log&#39; = &quot;Total printed news attention (log, t-1)&quot;,
+                         &#39;cited_by_l&#39; = &quot;Citations (t-1)&quot;,
+                         &#39;coa_tot_online_all_l&#39; = &quot;Coauthors&#39; online attention (t-1)&quot;,
+                         &#39;coa_tot_cited_by_l&#39; = &quot;Coauthors&#39; citations (t-1)&quot;,
+                         &#39;coa_tot_twitter_l&#39; = &quot;Coauthors&#39; Twitter/X attention (t-1)&quot;,
+                         &#39;cited_by_all_l_log&#39; = &quot;Total citations (log, t-1)&quot;,
+                         &#39;coa_online_all_l_log&#39; = &quot;Coauthors&#39; online attention (log, t-1)&quot;,
+                         &#39;coa_tot_cited_by_l_log&#39; = &quot;Coauthors&#39; citations (log, t-1)&quot;,
+                         &#39;coa_twitter_l_log&#39; = &quot;Coauthors&#39; Twitter/X attention (log, t-1)&quot;
     ),
     field = recode(field,
                    &#39;stem&#39; = &quot;STEM&quot;,
@@ -3229,6 +3571,199 @@ neat_regression_table &lt;- function(
                                      as.character(three_models_table$field),
                                      &quot;&quot;)
   
+  return(three_models_table)
+  
+}
+
+## neat regressions for scopus classification
+# this function tidies up regression outputs for three
+# outcome variables and arranges them for easy writing
+# into a CSV file
+neat_regression_table_scopus &lt;- function(
+    table_1,
+    table_2,
+    table_3,
+    fe =&quot;no&quot;){
+  
+  table_1_neat &lt;- table_1 %&gt;%
+    arrange(field)%&gt;%
+    filter(!grepl(&quot;year)&quot;, term))%&gt;%
+    select(field, term:`Std. Error`, stars)
+  
+  colnames(table_1_neat) &lt;- c(&quot;field&quot;, 
+                              &quot;term&quot;,
+                              &quot;coef_printed&quot;,
+                              &quot;se_printed&quot;,
+                              &quot;sig_printed&quot;)
+  
+  table_2_neat &lt;- table_2 %&gt;%
+    arrange(field)%&gt;%
+    filter(!grepl(&quot;year)&quot;, term))%&gt;%
+    select(field, term:`Std. Error`, stars)
+  
+  colnames(table_2_neat) &lt;- c(&quot;field&quot;, 
+                              &quot;term&quot;,
+                              &quot;coef_online&quot;,
+                              &quot;se_online&quot;,
+                              &quot;sig_online&quot;)
+  
+  table_3_neat &lt;- table_3 %&gt;%
+    arrange(field)%&gt;%
+    filter(!grepl(&quot;year)&quot;, term))%&gt;%
+    select(field, term:`Std. Error`, stars)
+  
+  colnames(table_3_neat) &lt;- c(&quot;field&quot;, 
+                              &quot;term&quot;,
+                              &quot;coef_twitter&quot;,
+                              &quot;se_twitter&quot;,
+                              &quot;sig_twitter&quot;)
+  
+  three_models_table &lt;- merge(table_1_neat,
+                              table_2_neat,
+                              by = c(&quot;field&quot;, 
+                                     &quot;term&quot;),
+                              all.x = TRUE,
+                              all.y = TRUE)
+  
+  three_models_table &lt;- merge(three_models_table,
+                              table_3_neat,
+                              by = c(&quot;field&quot;, 
+                                     &quot;term&quot;),
+                              all.x = TRUE,
+                              all.y = TRUE)
+  
+  
+  three_models_table$term &lt;- ifelse(three_models_table$term %in% c(&quot;news_all_l&quot;,
+                                                                   &quot;news_all_l_log&quot;,
+                                                                   &quot;alt_online_all_l&quot;,
+                                                                   &quot;alt_online_all_l_log&quot;,
+                                                                   &quot;alt_twitter_l&quot;,
+                                                                   &quot;alt_twitter_l_log&quot;),
+                                    &quot;t_min_1&quot;,
+                                    three_models_table$term)
+  
+  
+  three_models_table$term &lt;- factor(three_models_table$term,
+                                    levels = c(
+                                      &quot;inferred_genderw&quot;,
+                                      &quot;cited_by_total_all_l&quot;,
+                                      &quot;cited_by_total_all_l_log&quot;,
+                                      &quot;news_all_total_l&quot;,
+                                      &quot;news_all_total_l_log&quot;,
+                                      &quot;alt_online_all_total_l&quot;,
+                                      &quot;alt_online_all_total_l_log&quot;,
+                                      &quot;alt_twitter_total_l&quot;,
+                                      &quot;alt_twitter_total_l_log&quot;,
+                                      &quot;coa_tot_cited_by_total_l&quot;,
+                                      &quot;coa_tot_cited_by_total_l_log&quot;,
+                                      &quot;coa_online_all_total_l&quot;,
+                                      &quot;coa_online_all_total_l_log&quot;,
+                                      &quot;coa_tot_online_all_total_l&quot;,
+                                      &quot;coa_tot_online_all_total_l_log&quot;,
+                                      &quot;coa_twitter_total_l&quot;,
+                                      &quot;coa_twitter_total_l_log&quot;,
+                                      &quot;coa_tot_twitter_total_l&quot;,
+                                      &quot;coa_tot_twitter_total_l_log&quot;,
+                                      &quot;cited_by_l&quot;,
+                                      &quot;cited_by_l_log&quot;,
+                                      &quot;coa_tot_cited_by_l&quot;,
+                                      &quot;coa_tot_cited_by_l_log&quot;,
+                                      &quot;coa_online_all_l&quot;,
+                                      &quot;coa_online_all_l_log&quot;,
+                                      &quot;coa_tot_online_all_l&quot;,
+                                      &quot;coa_tot_online_all_l_log&quot;,
+                                      &quot;coa_twitter_l&quot;,
+                                      &quot;coa_twitter_l_log&quot;,
+                                      &quot;coa_tot_twitter_l&quot;,
+                                      &quot;coa_tot_twitter_l_log&quot;,
+                                      &quot;t_min_1&quot;,
+                                      &quot;news_all_l&quot;,
+                                      &quot;news_all_l_log&quot;,
+                                      &quot;alt_online_all_l&quot;,
+                                      &quot;alt_online_all_l_log&quot;,
+                                      &quot;alt_twitter_l&quot;,
+                                      &quot;alt_twitter_l_log&quot;,
+                                      &quot;years_since_first_pub&quot;,
+                                      &quot;as.factor(any_grant_l)1&quot;,
+                                      &quot;(Intercept)&quot;,
+                                      &quot;R^2&quot;
+                                    ))
+  
+  
+  three_models_table &lt;- three_models_table %&gt;%
+    mutate(across(where(is.numeric), round, 5))%&gt;%
+    mutate(term = recode(term,
+                         &#39;alt_online_all_l&#39; = &quot;Online attention (t-1)&quot;,
+                         &#39;alt_online_all_total_l&#39; = &quot;Total online attention (t-1)&quot;,
+                         &#39;alt_twitter_l&#39; = &quot;Twitter/X attention (t-1)&quot;,
+                         &#39;alt_twitter_total_l&#39; = &quot;Total Twitter/X attention (t-1)&quot;,
+                         &#39;cited_by_total_all_l&#39; = &quot;Total citations (t-1)&quot;,
+                         &#39;as.factor(any_grant_l)1&#39; = &quot;Received an NWO/ERC grant (t-1)&quot;,
+                         &#39;coa_online_all_total_l&#39; = &quot;Coauthors&#39; total online attention total (t-1)&quot;,
+                         &#39;coa_tot_online_all_total_l&#39; = &quot;Coauthors&#39; total online attention total (t-1)&quot;,
+                         &#39;coa_tot_cited_by_total_l&#39; = &quot;Coauthors&#39; total citations (t-1)&quot;,
+                         &#39;coa_twitter_total_l&#39; = &quot;Coauthors&#39; total Twitter/X attention (t-1)&quot;,
+                         &#39;coa_tot_twitter_total_l&#39; = &quot;Coauthors&#39; total Twitter/X attention (t-1)&quot;,
+                         &#39;years_since_first_pub&#39; = &quot;Years since first publication&quot;,
+                         &#39;inferred_genderw&#39; = &quot;Inferred gender (reference: man)&quot;,
+                         &#39;news_all_l&#39; = &quot;Printed news attention (t-1)&quot;,
+                         &#39;news_all_total_l&#39; = &quot;Total printed news attention (t-1)&quot;,
+                         &#39;alt_online_all_l_log&#39; = &quot;Online attention (log, t-1)&quot;,
+                         &#39;alt_online_all_total_l_log&#39; = &quot;Total online attention (log, t-1)&quot;,
+                         &#39;alt_twitter_l_log&#39; = &quot;Twitter/X attention (log, t-1)&quot;,
+                         &#39;alt_twitter_total_l_log&#39; = &quot;Total Twitter/X attention (log, t-1)&quot;,
+                         &#39;cited_by_total_all_l_log&#39; = &quot;Total citations (log, t-1)&quot;,
+                         &#39;t_min_1&#39; = &quot;Dependent variable (t-1)&quot;,
+                         &#39;coa_online_all_total_l_log&#39; = &quot;Coauthors&#39; total online attention total (log, t-1)&quot;,
+                         &#39;coa_tot_online_all_total_l_log&#39; = &quot;Coauthors&#39; total online attention total (log, t-1)&quot;,
+                         &#39;coa_tot_cited_by_total_l_log&#39; = &quot;Coauthors&#39; total citations (log, t-1)&quot;,
+                         &#39;coa_twitter_total_l_log&#39; = &quot;Coauthors&#39; total Twitter/X attention (log, t-1)&quot;,
+                         &#39;coa_tot_twitter_total_l_log&#39; = &quot;Coauthors&#39; total Twitter/X attention (log, t-1)&quot;,
+                         &#39;news_all_l_log&#39; = &quot;Printed news attention (log, t-1)&quot;,
+                         &#39;news_all_total_l_log&#39; = &quot;Total printed news attention (log, t-1)&quot;,
+                         &#39;cited_by_l&#39; = &quot;Citations (t-1)&quot;,
+                         &#39;coa_tot_online_all_l&#39; = &quot;Coauthors&#39; online attention (t-1)&quot;,
+                         &#39;coa_tot_cited_by_l&#39; = &quot;Coauthors&#39; citations (t-1)&quot;,
+                         &#39;coa_tot_twitter_l&#39; = &quot;Coauthors&#39; Twitter/X attention (t-1)&quot;,
+                         &#39;cited_by_all_l_log&#39; = &quot;Total citations (log, t-1)&quot;,
+                         &#39;coa_online_all_l_log&#39; = &quot;Coauthors&#39; online attention (log, t-1)&quot;,
+                         &#39;coa_tot_cited_by_l_log&#39; = &quot;Coauthors&#39; citations (log, t-1)&quot;,
+                         &#39;coa_twitter_l_log&#39; = &quot;Coauthors&#39; Twitter/X attention (log, t-1)&quot;
+    ),
+    field = recode(field,
+                   &#39;phys&#39; = &quot;Physical Sciences&quot;, 
+                   &#39;life&#39; = &quot;Life Sciences&quot;, 
+                   &#39;health&#39; = &quot;Health Sciences&quot;, 
+                   &#39;soc_sci&#39; = &quot;Social Sciences&quot;, 
+                   &#39;arts&#39; = &quot;Arts &amp; Humanities&quot;))%&gt;%
+    arrange(field, term)%&gt;%
+    select(field:coef_printed, sig_printed, se_printed, 
+           coef_online, sig_online, se_online,
+           coef_twitter, sig_twitter, se_twitter)
+  
+  three_models_table$se_printed &lt;- ifelse(!is.na(three_models_table$se_printed),
+                                          paste0(&quot;(&quot;, as.character(three_models_table$se_printed), &quot;)&quot;),
+                                          three_models_table$se_printed)
+  
+  three_models_table$se_online &lt;- ifelse(!is.na(three_models_table$se_online),
+                                         paste0(&quot;(&quot;, as.character(three_models_table$se_online), &quot;)&quot;),
+                                         three_models_table$se_online)
+  
+  three_models_table$se_twitter &lt;- ifelse(!is.na(three_models_table$se_twitter),
+                                          paste0(&quot;(&quot;, as.character(three_models_table$se_twitter), &quot;)&quot;),
+                                          three_models_table$se_twitter)
+  
+  if (fe == &quot;no&quot;){
+    
+    three_models_table$field &lt;- ifelse(three_models_table$term == &quot;Inferred gender (reference: man)&quot;,
+                                       as.character(three_models_table$field),
+                                       &quot;&quot;)
+  }
+  if (fe == &quot;yes&quot;){
+    three_models_table$field &lt;- ifelse(three_models_table$term == &quot;Total citations (t-1)&quot;,
+                                       as.character(three_models_table$field),
+                                       &quot;&quot;)
+  }
   return(three_models_table)
   
 }</code></pre>

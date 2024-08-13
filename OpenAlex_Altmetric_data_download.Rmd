@@ -4,40 +4,51 @@ author: "Ana Macanovic"
 date: "2024-01-06"
 ---
 
-This script uses OpenAlex and Altmetric databases  to download data on professors in our sample.
 
-```{r include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(eval = FALSE)
-knitr::opts_chunk$set(warning = FALSE)
-knitr::opts_chunk$set(message = FALSE)
-```
+This script uses OpenAlex and Altmetric databases, and ORCID API to download data on professors in our sample.
 
 Load the necessary packages:
-```{r message=  F, warning = F, eval = T}
-library(groundhog)
-packages_to_load <- c("readr", "dplyr", "openalexR",
+```{r message=  F, warning = F, eval = F}
+# load the helper function file
+source("helper_functions.R")
+packages_to_load <- c("readr", "dplyr",
                       "ggplot2", "stringr", "tidyr",
                       "jsonlite", "xml2", "tidyverse",
                       "RPostgres", "lubridate","digest",
-                      "DBI", "RODBC", "odbc")
-groundhog.library(packages_to_load, date = "2023-12-01")
+                      "DBI", "RODBC", "odbc", "knitr",
+                      "rorcid", "janitor", "purrr")
+
+fpackage_check(packages_to_load)
+
+# For full reproducibility, load the packages with groundhog using the code below instead
+# of the fpackage_check function
+
+# library(groundhog)
+# groundhog.library(packages_to_load, date = "2023-12-01")
 
 # we've also added our email to the "polite pool" of OpenAlex by
 # adding a line in the .Rprofile
+# keep openalexR updated to the most recent version for API compatibility!
+library("openalexR")
+```
 
-# load the helper function file
-source("helper_functions.R")
+
+```{r include=FALSE}
+opts_chunk$set(echo = TRUE)
+opts_chunk$set(eval = FALSE)
+opts_chunk$set(warning = FALSE)
+opts_chunk$set(message = FALSE)
 ```
 
 Connect to our database:
 ```{r}
-port <- 
-user <- ""
-password <- ""
-database_name <- ""
+# fill in own credentials
+port <- 5432
+user <- "postgres"
+password <- "dutchmediaprofssql"
+database_name <- "postgres"
 
-con <- RPostgres::dbConnect(RPostgres::Postgres(),
+con <- dbConnect(Postgres(),
                  dbname= database_name,
                  port = port,
                  user = user, 
@@ -73,6 +84,19 @@ dupl_names <- filter(profs_full_dupl, dupl == TRUE)$full
 
 
 profs_duplicates <- filter(profs_full_dupl, full %in% dupl_names)
+```
+
+Identify professors who were an emeritus at the time of collection:
+```{r}
+emeritus_id <- metadf %>% 
+  rowwise() %>% 
+  mutate(emeritus = +any(str_detect(string = c_across(everything()), regex("emerit", ignore_case =TRUE))))%>%
+  select(profile_id, emeritus)
+
+emeritus_id$emeritus <- ifelse(is.na(emeritus_id$emeritus), FALSE, TRUE)
+
+# Write this out into our DB
+# dbWriteTable(con, "emeritus_info", emeritus_id, row.names=FALSE, append=TRUE)
 ```
 
 

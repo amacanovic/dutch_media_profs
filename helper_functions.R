@@ -1508,7 +1508,7 @@ lm_fitter_cl_robust_scopus <- function(panel_dataset,
   health <- filter(prof_panel_filter, overall_adj_domain == "Health Sciences")
   
   for (field in fields){
-    print(field)
+    #print(field)
     lm_model <- NA
     
     field_dataset <- get(field)
@@ -1723,6 +1723,274 @@ glm_fitter_cl_robust <- function(panel_dataset,
 }
 
 
+# scopus classification
+## Function that can fit a poisson or a logistic regression
+
+glm_fitter_cl_robust_scopus <- function(panel_dataset,
+                                 formula_list,
+                                 year_cutoff_upper = 2023,
+                                 year_cutoff_lower = 1974,
+                                 reg_family = c("poisson", "binomial")){
+  
+  all_models <- data.frame(matrix(ncol = 10, nrow = 0))
+  
+  fields <- c("phys", "life", "health", "soc_sci", "arts")
+  life <- filter(prof_panel_filter, overall_adj_domain == "Life Sciences")
+  phys <- filter(prof_panel_filter, overall_adj_domain == "Physical Sciences")
+  soc_sci <- filter(prof_panel_filter, overall_adj_domain == "Social Sciences")
+  arts <- filter(prof_panel_filter, overall_adj_domain == "Arts and Humanities")
+  health <- filter(prof_panel_filter, overall_adj_domain == "Health Sciences")
+  
+  for (field in fields){
+    #print(field)
+    reg_model <- NA
+    coef_test_output <- NA
+    
+    field_dataset <- get(field)
+    
+    field_dataset <- filter(field_dataset,
+                            year <= year_cutoff_upper & year >= year_cutoff_lower)
+    
+    for (model_formula in formula_list){
+      #print(model_formula)
+      
+      if (reg_family == "poisson"){
+        
+        reg_model <- glm(model_formula,
+                         data = field_dataset,
+                         family = 'poisson') 
+        
+        # cluster-robust SEs
+        
+        coef_test_output <- coeftest(reg_model, vcov = vcovCL, cluster = reg_model$data$profile_id)
+        model_result <- coef_test_output[,] %>% 
+          as.data.frame() %>% 
+          rownames_to_column(var = "term")
+        model_result$lower_ci <- as.data.frame(confint(coef_test_output,
+                                                       level = 0.95))[,1]
+        model_result$upper_ci <- as.data.frame(confint(coef_test_output,
+                                                       level = 0.95))[,2]
+      }
+      
+      if (reg_family == "binomial"){
+        
+        reg_model <- glm(model_formula,
+                         data = field_dataset,
+                         family = 'binomial') 
+        
+        coef_test_output <- coeftest(reg_model, type = "HC0", cluster = reg_model$data$profile_id)
+        model_result <- coef_test_output[,] %>% 
+          as.data.frame() %>% 
+          rownames_to_column(var = "term")
+        model_result$lower_ci <- as.data.frame(confint(coef_test_output,
+                                                       level = 0.95))[,1]
+        model_result$upper_ci <- as.data.frame(confint(coef_test_output,
+                                                       level = 0.95))[,2]
+        
+        model_result[nrow(model_result)+1, 1] <- "R^2"
+        pseudo_r <- "no convergence"
+        try(pseudo_r <- round(PseudoR2(reg_model),3))
+        model_result[nrow(model_result), 2:ncol(model_result)] <- pseudo_r
+        
+      }
+      
+      # tidy up
+      model_result$field <- field
+      model_result$covariate <- trimws(str_split_i(model_formula, "~", 1))
+      # binding field models together
+      all_models <- rbind(all_models,
+                          model_result)
+      
+    }
+  }
+  # adding some stars
+  all_models$stars <- ifelse(all_models$`Pr(>|z|)` <= 0.001, "***",
+                             ifelse(all_models$`Pr(>|z|)` <= 0.001, "**",
+                                    ifelse(all_models$`Pr(>|z|)` <= 0.05, "*",
+                                           ifelse(all_models$`Pr(>|z|)` <= 0.1, ".", ""))))
+  
+  all_models$field <- factor(all_models$field,
+                             levels = c("phys",
+                                        "life",
+                                        "health",
+                                        "soc_sci",
+                                        "arts"))
+  
+  
+  output_list <- list(all_models)
+  
+  return(output_list)
+}
+
+## FE and RE regression
+fe_re_fitter_cl_robust <- function(panel_dataset,
+                                lm_formula_list,
+                                year_cutoff_upper = 2023,
+                                year_cutoff_lower = 1973,
+                                index = c("profile_id", "year"),
+                                fe_re = c("fe", "re")){
+  
+  all_models <- data.frame(matrix(ncol = 10, nrow = 0))
+  
+  fields <- c("stem", "medicine", "soc_sci", "arts")
+  stem <- filter(panel_dataset, general_field == "STEM")
+  soc_sci <- filter(panel_dataset, general_field == "Social sciences")
+  arts <- filter(panel_dataset, general_field == "Arts and Humanities")
+  medicine <- filter(panel_dataset, general_field == "Medicine")
+  
+  for (field in fields){
+    plm_model <- NA
+    
+    field_dataset <- get(field)
+    
+    field_dataset <- filter(field_dataset,
+                            year <= year_cutoff_upper & year >= year_cutoff_lower)
+    
+    for (lm_formula in lm_formula_list){
+      
+      if (fe_re == "fe"){
+        
+        plm_model <- plm(lm_formula, 
+                         data = field_dataset,
+                         index = index, 
+                         model = "within", 
+                         effect = "twoways")
+      }
+      
+      if (fe_re == "re"){
+        plm_model <- plm(lm_formula,
+                         data = field_dataset,
+                         index = index, 
+                         model = "random")
+        
+      }
+      
+      # cluster-robust SEs
+      coef_test_output <- coeftest(lm(lm_formula,
+                                      data = field_dataset), vcov = vcovCL)
+      model_result <- coef_test_output[,] %>% 
+        as.data.frame() %>% 
+        rownames_to_column(var = "term")
+      model_result$lower_ci <- as.data.frame(confint(coef_test_output,
+                                                     level = 0.95))[,1]
+      model_result$upper_ci <- as.data.frame(confint(coef_test_output,
+                                                     level = 0.95))[,2]
+      
+      # extracting R squared
+      model_result[nrow(model_result)+1, 1] <- "R^2"
+      model_result[nrow(model_result), 2:ncol(model_result)] <- round(summary(plm_model)$r.squared,3)
+      model_result$field <- field
+      model_result$covariate <- trimws(str_split_i(lm_formula, "~", 1))
+      # binding field models together
+      all_models <- rbind(all_models,
+                          model_result)
+      
+          }
+  }
+  # adding some stars
+  all_models$stars <- ifelse(all_models$`Pr(>|t|)` <= 0.001, "***",
+                             ifelse(all_models$`Pr(>|t|)` <= 0.001, "**",
+                                    ifelse(all_models$`Pr(>|t|)` <= 0.05, "*",
+                                           ifelse(all_models$`Pr(>|t|)` <= 0.1, ".", ""))))
+  
+  all_models$field <- factor(all_models$field,
+                             levels = c("stem",
+                                        "medicine",
+                                        "soc_sci",
+                                        "arts"))
+  
+  
+  
+  output_list <- list(all_models)
+  
+  return(output_list)
+}
+
+## FE/RE with scopus classification
+fe_re_fitter_cl_robust_scopus <- function(panel_dataset,
+                                   lm_formula_list,
+                                   year_cutoff_upper = 2023,
+                                   year_cutoff_lower = 1973,
+                                   index = c("profile_id", "year"),
+                                   fe_re = c("fe", "re")){
+  
+  all_models <- data.frame(matrix(ncol = 10, nrow = 0))
+  
+  fields <- c("phys", "life", "health", "soc_sci", "arts")
+  life <- filter(prof_panel_filter, overall_adj_domain == "Life Sciences")
+  phys <- filter(prof_panel_filter, overall_adj_domain == "Physical Sciences")
+  soc_sci <- filter(prof_panel_filter, overall_adj_domain == "Social Sciences")
+  arts <- filter(prof_panel_filter, overall_adj_domain == "Arts and Humanities")
+  health <- filter(prof_panel_filter, overall_adj_domain == "Health Sciences")
+  
+  for (field in fields){
+    plm_model <- NA
+    
+    field_dataset <- get(field)
+    
+    field_dataset <- filter(field_dataset,
+                            year <= year_cutoff_upper & year >= year_cutoff_lower)
+    
+    for (lm_formula in lm_formula_list){
+      
+      if (fe_re == "fe"){
+        
+        plm_model <- plm(lm_formula, 
+                         data = field_dataset,
+                         index = index, 
+                         model = "within", 
+                         effect = "twoways")
+      }
+      
+      if (fe_re == "re"){
+        plm_model <- plm(lm_formula,
+                         data = field_dataset,
+                         index = index, 
+                         model = "random")
+        
+      }
+      
+      # cluster-robust SEs
+      coef_test_output <- coeftest(lm(lm_formula,
+                                      data = field_dataset), vcov = vcovCL)
+      model_result <- coef_test_output[,] %>% 
+        as.data.frame() %>% 
+        rownames_to_column(var = "term")
+      model_result$lower_ci <- as.data.frame(confint(coef_test_output,
+                                                     level = 0.95))[,1]
+      model_result$upper_ci <- as.data.frame(confint(coef_test_output,
+                                                     level = 0.95))[,2]
+      
+      # extracting R squared
+      model_result[nrow(model_result)+1, 1] <- "R^2"
+      model_result[nrow(model_result), 2:ncol(model_result)] <- round(summary(plm_model)$r.squared,3)
+      model_result$field <- field
+      model_result$covariate <- trimws(str_split_i(lm_formula, "~", 1))
+      # binding field models together
+      all_models <- rbind(all_models,
+                          model_result)
+      
+    }
+  }
+  # adding some stars
+  all_models$stars <- ifelse(all_models$`Pr(>|t|)` <= 0.001, "***",
+                             ifelse(all_models$`Pr(>|t|)` <= 0.001, "**",
+                                    ifelse(all_models$`Pr(>|t|)` <= 0.05, "*",
+                                           ifelse(all_models$`Pr(>|t|)` <= 0.1, ".", ""))))
+  
+  all_models$field <- factor(all_models$field,
+                             levels = c("phys",
+                                        "life",
+                                        "health",
+                                        "soc_sci",
+                                        "arts"))
+  
+  
+  output_list <- list(all_models)
+  
+  return(output_list)
+}
+
 # this function tidies up regression outputs for three
 # outcome variables and arranges them for easy writing
 # into a CSV file
@@ -1810,6 +2078,18 @@ neat_regression_table <- function(
                                       "coa_twitter_total_l_log",
                                       "coa_tot_twitter_total_l",
                                       "coa_tot_twitter_total_l_log",
+                                      "cited_by_l",
+                                      "cited_by_l_log",
+                                      "coa_tot_cited_by_l",
+                                      "coa_tot_cited_by_l_log",
+                                      "coa_online_all_l",
+                                      "coa_online_all_l_log",
+                                      "coa_tot_online_all_l",
+                                      "coa_tot_online_all_l_log",
+                                      "coa_twitter_l",
+                                      "coa_twitter_l_log",
+                                      "coa_tot_twitter_l",
+                                      "coa_tot_twitter_l_log",
                                       "t_min_1",
                                       "news_all_l",
                                       "news_all_l_log",
@@ -1849,10 +2129,20 @@ neat_regression_table <- function(
                          'cited_by_total_all_l_log' = "Total citations (log, t-1)",
                          't_min_1' = "Dependent variable (t-1)",
                          'coa_online_all_total_l_log' = "Coauthors' total online attention total (log, t-1)",
+                         'coa_tot_online_all_total_l_log' = "Coauthors' total online attention total (log, t-1)",
                          'coa_tot_cited_by_total_l_log' = "Coauthors' total citations (log, t-1)",
                          'coa_twitter_total_l_log' = "Coauthors' total Twitter/X attention (log, t-1)",
+                         'coa_tot_twitter_total_l_log' = "Coauthors' total Twitter/X attention (log, t-1)",
                          'news_all_l_log' = "Printed news attention (log, t-1)",
-                         'news_all_total_l_log' = "Total printed news attention (log, t-1)"
+                         'news_all_total_l_log' = "Total printed news attention (log, t-1)",
+                         'cited_by_l' = "Citations (t-1)",
+                         'coa_tot_online_all_l' = "Coauthors' online attention (t-1)",
+                         'coa_tot_cited_by_l' = "Coauthors' citations (t-1)",
+                         'coa_tot_twitter_l' = "Coauthors' Twitter/X attention (t-1)",
+                         'cited_by_all_l_log' = "Total citations (log, t-1)",
+                         'coa_online_all_l_log' = "Coauthors' online attention (log, t-1)",
+                         'coa_tot_cited_by_l_log' = "Coauthors' citations (log, t-1)",
+                         'coa_twitter_l_log' = "Coauthors' Twitter/X attention (log, t-1)"
     ),
     field = recode(field,
                    'stem' = "STEM",
@@ -1880,6 +2170,199 @@ neat_regression_table <- function(
                                      as.character(three_models_table$field),
                                      "")
   
+  return(three_models_table)
+  
+}
+
+## neat regressions for scopus classification
+# this function tidies up regression outputs for three
+# outcome variables and arranges them for easy writing
+# into a CSV file
+neat_regression_table_scopus <- function(
+    table_1,
+    table_2,
+    table_3,
+    fe ="no"){
+  
+  table_1_neat <- table_1 %>%
+    arrange(field)%>%
+    filter(!grepl("year)", term))%>%
+    select(field, term:`Std. Error`, stars)
+  
+  colnames(table_1_neat) <- c("field", 
+                              "term",
+                              "coef_printed",
+                              "se_printed",
+                              "sig_printed")
+  
+  table_2_neat <- table_2 %>%
+    arrange(field)%>%
+    filter(!grepl("year)", term))%>%
+    select(field, term:`Std. Error`, stars)
+  
+  colnames(table_2_neat) <- c("field", 
+                              "term",
+                              "coef_online",
+                              "se_online",
+                              "sig_online")
+  
+  table_3_neat <- table_3 %>%
+    arrange(field)%>%
+    filter(!grepl("year)", term))%>%
+    select(field, term:`Std. Error`, stars)
+  
+  colnames(table_3_neat) <- c("field", 
+                              "term",
+                              "coef_twitter",
+                              "se_twitter",
+                              "sig_twitter")
+  
+  three_models_table <- merge(table_1_neat,
+                              table_2_neat,
+                              by = c("field", 
+                                     "term"),
+                              all.x = TRUE,
+                              all.y = TRUE)
+  
+  three_models_table <- merge(three_models_table,
+                              table_3_neat,
+                              by = c("field", 
+                                     "term"),
+                              all.x = TRUE,
+                              all.y = TRUE)
+  
+  
+  three_models_table$term <- ifelse(three_models_table$term %in% c("news_all_l",
+                                                                   "news_all_l_log",
+                                                                   "alt_online_all_l",
+                                                                   "alt_online_all_l_log",
+                                                                   "alt_twitter_l",
+                                                                   "alt_twitter_l_log"),
+                                    "t_min_1",
+                                    three_models_table$term)
+  
+  
+  three_models_table$term <- factor(three_models_table$term,
+                                    levels = c(
+                                      "inferred_genderw",
+                                      "cited_by_total_all_l",
+                                      "cited_by_total_all_l_log",
+                                      "news_all_total_l",
+                                      "news_all_total_l_log",
+                                      "alt_online_all_total_l",
+                                      "alt_online_all_total_l_log",
+                                      "alt_twitter_total_l",
+                                      "alt_twitter_total_l_log",
+                                      "coa_tot_cited_by_total_l",
+                                      "coa_tot_cited_by_total_l_log",
+                                      "coa_online_all_total_l",
+                                      "coa_online_all_total_l_log",
+                                      "coa_tot_online_all_total_l",
+                                      "coa_tot_online_all_total_l_log",
+                                      "coa_twitter_total_l",
+                                      "coa_twitter_total_l_log",
+                                      "coa_tot_twitter_total_l",
+                                      "coa_tot_twitter_total_l_log",
+                                      "cited_by_l",
+                                      "cited_by_l_log",
+                                      "coa_tot_cited_by_l",
+                                      "coa_tot_cited_by_l_log",
+                                      "coa_online_all_l",
+                                      "coa_online_all_l_log",
+                                      "coa_tot_online_all_l",
+                                      "coa_tot_online_all_l_log",
+                                      "coa_twitter_l",
+                                      "coa_twitter_l_log",
+                                      "coa_tot_twitter_l",
+                                      "coa_tot_twitter_l_log",
+                                      "t_min_1",
+                                      "news_all_l",
+                                      "news_all_l_log",
+                                      "alt_online_all_l",
+                                      "alt_online_all_l_log",
+                                      "alt_twitter_l",
+                                      "alt_twitter_l_log",
+                                      "years_since_first_pub",
+                                      "as.factor(any_grant_l)1",
+                                      "(Intercept)",
+                                      "R^2"
+                                    ))
+  
+  
+  three_models_table <- three_models_table %>%
+    mutate(across(where(is.numeric), round, 5))%>%
+    mutate(term = recode(term,
+                         'alt_online_all_l' = "Online attention (t-1)",
+                         'alt_online_all_total_l' = "Total online attention (t-1)",
+                         'alt_twitter_l' = "Twitter/X attention (t-1)",
+                         'alt_twitter_total_l' = "Total Twitter/X attention (t-1)",
+                         'cited_by_total_all_l' = "Total citations (t-1)",
+                         'as.factor(any_grant_l)1' = "Received an NWO/ERC grant (t-1)",
+                         'coa_online_all_total_l' = "Coauthors' total online attention total (t-1)",
+                         'coa_tot_online_all_total_l' = "Coauthors' total online attention total (t-1)",
+                         'coa_tot_cited_by_total_l' = "Coauthors' total citations (t-1)",
+                         'coa_twitter_total_l' = "Coauthors' total Twitter/X attention (t-1)",
+                         'coa_tot_twitter_total_l' = "Coauthors' total Twitter/X attention (t-1)",
+                         'years_since_first_pub' = "Years since first publication",
+                         'inferred_genderw' = "Inferred gender (reference: man)",
+                         'news_all_l' = "Printed news attention (t-1)",
+                         'news_all_total_l' = "Total printed news attention (t-1)",
+                         'alt_online_all_l_log' = "Online attention (log, t-1)",
+                         'alt_online_all_total_l_log' = "Total online attention (log, t-1)",
+                         'alt_twitter_l_log' = "Twitter/X attention (log, t-1)",
+                         'alt_twitter_total_l_log' = "Total Twitter/X attention (log, t-1)",
+                         'cited_by_total_all_l_log' = "Total citations (log, t-1)",
+                         't_min_1' = "Dependent variable (t-1)",
+                         'coa_online_all_total_l_log' = "Coauthors' total online attention total (log, t-1)",
+                         'coa_tot_online_all_total_l_log' = "Coauthors' total online attention total (log, t-1)",
+                         'coa_tot_cited_by_total_l_log' = "Coauthors' total citations (log, t-1)",
+                         'coa_twitter_total_l_log' = "Coauthors' total Twitter/X attention (log, t-1)",
+                         'coa_tot_twitter_total_l_log' = "Coauthors' total Twitter/X attention (log, t-1)",
+                         'news_all_l_log' = "Printed news attention (log, t-1)",
+                         'news_all_total_l_log' = "Total printed news attention (log, t-1)",
+                         'cited_by_l' = "Citations (t-1)",
+                         'coa_tot_online_all_l' = "Coauthors' online attention (t-1)",
+                         'coa_tot_cited_by_l' = "Coauthors' citations (t-1)",
+                         'coa_tot_twitter_l' = "Coauthors' Twitter/X attention (t-1)",
+                         'cited_by_all_l_log' = "Total citations (log, t-1)",
+                         'coa_online_all_l_log' = "Coauthors' online attention (log, t-1)",
+                         'coa_tot_cited_by_l_log' = "Coauthors' citations (log, t-1)",
+                         'coa_twitter_l_log' = "Coauthors' Twitter/X attention (log, t-1)"
+    ),
+    field = recode(field,
+                   'phys' = "Physical Sciences", 
+                   'life' = "Life Sciences", 
+                   'health' = "Health Sciences", 
+                   'soc_sci' = "Social Sciences", 
+                   'arts' = "Arts & Humanities"))%>%
+    arrange(field, term)%>%
+    select(field:coef_printed, sig_printed, se_printed, 
+           coef_online, sig_online, se_online,
+           coef_twitter, sig_twitter, se_twitter)
+  
+  three_models_table$se_printed <- ifelse(!is.na(three_models_table$se_printed),
+                                          paste0("(", as.character(three_models_table$se_printed), ")"),
+                                          three_models_table$se_printed)
+  
+  three_models_table$se_online <- ifelse(!is.na(three_models_table$se_online),
+                                         paste0("(", as.character(three_models_table$se_online), ")"),
+                                         three_models_table$se_online)
+  
+  three_models_table$se_twitter <- ifelse(!is.na(three_models_table$se_twitter),
+                                          paste0("(", as.character(three_models_table$se_twitter), ")"),
+                                          three_models_table$se_twitter)
+  
+  if (fe == "no"){
+    
+    three_models_table$field <- ifelse(three_models_table$term == "Inferred gender (reference: man)",
+                                       as.character(three_models_table$field),
+                                       "")
+  }
+  if (fe == "yes"){
+    three_models_table$field <- ifelse(three_models_table$term == "Total citations (t-1)",
+                                       as.character(three_models_table$field),
+                                       "")
+  }
   return(three_models_table)
   
 }
